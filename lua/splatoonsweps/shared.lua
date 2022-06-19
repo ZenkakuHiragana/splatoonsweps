@@ -575,3 +575,74 @@ concommand.Add("-splatoonsweps_reset_camera", function(ply) end, nil, ss.Text.CV
 concommand.Add("+splatoonsweps_reset_camera", function(ply)
     ss.PlayerShouldResetCamera[ply] = true
 end, nil, ss.Text.CVars.ResetCamera)
+
+function ss.EnterSuperJumpState(ply, beakon)
+    local w = ss.IsValidInkling(ply)
+    local squid = w and w:GetNWEntity "Squid"
+    if not (w and squid) then return end
+
+    local BeakonPos = beakon:GetPos()
+    local BeakonDir = BeakonPos - ply:GetPos()
+    local yaw = BeakonDir:Angle().yaw
+    local ang = ply:GetAngles()
+    local MoveType = ply:GetMoveType()
+    ang.yaw = yaw
+    ply:SetAngles(ang)
+    ply:SetEyeAngles(ang)
+    squid:SetNWInt("SuperJumpState", 1)
+    squid:SetNWVector("SuperJumpTo", beakon:GetPos())
+    squid:ResetSequence "jet_start"
+
+    -- Works only in sandbox derived gamemodes
+    local meta = FindMetaTable "Player"
+    local isPlayingTaunt = meta.IsPlayingTaunt
+    local tcCreateMove = baseclass.Get"player_sandbox".TauntCam.CreateMove
+    function meta:IsPlayingTaunt() return true end
+    baseclass.Get"player_sandbox".TauntCam.CreateMove = function(self, cmd)
+        tcCreateMove(self, cmd, Entity(1), Entity(1):IsPlayingTaunt())
+        cmd:AddKey(IN_DUCK)
+    end
+
+    local t0 = CurTime()
+    local SuperJumpWaitTime = 1.75
+    local SuperJumpAscendTime = 1
+    local SuperJumpDecendTime = 1
+    local StartPos, ApexPos
+    w:AddSchedule(0, function()
+        if squid:GetNWInt "SuperJumpState" == 1 then
+            if CurTime() < t0 + SuperJumpWaitTime then return end
+            ply:SetMoveType(MOVETYPE_NOCLIP)
+            squid:SetNWInt("SuperJumpState", 2)
+            squid:ResetSequence "jump_roll"
+            t0 = t0 + SuperJumpWaitTime
+            StartPos = ply:GetPos()
+            ApexPos = ply:GetPos() + BeakonDir / 2 + vector_up * 5000
+        elseif squid:GetNWInt "SuperJumpState" == 2 then
+            if CurTime() < t0 + SuperJumpAscendTime then
+                local frac = math.TimeFraction(t0, t0 + SuperJumpAscendTime, CurTime())
+                ply:SetPos(LerpVector(math.Clamp(frac, 0, 1), StartPos, ApexPos))
+                return
+            end
+            squid:SetNWInt("SuperJumpState", 3)
+            squid:ResetSequence "jump"
+            t0 = t0 + SuperJumpAscendTime
+        elseif squid:GetNWInt "SuperJumpState" == 3 then
+            if CurTime() < t0 + SuperJumpDecendTime then
+                local frac = math.TimeFraction(t0, t0 + SuperJumpDecendTime, CurTime())
+                ply:SetPos(LerpVector(math.Clamp(frac, 0, 1), ApexPos, BeakonPos))
+                return
+            end
+
+            squid:SetNWInt("SuperJumpState", -1)
+            squid:SetNWEntity("SuperJumpTo", NULL)
+            ply:SetPos(BeakonPos)
+            ply:SetAngles(ang)
+            ply:SetEyeAngles(ang)
+            ply:SetMoveType(MoveType)
+            meta.IsPlayingTaunt = isPlayingTaunt
+            baseclass.Get"player_sandbox".TauntCam.CreateMove = tcCreateMove
+            if SERVER then SafeRemoveEntityDelayed(beakon, 0.25) end
+            return true
+        end
+    end)
+end

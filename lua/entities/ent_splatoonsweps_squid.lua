@@ -21,27 +21,28 @@ function ENT:Update()
     if not IsValid(owner) then return end
     if not IsValid(weapon) then return end
     if not owner:IsPlayer() then return end
+    if self:GetNWInt("SuperJumpState", -1) < 0 then
+        local seq = self:GetSequence()
+        local WasOnGround = self.WasOnGround
+        local SquidLoopSequences = {
+            [self:LookupSequence "idle"] = "idle",
+            [self:LookupSequence "walk"] = "walk",
+            [self:LookupSequence "jump"] = "jump",
+        }
 
-    local seq = self:GetSequence()
-    local WasOnGround = self.WasOnGround
-    local SquidLoopSequences = {
-        [self:LookupSequence "idle"] = "idle",
-        [self:LookupSequence "walk"] = "walk",
-        [self:LookupSequence "jump"] = "jump",
-    }
-
-    self.WasOnGround = owner:OnGround()
-    if SquidLoopSequences[seq] or self:IsSequenceFinished() then
-        if owner:OnGround() then
-            if owner:KeyDown(MoveKeys) then
-                self:SetSequence "walk"
-            elseif not WasOnGround then
-                self:SetSequence "jump_end"
+        self.WasOnGround = owner:OnGround()
+        if SquidLoopSequences[seq] or self:IsSequenceFinished() then
+            if owner:OnGround() then
+                if owner:KeyDown(MoveKeys) then
+                    self:SetSequence "walk"
+                elseif not WasOnGround then
+                    self:SetSequence "jump_end"
+                else
+                    self:SetSequence "idle"
+                end
             else
-                self:SetSequence "idle"
+                self:SetSequence "jump"
             end
-        else
-            self:SetSequence "jump"
         end
     end
 
@@ -64,6 +65,11 @@ function ENT:CalcAbsolutePosition(_pos, _ang)
     local v = owner:GetVelocity() + Vector(f.x, f.y)
     local a = v:Angle()
     local yaw = weapon:GetAimVector():Angle().yaw
+    if self:GetNWInt("SuperJumpState", -1) > 0 then
+        local jumpto = self:GetNWVector "SuperJumpTo"
+        yaw = (jumpto - self:GetPos()):Angle().yaw
+    end
+
     local pos = owner:GetPos()
     if v:LengthSqr() < 16 then -- Speed limit
         a.p = 0
@@ -101,6 +107,7 @@ function ENT:ShouldDraw()
     if not IsValid(weapon:GetOwner()) then return false end
     if not weapon:IsTPS() then return false end
     if weapon:GetOwner():GetActiveWeapon() ~= weapon then return false end
+    if self:GetNWInt("SuperJumpState", -1) > 0 then return true end
     return weapon:ShouldDrawSquid()
 end
 
