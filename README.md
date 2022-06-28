@@ -105,12 +105,7 @@ Playermodels are optional, but I recommend to install them, too.
 
 Using an external addon for third person view is also recommended.
 
-* ~~[View Extension [ Thirdperson & Firstperson ]][9]~~  
-  (Update on June 3rd)  
-  **Remove this immediately!!**  
-  it was hacked and now it's just a troll.
 * [Enhanced ThirdPerson [Reupload]][10]  
-  I think this is a good alternative for now.
 
 [1]:https://steamcommunity.com/sharedfiles/filedetails/?id=746789974
 [2]:https://steamcommunity.com/workshop/filedetails/?id=688236142
