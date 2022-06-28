@@ -52,24 +52,17 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
 * Basic GUI to change playermodel, ink color, and other settings.
     GUI menu is in the weapon tab and Utility -> Splatoon SWEPs.
 * All main weapons in Splatoon (Wii U).
+* All sub weapons in Splatoon (Wii U).
 
 ## Currently working on
 
-* Sub weapons!
-  * [x] Explosive effect for bombs
-  * [x] Guide marker
-  * [x] Explosive sub weapons
-    * [x] Burst Bomb
-    * [x] Ink Mine
-    * [x] Seeker
-    * [x] Splat Bomb
-    * [x] Suction Bomb
-  * [ ] Non-explosive sub weapons
-    * [x] Disruptor
-    * [x] Point Sensor
-    * [x] Sprinkler
-    * [x] Splash Wall
-    * [ ] Squid Beakon
+* Super Jump System
+  * [x] Minimap
+  * [ ] Jump effect
+* Optimization
+  * [ ] Map loader
+  * [ ] Capability to handl more ink paint queue
+  * [ ] Better prediction for multiplayer
 
 ## I want to make the following, too
 
