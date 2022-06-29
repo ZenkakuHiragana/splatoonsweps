@@ -58,7 +58,8 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
 
 * Super Jump System
   * [x] Minimap
-  * [ ] Jump effect
+  * [x] Jump effect
+  * [ ] Minor fixes
 * Optimization
   * [ ] Map loader
   * [ ] Capability to handl more ink paint queue
