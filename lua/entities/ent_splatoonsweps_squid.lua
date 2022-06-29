@@ -21,36 +21,35 @@ function ENT:Update()
     if not IsValid(owner) then return end
     if not IsValid(weapon) then return end
     if not owner:IsPlayer() then return end
-    if self:GetNWInt("SuperJumpState", -1) < 0 then
-        local seq = self:GetSequence()
-        local WasOnGround = self.WasOnGround
-        local SquidLoopSequences = {
-            [self:LookupSequence "idle"] = "idle",
-            [self:LookupSequence "walk"] = "walk",
-            [self:LookupSequence "jump"] = "jump",
-        }
-
-        self.WasOnGround = owner:OnGround()
-        if SquidLoopSequences[seq] or self:IsSequenceFinished() then
-            if owner:OnGround() then
-                if owner:KeyDown(MoveKeys) then
-                    self:SetSequence "walk"
-                elseif not WasOnGround then
-                    self:SetSequence "jump_end"
-                else
-                    self:SetSequence "idle"
-                end
-            else
-                self:SetSequence "jump"
-            end
-        end
-    end
-
     for k, v in pairs(ss.SQUID) do
         if k == "KRAKEN" then continue end
         if ss.SquidmodelIndex[weapon:GetNWInt "playermodel"] ~= v then continue end
         if self:GetModel() == ss.Squidmodel[v] then continue end
         self:SetModel(ss.Squidmodel[v])
+    end
+
+    if weapon:GetSuperJumpState() >= 0 then return end
+    local seq = self:GetSequence()
+    local WasOnGround = self.WasOnGround
+    local SquidLoopSequences = {
+        [self:LookupSequence "idle"] = "idle",
+        [self:LookupSequence "walk"] = "walk",
+        [self:LookupSequence "jump"] = "jump",
+    }
+
+    self.WasOnGround = owner:OnGround()
+    if SquidLoopSequences[seq] or self:IsSequenceFinished() then
+        if owner:OnGround() then
+            if owner:KeyDown(MoveKeys) then
+                self:SetSequence "walk"
+            elseif not WasOnGround then
+                self:SetSequence "jump_end"
+            else
+                self:SetSequence "idle"
+            end
+        else
+            self:SetSequence "jump"
+        end
     end
 end
 
@@ -61,28 +60,38 @@ function ENT:CalcAbsolutePosition(_pos, _ang)
     if not IsValid(owner) then return _pos, _ang end
     if not IsValid(weapon) then return _pos, _ang end
 
+    local pos = owner:GetPos()
     local f = owner:GetForward() * 100
     local v = owner:GetVelocity() + Vector(f.x, f.y)
     local a = v:Angle()
-    local yaw = weapon:GetAimVector():Angle().yaw
-    if self:GetNWInt("SuperJumpState", -1) > 0 then
-        local jumpto = self:GetNWVector "SuperJumpTo"
-        yaw = (jumpto - self:GetPos()):Angle().yaw
-    end
+    if weapon:GetSuperJumpState() < 0 then
+        if v:LengthSqr() < 16 then -- Speed limit
+            a.p = 0
+        elseif a.p > 45 and a.p <= 90 then -- Angle limit: up and down
+            a.p = 45
+        elseif a.p >= 270 and a.p < 300 then
+            a.p = 300
+        end
 
-    local pos = owner:GetPos()
-    if v:LengthSqr() < 16 then -- Speed limit
+        a.y = weapon:GetAimVector():Angle().yaw
+    else
+        local targetentity = weapon:GetSuperJumpEntity()
+        local endpos = weapon:GetSuperJumpTo()
+        if IsValid(targetentity) then
+            endpos = targetentity:GetNetworkOrigin()
+        end
+
         a.p = 0
-    elseif a.p > 45 and a.p <= 90 then -- Angle limit: up and down
-        a.p = 45
-    elseif a.p >= 270 and a.p < 300 then
-        a.p = 300
+        a.y = (endpos - self:GetPos()):Angle().yaw
+        if weapon:GetSuperJumpState() > 0 then
+            local t = CurTime() - weapon:GetSuperJumpStartTime()
+            local start = weapon:GetSuperJumpFrom()
+            v = ss.GetSuperJumpVelocity(start, endpos, t)
+            a = v:Angle()
+        end
     end
 
-    a.p = a.p - 90
-    a.y = yaw
-    a.r = 180
-
+    a.p, a.r = a.p - 90, 180
     if owner:OnGround() then
         local t = util.QuickTrace(
             owner:WorldSpaceCenter(),
@@ -107,7 +116,6 @@ function ENT:ShouldDraw()
     if not IsValid(weapon:GetOwner()) then return false end
     if not weapon:IsTPS() then return false end
     if weapon:GetOwner():GetActiveWeapon() ~= weapon then return false end
-    if self:GetNWInt("SuperJumpState", -1) > 0 then return true end
     return weapon:ShouldDrawSquid()
 end
 

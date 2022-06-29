@@ -296,6 +296,7 @@ function SWEP:SharedDeployBase()
     self:SetCooldown(CurTime())
     self:StartRecording()
     self:SetKey(0)
+    self:SetSuperJumpState(-1)
     self:MakeSquidModel()
     self.KeyPressedOrder = {}
     self.InklingSpeed = self:GetInklingSpeed()
@@ -370,6 +371,7 @@ function SWEP:PrimaryAttack(auto) -- Shoot ink.  bool auto | is a scheduled shot
     if self:GetHolstering() then return end
     if self:GetThrowing() then return end
     if not self:CheckCanStandup() then return end
+    if self:GetSuperJumpState() >= 0 then return end
     if auto and ss.sp and CLIENT then return end
     if not auto and CurTime() < self:GetCooldown() then return end
     if not auto and self:GetOwner():IsPlayer() and self:GetKey() ~= IN_ATTACK then return end
@@ -384,6 +386,7 @@ function SWEP:SecondaryAttack() -- Use sub weapon
     if self:GetHolstering() then return end
     if self:GetKey() ~= IN_ATTACK2 then self:SetThrowing(false) return end
     if self:GetThrowing() then return end
+    if self:GetSuperJumpState() >= 0 then return end
     if CurTime() < self:GetCooldown() then return end
     if not self:CheckCanStandup() then return end
     if self:GetOwner():IsPlayer() then
@@ -449,17 +452,22 @@ function SWEP:SetupDataTables()
     self:AddNetworkVar("Bool", "Holstering") -- The weapon is being holstered.
     self:AddNetworkVar("Bool", "Throwing") -- Is about to use sub weapon.
     self:AddNetworkVar("Entity", "NPCTarget") -- Target entity for NPC.
+    self:AddNetworkVar("Entity", "SuperJumpEntity") -- Target entity to perform super jump onto.
     self:AddNetworkVar("Float", "Cooldown") -- Cannot crouch, fire, or use sub weapon.
     self:AddNetworkVar("Float", "EnemyInkTouchTime") -- Delay timer to force to stand up.
     self:AddNetworkVar("Float", "DisruptorEndTime") -- The time when Disruptor is worn off
     self:AddNetworkVar("Float", "Ink") -- Ink remainig. 0 to ss.GetMaxInkAmount()
     self:AddNetworkVar("Float", "OldSpeed") -- Old Z-velocity of the player.
+    self:AddNetworkVar("Float", "SuperJumpStartTime")
     self:AddNetworkVar("Float", "ThrowAnimTime") -- Time to adjust throw anim. speed.
     self:AddNetworkVar("Int", "GroundColor") -- Surface ink color.
     self:AddNetworkVar("Int", "Key") -- A valid key input.
+    self:AddNetworkVar("Int", "SuperJumpState") -- Super jump animation progress (< 0 for normal state)
     self:AddNetworkVar("Vector", "InkColorProxy") -- For material proxy.
     self:AddNetworkVar("Vector", "AimVector") -- NPC:GetAimVector() doesn't exist in clientside.
     self:AddNetworkVar("Vector", "ShootPos") -- NPC:GetShootPos() doesn't, either.
+    self:AddNetworkVar("Vector", "SuperJumpFrom") -- The location where player starts super jump.
+    self:AddNetworkVar("Vector", "SuperJumpTo") -- Destination of super jump in case of having invalid target entity.
     self:AddNetworkVar("Vector", "WallNormal") -- The normal vector of a wall when climbing.
     local getaimvector = self.GetAimVector
     local getshootpos = self.GetShootPos

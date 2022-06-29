@@ -127,7 +127,11 @@ local CrouchMask = bit.bnot(IN_DUCK)
 local WALLCLIMB_KEYS = bit.bor(IN_JUMP, IN_FORWARD, IN_BACK)
 function ss.PredictedThinkMoveHook(w, ply, mv)
     ss.ProtectedCall(w.Move, w, ply, mv)
+    if ss.PerformSuperJump(w, ply, mv) then
+        return
+    end
 
+    -- Check if it should forcibly stand up
     local crouching = ply:Crouching()
     if w:CheckCanStandup() and w:GetKey() ~= 0 and w:GetKey() ~= IN_DUCK
     or CurTime() > w:GetEnemyInkTouchTime() + ss.EnemyInkCrouchEndurance and ply:KeyDown(IN_DUCK)
@@ -136,8 +140,9 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         crouching = false
     end
 
+    -- Player speed clip
     local maxspeed = math.min(mv:GetMaxSpeed(), w.InklingSpeed * 1.1)
-    if ply:OnGround() then -- Max speed clip
+    if ply:OnGround() then
         maxspeed = ss.ProtectedCall(w.CustomMoveSpeed, w) or w.InklingSpeed
         maxspeed = maxspeed * Either(crouching, ss.SquidSpeedOutofInk, 1)
         maxspeed = w:GetInInk() and w.SquidSpeed or maxspeed
@@ -153,6 +158,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         ply:SetRunSpeed(maxspeed)
     end
 
+    -- Pad support: reset third person camera key input
     if ss.PlayerShouldResetCamera[ply] then
         local a = ply:GetAimVector():Angle()
         a.p = math.NormalizeAngle(a.p) / 2
@@ -166,6 +172,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     ply:SetJumpPower(jumppower)
     if CLIENT then w:UpdateInkState() end -- Ink state prediction
 
+    -- Swimming on the wall
     for v, i in pairs {
         [mv:GetVelocity()] = true, -- Current velocity
         [ss.MoveEmulation.m_vecVelocity[ply] or false] = false,
@@ -576,73 +583,138 @@ concommand.Add("+splatoonsweps_reset_camera", function(ply)
     ss.PlayerShouldResetCamera[ply] = true
 end, nil, ss.Text.CVars.ResetCamera)
 
+function ss.GetMinimapAreaBounds(pos)
+    for _, t in ipairs(ss.MinimapAreaBounds) do
+        if pos:WithinAABox(t.mins, t.maxs) then
+            return t
+        end
+    end
+end
+
+-- Gets the point on the trajectory of super jump.
+-- It forms a parabolla using first two vectors,
+-- then calculates the position at time t (0 <= t <= ss.SuperJumpTravelTime)
+function ss.GetSuperJumpRoute(start, endpos, t)
+    local apex = ss.GetSuperJumpApex(start, endpos)
+    local jumpdir = endpos - start
+    local frac = t / ss.SuperJumpTravelTime
+    local mid = 4 * apex - 2 * start - 2 * endpos
+    return start + (jumpdir + mid) * frac - mid * frac * frac
+end
+
+-- = d/dt (ss.GetSuperJumpRoute())
+function ss.GetSuperJumpVelocity(start, endpos, t)
+    local apex = ss.GetSuperJumpApex(start, endpos)
+    local jumpdir = endpos - start
+    local frac = 1 / ss.SuperJumpTravelTime
+    local mid = 4 * apex - 2 * start - 2 * endpos
+    return (jumpdir + mid) * frac - 2 * mid * frac * frac * t
+end
+
+-- Gets the apex of super jump trajectory.
+function ss.GetSuperJumpApex(start, endpos)
+    local mid = (start + endpos) / 2
+    local trstart = Vector(mid)
+    local bb = ss.GetMinimapAreaBounds(trstart)
+    trstart.z = bb.maxs.z
+    local tr = util.TraceLine {
+        start = trstart + vector_up * 300,
+        endpos = mid,
+    }
+    if tr.StartSolid then
+        trstart.z = tr.HitPos.z
+    end
+
+    return trstart - vector_up * (trstart.z - mid.z) * 0.2
+end
+
 function ss.EnterSuperJumpState(ply, beakon)
     local w = ss.IsValidInkling(ply)
     local squid = w and w:GetNWEntity "Squid"
-    if not (w and squid) then return end
-
-    local BeakonPos = beakon:GetPos()
-    local BeakonDir = BeakonPos - ply:GetPos()
-    local yaw = BeakonDir:Angle().yaw
-    local ang = ply:GetAngles()
-    local MoveType = ply:GetMoveType()
-    ang.yaw = yaw
-    ply:SetAngles(ang)
-    ply:SetEyeAngles(ang)
-    squid:SetNWInt("SuperJumpState", 1)
-    squid:SetNWVector("SuperJumpTo", beakon:GetPos())
+    if not (w and IsValid(squid)) then return end
+    if w:GetSuperJumpState() >= 0 then return end
+    if CLIENT then return end -- TODO: Predict the beginning of super jump
     squid:ResetSequence "jet_start"
+    w:SetSuperJumpEntity(beakon)
+    w:SetSuperJumpTo(beakon:GetNetworkOrigin())
+    w:SetSuperJumpStartTime(CurTime())
+    w:SetSuperJumpState(0)
+end
 
-    -- Works only in sandbox derived gamemodes
-    local meta = FindMetaTable "Player"
-    local isPlayingTaunt = meta.IsPlayingTaunt
-    local tcCreateMove = baseclass.Get"player_sandbox".TauntCam.CreateMove
-    function meta:IsPlayingTaunt() return true end
-    baseclass.Get"player_sandbox".TauntCam.CreateMove = function(self, cmd)
-        tcCreateMove(self, cmd, Entity(1), Entity(1):IsPlayingTaunt())
-        cmd:AddKey(IN_DUCK)
+function ss.PerformSuperJump(w, ply, mv)
+    local sjs = w:GetSuperJumpState()
+    if sjs < 0 then return end
+
+    local t = CurTime() - w:GetSuperJumpStartTime()
+    local targetentity = w:GetSuperJumpEntity()
+    local endpos = w:GetSuperJumpTo()
+    if IsValid(targetentity) then
+        endpos = targetentity:GetNetworkOrigin()
     end
 
-    local t0 = CurTime()
-    local SuperJumpWaitTime = 1.75
-    local SuperJumpAscendTime = 1
-    local SuperJumpDecendTime = 1
-    local StartPos, ApexPos
-    w:AddSchedule(0, function()
-        if squid:GetNWInt "SuperJumpState" == 1 then
-            if CurTime() < t0 + SuperJumpWaitTime then return end
-            ply:SetMoveType(MOVETYPE_NOCLIP)
-            squid:SetNWInt("SuperJumpState", 2)
-            squid:ResetSequence "jump_roll"
-            t0 = t0 + SuperJumpWaitTime
-            StartPos = ply:GetPos()
-            ApexPos = ply:GetPos() + BeakonDir / 2 + vector_up * 5000
-        elseif squid:GetNWInt "SuperJumpState" == 2 then
-            if CurTime() < t0 + SuperJumpAscendTime then
-                local frac = math.TimeFraction(t0, t0 + SuperJumpAscendTime, CurTime())
-                ply:SetPos(LerpVector(math.Clamp(frac, 0, 1), StartPos, ApexPos))
-                return
-            end
-            squid:SetNWInt("SuperJumpState", 3)
-            squid:ResetSequence "jump"
-            t0 = t0 + SuperJumpAscendTime
-        elseif squid:GetNWInt "SuperJumpState" == 3 then
-            if CurTime() < t0 + SuperJumpDecendTime then
-                local frac = math.TimeFraction(t0, t0 + SuperJumpDecendTime, CurTime())
-                ply:SetPos(LerpVector(math.Clamp(frac, 0, 1), ApexPos, BeakonPos))
-                return
-            end
+    local ang = mv:GetMoveAngles()
+    local keys = mv:GetButtons()
+    ang.yaw = (endpos - mv:GetOrigin()):Angle().yaw
+    keys = bit.bor(keys, IN_DUCK)
+    keys = bit.band(keys, bit.bnot(IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
+    mv:SetForwardSpeed(0)
+    mv:SetSideSpeed(0)
+    mv:SetButtons(keys)
+    mv:SetMoveAngles(ang)
 
-            squid:SetNWInt("SuperJumpState", -1)
-            squid:SetNWEntity("SuperJumpTo", NULL)
-            ply:SetPos(BeakonPos)
-            ply:SetAngles(ang)
-            ply:SetEyeAngles(ang)
-            ply:SetMoveType(MoveType)
-            meta.IsPlayingTaunt = isPlayingTaunt
-            baseclass.Get"player_sandbox".TauntCam.CreateMove = tcCreateMove
-            if SERVER then SafeRemoveEntityDelayed(beakon, 0.25) end
-            return true
+    -- Initial wait of the super jump
+    if sjs == 0 then
+        if t < ss.SuperJumpWaitTime then return end
+        if not ply:OnGround() then return end
+        sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
+        w:EmitSound "SplatoonSWEPs_Player.SuperJump"
+        w:SetSuperJumpFrom(mv:GetOrigin())
+        w:SetSuperJumpStartTime(CurTime())
+        w:SetSuperJumpState(1)
+        local squid = w:GetNWEntity "Squid"
+        if IsValid(squid) then
+            squid:ResetSequence "jump_roll"
+            if SERVER then
+                squid.Trail = util.SpriteTrail(squid, 0,
+                    w:GetInkColor(), true, 20, 10, 0.25, 0.5, "effects/beam001_white")
+            end
         end
-    end)
+
+        return
+    end
+
+    -- Actual jump
+    local squid = w:GetNWEntity "Squid"
+    if t < ss.SuperJumpTravelTime then
+        local start = w:GetSuperJumpFrom()
+        mv:SetOrigin(ss.GetSuperJumpRoute(start, endpos, t))
+        if IsValid(squid) and t > ss.SuperJumpTravelTime / 2 then
+            squid:SetSequence "jump"
+        end
+        if not w.SuperJumpVoicePlayed and t > ss.SuperJumpVoiceDelay then
+            w.SuperJumpVoicePlayed = true
+            local pmtype = w:GetNWInt "playermodel"
+            if ss.SuperJumpVoice[pmtype] then
+                w:EmitSound(ss.SuperJumpVoice[pmtype])
+            end
+        end
+
+        return true
+    else
+        local dz = -vector_up * ply:GetViewOffset()
+        local trstart = endpos - dz
+        local tr = util.QuickTrace(trstart, dz, {ply, targetentity})
+        w.SuperJumpVoicePlayed = nil
+        w:SetSuperJumpState(-1)
+        w:EmitSound "SplatoonSWEPs_Player.SuperJumpLand"
+        mv:GetOrigin(tr.HitPos)
+        if SERVER then
+            if IsValid(squid) then
+                SafeRemoveEntity(squid.Trail)
+            end
+            if IsValid(targetentity) and targetentity:GetClass() == "ent_splatoonsweps_squidbeakon" then
+                SafeRemoveEntity(targetentity)
+            end
+        end
+    end
 end
