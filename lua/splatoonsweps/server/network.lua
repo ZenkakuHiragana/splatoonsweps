@@ -74,6 +74,6 @@ end)
 net.Receive("SplatoonSWEPs: Super jump", function(len, ply)
     local ent = net.ReadEntity()
     if not IsValid(ent) then return end
-    if ent:GetClass() ~= "ent_splatoonsweps_squidbeakon" then return end
+    if not ent.IsSquidBeakon then return end
     ss.EnterSuperJumpState(ply, ent)
 end)

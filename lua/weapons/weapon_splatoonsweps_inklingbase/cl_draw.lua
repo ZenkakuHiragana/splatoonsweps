@@ -477,7 +477,6 @@ function SWEP:ShouldDrawSquid()
     if not IsValid(self:GetOwner()) then return false end
     if not self:Crouching() then return false end
     if not self:GetNWBool "becomesquid" then return false end
-    if self:GetSuperJumpState() >= 0 then return true end
     if not IsValid(self:GetNWEntity "Squid") then return false end
     return not self:GetInInk()
 end

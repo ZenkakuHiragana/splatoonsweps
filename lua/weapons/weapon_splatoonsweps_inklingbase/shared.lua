@@ -195,7 +195,7 @@ function SWEP:UpdateInkState() -- Set if player is in ink
     end
 
     local inwallink = self:Crouching() and onwallink
-    local inink = self:Crouching() and (onink and onourink or self:GetInWallInk())
+    local inink = self:GetSuperJumpState() < 0 and self:Crouching() and (onink and onourink or self:GetInWallInk())
     if onenemyink and not self:GetOnEnemyInk() then
         self.LoopSounds.EnemyInkSound.SoundPatch:ChangeVolume(1, .5)
     end
@@ -349,6 +349,9 @@ end
 function SWEP:CheckCanStandup()
     if not IsValid(self:GetOwner()) then return end
     if not self:GetOwner():IsPlayer() then return true end
+    if self:GetSuperJumpState() == 0 then return false end
+    if self:GetSuperJumpState() == 1 then return false end
+    if self:GetSuperJumpState() == 2 then return false end
     local plmins, plmaxs = self:GetOwner():GetHull()
     return not (self:Crouching() and util.TraceHull {
         start = self:GetOwner():GetPos(),
@@ -371,7 +374,6 @@ function SWEP:PrimaryAttack(auto) -- Shoot ink.  bool auto | is a scheduled shot
     if self:GetHolstering() then return end
     if self:GetThrowing() then return end
     if not self:CheckCanStandup() then return end
-    if self:GetSuperJumpState() >= 0 then return end
     if auto and ss.sp and CLIENT then return end
     if not auto and CurTime() < self:GetCooldown() then return end
     if not auto and self:GetOwner():IsPlayer() and self:GetKey() ~= IN_ATTACK then return end

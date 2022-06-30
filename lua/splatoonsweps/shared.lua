@@ -127,9 +127,7 @@ local CrouchMask = bit.bnot(IN_DUCK)
 local WALLCLIMB_KEYS = bit.bor(IN_JUMP, IN_FORWARD, IN_BACK)
 function ss.PredictedThinkMoveHook(w, ply, mv)
     ss.ProtectedCall(w.Move, w, ply, mv)
-    if ss.PerformSuperJump(w, ply, mv) then
-        return
-    end
+    ss.PerformSuperJump(w, ply, mv)
 
     -- Check if it should forcibly stand up
     local crouching = ply:Crouching()
@@ -240,7 +238,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
                 ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToSquid")
             end
         end
-    elseif w:GetOldCrouching() then
+    elseif w:GetOldCrouching() and w:GetSuperJumpState() < 0 then
         w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(0)
         w:SetWeaponAnim(w:GetThrowing() and ss.ViewModel.Throwing or ss.ViewModel.Standing)
         if IsFirstTimePredicted() then
@@ -467,6 +465,7 @@ end
 
 function ss.UpdateAnimation(w, ply, velocity, maxseqspeed)
     ss.ProtectedCall(w.UpdateAnimation, w, ply, velocity, maxseqspeed)
+    ss.SuperJumpAnimationFix(w, ply)
 
     if not w:GetThrowing() then return end
 
@@ -549,12 +548,6 @@ function ss.OnPlayerHitGround(self, ply, inWater, onFloater, speed)
     util.Effect("SplatoonSWEPsMuzzleSplash", e, true)
 end
 
-hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
-hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook "UpdateAnimation")
-hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
-hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
-hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")
-
 cvars.AddChangeCallback("gmod_language", function(convar, old, new)
     CompileFile "splatoonsweps/text.lua" ()
 end, "SplatoonSWEPs: OnLanguageChanged")
@@ -597,9 +590,9 @@ end
 function ss.GetSuperJumpRoute(start, endpos, t)
     local apex = ss.GetSuperJumpApex(start, endpos)
     local jumpdir = endpos - start
-    local frac = t / ss.SuperJumpTravelTime
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
     local mid = 4 * apex - 2 * start - 2 * endpos
-    return start + (jumpdir + mid) * frac - mid * frac * frac
+    return start + jumpdir * frac + mid * frac - mid * frac * frac
 end
 
 -- = d/dt (ss.GetSuperJumpRoute())
@@ -608,7 +601,7 @@ function ss.GetSuperJumpVelocity(start, endpos, t)
     local jumpdir = endpos - start
     local frac = 1 / ss.SuperJumpTravelTime
     local mid = 4 * apex - 2 * start - 2 * endpos
-    return (jumpdir + mid) * frac - 2 * mid * frac * frac * t
+    return jumpdir * frac + mid * frac - 2 * mid * frac * frac * t
 end
 
 -- Gets the apex of super jump trajectory.
@@ -634,6 +627,7 @@ function ss.EnterSuperJumpState(ply, beakon)
     if not (w and IsValid(squid)) then return end
     if w:GetSuperJumpState() >= 0 then return end
     if CLIENT then return end -- TODO: Predict the beginning of super jump
+    squid:SetCycle(0)
     squid:ResetSequence "jet_start"
     w:SetSuperJumpEntity(beakon)
     w:SetSuperJumpTo(beakon:GetNetworkOrigin())
@@ -655,8 +649,7 @@ function ss.PerformSuperJump(w, ply, mv)
     local ang = mv:GetMoveAngles()
     local keys = mv:GetButtons()
     ang.yaw = (endpos - mv:GetOrigin()):Angle().yaw
-    keys = bit.bor(keys, IN_DUCK)
-    keys = bit.band(keys, bit.bnot(IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
+    keys = bit.band(keys, bit.bnot(IN_DUCK, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
     mv:SetForwardSpeed(0)
     mv:SetSideSpeed(0)
     mv:SetButtons(keys)
@@ -664,6 +657,7 @@ function ss.PerformSuperJump(w, ply, mv)
 
     -- Initial wait of the super jump
     if sjs == 0 then
+        mv:AddKey(IN_DUCK)
         if t < ss.SuperJumpWaitTime then return end
         if not ply:OnGround() then return end
         sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
@@ -676,21 +670,53 @@ function ss.PerformSuperJump(w, ply, mv)
             squid:ResetSequence "jump_roll"
             if SERVER then
                 squid.Trail = util.SpriteTrail(squid, 0,
-                    w:GetInkColor(), true, 20, 10, 0.25, 0.5, "effects/beam001_white")
+                    w:GetInkColor(), true, 20, 10, 0.5, 0.5, "effects/beam001_white")
             end
         end
 
         return
     end
 
+    local boneid = 0
+    local pm = w:GetNWInt "playermodel"
+    if pm == ss.PLAYER.GIRL or pm == ss.PLAYER.BOY then
+        boneid = 2
+    end
+
     -- Actual jump
     local squid = w:GetNWEntity "Squid"
-    if t < ss.SuperJumpTravelTime then
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
+    if frac < 1 then
         local start = w:GetSuperJumpFrom()
         mv:SetOrigin(ss.GetSuperJumpRoute(start, endpos, t))
-        if IsValid(squid) and t > ss.SuperJumpTravelTime / 2 then
-            squid:SetSequence "jump"
+        if IsValid(squid) then
+            if IsValid(squid.Trail) then
+                squid.Trail:SetKeyValue("endwidth", tostring(Lerp(frac * 2, 10, 0)))
+                squid.Trail:SetKeyValue("lifetime", tostring(Lerp(frac * 2, 0.5, 0)))
+            end
+            if ss.sp or CLIENT then
+                local f = math.Clamp(math.Remap(frac, 0.45, 1, 1, 0), 0, 1)
+                local a = squid:GetAngles()
+                local pitch = f * 360 + a.y - ply:GetAngles().yaw
+                local roll = f == 1 and 0 or -a.p
+                if sjs == 4 then a = Angle() end
+                ply:ManipulateBoneAngles(boneid, Angle(pitch, 0, roll))
+            end
         end
+
+        if frac < 0.45 then
+            mv:AddKey(IN_DUCK)
+        elseif frac < 0.75 then
+            w:SetSuperJumpState(2)
+        elseif sjs == 3 and mv:KeyPressed(IN_ATTACK) then
+            w:SetSuperJumpState(4)
+        elseif sjs == 2 then
+            w:SetSuperJumpState(3)
+            if IsValid(squid) then
+                SafeRemoveEntity(squid.Trail)
+            end
+        end
+
         if not w.SuperJumpVoicePlayed and t > ss.SuperJumpVoiceDelay then
             w.SuperJumpVoicePlayed = true
             local pmtype = w:GetNWInt "playermodel"
@@ -704,17 +730,46 @@ function ss.PerformSuperJump(w, ply, mv)
         local dz = -vector_up * ply:GetViewOffset()
         local trstart = endpos - dz
         local tr = util.QuickTrace(trstart, dz, {ply, targetentity})
+        keys = bit.band(keys, bit.bnot(IN_DUCK))
+        mv:SetButtons(keys)
+        mv:SetOrigin(tr.HitPos)
         w.SuperJumpVoicePlayed = nil
         w:SetSuperJumpState(-1)
         w:EmitSound "SplatoonSWEPs_Player.SuperJumpLand"
-        mv:GetOrigin(tr.HitPos)
+        if ss.sp or CLIENT then
+            ply:ManipulateBoneAngles(boneid, angle_zero)
+        end
         if SERVER then
-            if IsValid(squid) then
-                SafeRemoveEntity(squid.Trail)
-            end
-            if IsValid(targetentity) and targetentity:GetClass() == "ent_splatoonsweps_squidbeakon" then
+            if IsValid(targetentity) and targetentity.IsSquidBeakon then
                 SafeRemoveEntity(targetentity)
             end
+            local e = EffectData()
+            e:SetOrigin(tr.HitPos)
+            e:SetMagnitude(1)
+            e:SetScale(1)
+            e:SetFlags(4)
+            util.Effect("Explosion", e, nil, true)
         end
     end
 end
+
+function ss.SuperJumpAnimationFix(w, ply)
+    local sjs = w:GetSuperJumpState()
+    if sjs < 2 then return end
+    if sjs == 4 then
+        ply:AnimResetGestureSlot(GESTURE_SLOT_JUMP)
+        return
+    end
+
+    local t = CurTime() - w:GetSuperJumpStartTime()
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
+    frac = math.Remap(frac, 0.75, 1, 0.5, 1)
+    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_JUMP,
+    ply:SelectWeightedSequence(ACT_HL2MP_SWIM), frac, true)
+end
+
+hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
+hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook "UpdateAnimation")
+hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
+hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
+hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")
