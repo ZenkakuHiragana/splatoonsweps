@@ -171,6 +171,35 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     if CLIENT then w:UpdateInkState() end -- Ink state prediction
 
     -- Swimming on the wall
+    ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
+
+    -- Send viewmodel animation.
+    if crouching then
+        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(math.Clamp(mv:GetVelocity():Length() / w.SquidSpeed * (w:GetInInk() and 1 or 0), 0, 1))
+        if not w:GetOldCrouching() then
+            w:SetWeaponAnim(ss.ViewModel.Squid)
+            if w:GetNWInt "playermodel" ~= ss.PLAYER.NOCHANGE then
+                ply:RemoveAllDecals()
+            end
+
+            if IsFirstTimePredicted() then
+                ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToSquid")
+            end
+        end
+    elseif w:GetOldCrouching() then
+        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(0)
+        w:SetWeaponAnim(w:GetThrowing() and ss.ViewModel.Throwing or ss.ViewModel.Standing)
+        if IsFirstTimePredicted() and w:GetSuperJumpState() < 0 then
+            ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToHuman")
+        end
+    end
+
+    w.OnOutofInk = w:GetInWallInk()
+    w:SetOldCrouching(crouching or infence)
+end
+
+function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
+    if w:GetSuperJumpState() >= 0 then return end
     for v, i in pairs {
         [mv:GetVelocity()] = true, -- Current velocity
         [ss.MoveEmulation.m_vecVelocity[ply] or false] = false,
@@ -224,30 +253,6 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         and math.min(vz, ply:GetJumpPower() * .7) or vz
         if i then mv:SetVelocity(v) end
     end
-
-    -- Send viewmodel animation.
-    if crouching then
-        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(math.Clamp(mv:GetVelocity():Length() / w.SquidSpeed * (w:GetInInk() and 1 or 0), 0, 1))
-        if not w:GetOldCrouching() then
-            w:SetWeaponAnim(ss.ViewModel.Squid)
-            if w:GetNWInt "playermodel" ~= ss.PLAYER.NOCHANGE then
-                ply:RemoveAllDecals()
-            end
-
-            if IsFirstTimePredicted() then
-                ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToSquid")
-            end
-        end
-    elseif w:GetOldCrouching() and w:GetSuperJumpState() < 0 then
-        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(0)
-        w:SetWeaponAnim(w:GetThrowing() and ss.ViewModel.Throwing or ss.ViewModel.Standing)
-        if IsFirstTimePredicted() then
-            ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToHuman")
-        end
-    end
-
-    w.OnOutofInk = w:GetInWallInk()
-    w:SetOldCrouching(crouching or infence)
 end
 
 -- Short for Entity:NetworkVar().
@@ -649,7 +654,7 @@ function ss.PerformSuperJump(w, ply, mv)
     local ang = mv:GetMoveAngles()
     local keys = mv:GetButtons()
     ang.yaw = (endpos - mv:GetOrigin()):Angle().yaw
-    keys = bit.band(keys, bit.bnot(IN_DUCK, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
+    keys = bit.band(keys, bit.bnot(IN_DUCK, IN_JUMP, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
     mv:SetForwardSpeed(0)
     mv:SetSideSpeed(0)
     mv:SetButtons(keys)
@@ -658,8 +663,13 @@ function ss.PerformSuperJump(w, ply, mv)
     -- Initial wait of the super jump
     if sjs == 0 then
         mv:AddKey(IN_DUCK)
-        if t < ss.SuperJumpWaitTime then return end
-        if not ply:OnGround() then return end
+        if w:GetInWallInk() then
+            local gravity = GetConVar "sv_gravity":GetFloat()
+            mv:SetUpSpeed(0)
+            mv:SetVelocity(vector_up * gravity * 0.5 * FrameTime())
+        end
+        if t < ss.SuperJumpWaitTime then return true end
+        if not (ply:OnGround() or w:GetInWallInk()) then return end
         sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
         w:EmitSound "SplatoonSWEPs_Player.SuperJump"
         w:SetSuperJumpFrom(mv:GetOrigin())
