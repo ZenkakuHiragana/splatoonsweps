@@ -62,6 +62,7 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
   * [x] Minor fixes
   * [ ] Jump to other players
   * [ ] Jump to the respawn
+  * [ ] Arrival indicator
 * Optimization
   * [ ] Map loader
   * [ ] Capability to handl more ink paint queue
