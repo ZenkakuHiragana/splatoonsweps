@@ -65,7 +65,7 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
   * [ ] Arrival indicator
 * Optimization
   * [ ] Map loader
-  * [ ] Capability to handl more ink paint queue
+  * [ ] Capability to handle more ink paint queue
   * [ ] Better prediction for multiplayer
 
 ## I want to make the following, too
