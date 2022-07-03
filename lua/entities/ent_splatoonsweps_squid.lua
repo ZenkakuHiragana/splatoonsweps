@@ -64,7 +64,15 @@ function ENT:CalcAbsolutePosition(_pos, _ang)
     local f = owner:GetForward() * 100
     local v = owner:GetVelocity() + Vector(f.x, f.y)
     local a = v:Angle()
-    if weapon:GetSuperJumpState() < 0 then
+    local sjs = weapon:GetSuperJumpState()
+    local start = weapon:GetSuperJumpFrom()
+    local targetentity = weapon:GetSuperJumpEntity()
+    local endpos = weapon:GetSuperJumpTo()
+    if IsValid(targetentity) then
+        endpos = targetentity:GetNetworkOrigin()
+    end
+
+    if sjs < 0 then
         if v:LengthSqr() < 16 then -- Speed limit
             a.p = 0
         elseif a.p > 45 and a.p <= 90 then -- Angle limit: up and down
@@ -73,25 +81,28 @@ function ENT:CalcAbsolutePosition(_pos, _ang)
             a.p = 300
         end
 
-        a.y = weapon:GetAimVector():Angle().yaw
+        a.y, a.r = weapon:GetAimVector():Angle().yaw, 180
+    elseif sjs == 0 then
+        if weapon:GetInWallInk() then
+            local dir = ss.GetSuperJumpApex(owner, start, endpos) - start
+            local normal = weapon:GetWallNormal()
+            dir = (dir - normal * normal:Dot(dir)):GetNormalized()
+            local x, y = dir.z, vector_up:Cross(dir):Dot(normal)
+            local roll = math.deg(math.atan2(y, x))
+            a = Angle(90, normal:Angle().yaw, roll)
+            pos:Sub(normal * 11)
+        else
+            local dir = endpos - self:GetPos()
+            a.p, a.y, a.r = 0, dir:Angle().yaw, 180
+        end
     else
-        local targetentity = weapon:GetSuperJumpEntity()
-        local endpos = weapon:GetSuperJumpTo()
-        if IsValid(targetentity) then
-            endpos = targetentity:GetNetworkOrigin()
-        end
-
-        a.p = 0
-        a.y = (endpos - self:GetPos()):Angle().yaw
-        if weapon:GetSuperJumpState() > 0 then
-            local t = CurTime() - weapon:GetSuperJumpStartTime()
-            local start = weapon:GetSuperJumpFrom()
-            v = ss.GetSuperJumpVelocity(start, endpos, t)
-            a = v:Angle()
-        end
+        local t = CurTime() - weapon:GetSuperJumpStartTime()
+        v = ss.GetSuperJumpVelocity(owner, start, endpos, t)
+        a = v:Angle()
+        a.r = 180
     end
 
-    a.p, a.r = a.p - 90, 180
+    a.p = a.p - 90
     if owner:OnGround() then
         local t = util.QuickTrace(
             owner:WorldSpaceCenter(),

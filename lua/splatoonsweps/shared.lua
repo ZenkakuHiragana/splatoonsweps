@@ -592,8 +592,8 @@ end
 -- Gets the point on the trajectory of super jump.
 -- It forms a parabolla using first two vectors,
 -- then calculates the position at time t (0 <= t <= ss.SuperJumpTravelTime)
-function ss.GetSuperJumpRoute(start, endpos, t)
-    local apex = ss.GetSuperJumpApex(start, endpos)
+function ss.GetSuperJumpRoute(ply, start, endpos, t)
+    local apex = ss.GetSuperJumpApex(ply, start, endpos)
     local jumpdir = endpos - start
     local frac = math.min(1, t / ss.SuperJumpTravelTime)
     local mid = 4 * apex - 2 * start - 2 * endpos
@@ -601,8 +601,8 @@ function ss.GetSuperJumpRoute(start, endpos, t)
 end
 
 -- = d/dt (ss.GetSuperJumpRoute())
-function ss.GetSuperJumpVelocity(start, endpos, t)
-    local apex = ss.GetSuperJumpApex(start, endpos)
+function ss.GetSuperJumpVelocity(ply, start, endpos, t)
+    local apex = ss.GetSuperJumpApex(ply, start, endpos)
     local jumpdir = endpos - start
     local frac = 1 / ss.SuperJumpTravelTime
     local mid = 4 * apex - 2 * start - 2 * endpos
@@ -610,7 +610,7 @@ function ss.GetSuperJumpVelocity(start, endpos, t)
 end
 
 -- Gets the apex of super jump trajectory.
-function ss.GetSuperJumpApex(start, endpos)
+function ss.GetSuperJumpApex(ply, start, endpos)
     local mid = (start + endpos) / 2
     local trstart = Vector(mid)
     local bb = ss.GetMinimapAreaBounds(trstart)
@@ -623,7 +623,7 @@ function ss.GetSuperJumpApex(start, endpos)
         trstart.z = tr.HitPos.z
     end
 
-    return trstart - vector_up * (trstart.z - mid.z) * 0.2
+    return trstart - vector_up * ply:OBBMaxs().z * 2
 end
 
 function ss.EnterSuperJumpState(ply, beakon)
@@ -635,6 +635,7 @@ function ss.EnterSuperJumpState(ply, beakon)
     squid:SetCycle(0)
     squid:ResetSequence "jet_start"
     w:SetSuperJumpEntity(beakon)
+    w:SetSuperJumpFrom(ply:GetPos())
     w:SetSuperJumpTo(beakon:GetNetworkOrigin())
     w:SetSuperJumpStartTime(CurTime())
     w:SetSuperJumpState(0)
@@ -670,6 +671,7 @@ function ss.PerformSuperJump(w, ply, mv)
         end
         if t < ss.SuperJumpWaitTime then return true end
         if not (ply:OnGround() or w:GetInWallInk()) then return end
+
         sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
         w:EmitSound "SplatoonSWEPs_Player.SuperJump"
         w:SetSuperJumpFrom(mv:GetOrigin())
@@ -698,7 +700,7 @@ function ss.PerformSuperJump(w, ply, mv)
     local frac = math.min(1, t / ss.SuperJumpTravelTime)
     if frac < 1 then
         local start = w:GetSuperJumpFrom()
-        mv:SetOrigin(ss.GetSuperJumpRoute(start, endpos, t))
+        mv:SetOrigin(ss.GetSuperJumpRoute(ply, start, endpos, t))
         if IsValid(squid) then
             if IsValid(squid.Trail) then
                 squid.Trail:SetKeyValue("endwidth", tostring(Lerp(frac * 2, 10, 0)))
