@@ -614,16 +614,15 @@ function ss.GetSuperJumpApex(ply, start, endpos)
     local mid = (start + endpos) / 2
     local trstart = Vector(mid)
     local bb = ss.GetMinimapAreaBounds(trstart)
-    trstart.z = bb.maxs.z
+    trstart.z = bb.maxs.z + 1
     local tr = util.TraceLine {
-        start = trstart + vector_up * 300,
+        start = trstart,
         endpos = mid,
     }
     if tr.StartSolid then
-        trstart.z = tr.HitPos.z
+        trstart.z = tr.StartPos.z
     end
-
-    return trstart - vector_up * ply:OBBMaxs().z * 2
+    return trstart - vector_up * ply:GetViewOffset().z * 3
 end
 
 function ss.EnterSuperJumpState(ply, beakon)
