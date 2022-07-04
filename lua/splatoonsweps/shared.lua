@@ -740,7 +740,13 @@ function ss.PerformSuperJump(w, ply, mv)
     else
         local dz = -vector_up * ply:GetViewOffset()
         local trstart = endpos - dz
-        local tr = util.QuickTrace(trstart, dz, {ply, targetentity})
+        local tr = util.TraceHull {
+            start = trstart,
+            endpos = trstart + dz,
+            filter = { ply, targetentity },
+            mins = ply:OBBMins(),
+            maxs = ply:OBBMaxs(),
+        }
         keys = bit.band(keys, bit.bnot(IN_DUCK))
         mv:SetButtons(keys)
         mv:SetOrigin(tr.HitPos)
