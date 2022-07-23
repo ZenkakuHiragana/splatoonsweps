@@ -84,6 +84,7 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
+    if IsValid(self.ExistingSplashWall) then return end
     local e = ents.Create "ent_splatoonsweps_splashwall"
     e.Weapon = self
     e:SetOwner(self:GetOwner())
@@ -98,6 +99,7 @@ function module:ServerSecondaryAttack(throwable)
         ph:AddVelocity(self:GetSubWeaponInitVelocity() + self:GetVelocity())
     end
 
+    self.ExistingSplashWall = e
     self:ConsumeInk(p.mInkConsume)
     self:SetReloadDelay(p.mInkRecoverStop)
 end
