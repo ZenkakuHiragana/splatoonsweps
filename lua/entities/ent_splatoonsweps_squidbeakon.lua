@@ -9,6 +9,7 @@ ENT.Model = Model "models/splatoonsweps/subs/squidbeakon/squidbeakon.mdl"
 ENT.SubWeaponName = "squidbeakon"
 ENT.WeaponClassName = ""
 ENT.IsSplatoonBomb = true
+ENT.IsSquidBeakon = true
 
 function ENT:SetupDataTables()
     self:NetworkVar("Vector", 0, "InkColorProxy")

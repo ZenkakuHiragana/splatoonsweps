@@ -165,14 +165,16 @@ end
 
 function ss.PostPlayerDraw(w, ply)
     if ShouldHidePlayer(w, ply) then return end
-    if not ShouldChangePlayerAlpha(w, ply) then return end
-    render.SetBlend(1)
+    if ShouldChangePlayerAlpha(w, ply) then
+        render.SetBlend(1)
+    end
 end
 
 function ss.PrePlayerDraw(w, ply)
     if ShouldHidePlayer(w, ply) then return true end
-    if not ShouldChangePlayerAlpha(w, ply) then return end
-    render.SetBlend(w:GetCameraFade() * ply:GetColor().a / 255)
+    if ShouldChangePlayerAlpha(w, ply) then
+        render.SetBlend(w:GetCameraFade() * ply:GetColor().a / 255)
+    end
 end
 
 function ss.RenderScreenspaceEffects(w)

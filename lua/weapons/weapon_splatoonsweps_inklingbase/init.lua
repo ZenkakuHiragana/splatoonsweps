@@ -310,6 +310,7 @@ end
 
 function SWEP:Holster()
     if self:GetInFence() then return false end
+    if self:GetSuperJumpState() >= 0 then return false end
     if not IsValid(self:GetOwner()) then return true end
     if InvalidPlayer(self:GetOwner()) then return true end
     self.PMTable = nil

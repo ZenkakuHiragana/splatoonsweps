@@ -5,14 +5,7 @@ if not ss then return end
 local toggle = false
 local cos, sin, rad = math.cos, math.sin, math.rad
 function ss.OpenMiniMap()
-    local bb
-    for _, t in ipairs(ss.MinimapAreaBounds) do
-        if LocalPlayer():GetPos():WithinAABox(t.mins, t.maxs) then
-            bb = t
-            break
-        end
-    end
-
+    local bb = ss.GetMinimapAreaBounds(LocalPlayer():WorldSpaceCenter())
     if not bb then return end
     local inclined = true
     local inclinedYaw = 30
@@ -161,12 +154,9 @@ function ss.OpenMiniMap()
             local pos = b:WorldSpaceCenter()
             local bx, by = TransformPosition(pos, w, h, ortho)
             if math.Distance(x, y, bx, by) < s then
-                local dir = pos - LocalPlayer():GetPos()
-                local yaw = dir:Angle().yaw
+                ss.EnterSuperJumpState(LocalPlayer(), b)
                 net.Start "SplatoonSWEPs: Super jump"
                 net.WriteEntity(b)
-                net.WriteVector(pos)
-                net.WriteFloat(yaw)
                 net.SendToServer()
             end
         end

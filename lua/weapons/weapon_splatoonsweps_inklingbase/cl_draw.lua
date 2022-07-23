@@ -177,83 +177,9 @@ function SWEP:PreDrawViewModel(vm, weapon, ply)
 end
 
 function SWEP:ViewModelDrawn(vm)
-    if self.SurpressDrawingVM or self:GetHolstering() or
-    not (IsValid(self) and IsValid(self:GetOwner())) then return end
+    if self:GetHolstering() or not (IsValid(self) and IsValid(self:GetOwner())) then return end
     if self:GetThrowing() and CurTime() > self:GetNextSecondaryFire() then
         ss.ProtectedCall(self.DrawOnSubTriggerDown, self)
-    end
-
-    for _, name in ipairs(self.vRenderOrder) do
-        local v = self.VElements[name]
-        if not v then self.vRenderOrder = nil break end
-        if v.hide or not v.bone then continue end
-
-        local sprite = v.spriteMaterial
-        local pos, ang = self:GetBoneOrientation(self.VElements, v, vm)
-        if not pos then continue end
-        if v.type == "Model" then
-            if not (IsValid(v.modelEnt) or self:RecreateModel(v)) then continue end
-            local model = v.modelEnt
-            local da = name == "weapon" and v.angle or Angle()
-            local dp = name == "weapon" and v.pos or Vector()
-            model:SetPos(pos + ang:Forward() * dp.x + ang:Right() * dp.y + ang:Up() * dp.z)
-            ang:RotateAroundAxis(ang:Up(), da.y)
-            ang:RotateAroundAxis(ang:Right(), da.p)
-            ang:RotateAroundAxis(ang:Forward(), da.r)
-            model:SetAngles(ang)
-
-            local matrix = Matrix()
-            matrix:Scale(v.size)
-
-            if model:GetMaterial() ~= v.material then
-                if v.material == "" then
-                    model:SetMaterial ""
-                else
-                    model:SetMaterial(v.material)
-                end
-            end
-
-            local skin = name == "weapon" and self.Skin or v.skin
-            if skin and skin ~= model:GetSkin() then
-                model:SetSkin(skin)
-            end
-
-            for k, b in pairs(name == "weapon" and self.Bodygroup or v.bodygroup or {}) do
-                if model:GetBodygroup(k) == b then continue end
-                model:SetBodygroup(k, b)
-            end
-
-            if v.surpresslightning then
-                render.SuppressEngineLighting(true)
-            end
-
-            ss.ProtectedCall(self.PreDrawViewModelElements, self, model, self:GetOwner(), ang, pos, v, matrix)
-            model:EnableMatrix("RenderMultiply", matrix)
-            render.SetColorModulation(v.color.r / 255, v.color.g / 255, v.color.b / 255)
-            render.SetBlend(v.color.a / 255)
-            model:DrawModel()
-            render.SetBlend(1)
-            render.SetColorModulation(1, 1, 1)
-
-            if v.surpresslightning then
-                render.SuppressEngineLighting(false)
-            end
-
-        elseif v.type == "Sprite" and sprite then
-            local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-            render.SetMaterial(sprite)
-            render.DrawSprite(drawpos, v.size.x, v.size.y, v.color)
-
-        elseif v.type == "Quad" then
-            local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-            ang:RotateAroundAxis(ang:Up(), v.angle.y)
-            ang:RotateAroundAxis(ang:Right(), v.angle.p)
-            ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-
-            if v.is2d then cam.Start3D2D(drawpos, ang, v.size) end
-            ss.ProtectedCall(v.draw_func, self)
-            if v.is2d then cam.End3D2D() end
-        end
     end
 end
 

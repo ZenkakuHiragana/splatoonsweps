@@ -74,11 +74,6 @@ end)
 net.Receive("SplatoonSWEPs: Super jump", function(len, ply)
     local ent = net.ReadEntity()
     if not IsValid(ent) then return end
-    if ent:GetClass() ~= "ent_splatoonsweps_squidbeakon" then return end
-    local pos = net.ReadVector()
-    local ang = ply:EyeAngles()
-    ang.yaw = net.ReadFloat()
-    ply:SetPos(pos)
-    ply:SetEyeAngles(ang)
-    SafeRemoveEntityDelayed(ent, 0.25)
+    if not ent.IsSquidBeakon then return end
+    ss.EnterSuperJumpState(ply, ent)
 end)

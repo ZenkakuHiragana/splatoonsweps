@@ -127,7 +127,9 @@ local CrouchMask = bit.bnot(IN_DUCK)
 local WALLCLIMB_KEYS = bit.bor(IN_JUMP, IN_FORWARD, IN_BACK)
 function ss.PredictedThinkMoveHook(w, ply, mv)
     ss.ProtectedCall(w.Move, w, ply, mv)
+    ss.PerformSuperJump(w, ply, mv)
 
+    -- Check if it should forcibly stand up
     local crouching = ply:Crouching()
     if w:CheckCanStandup() and w:GetKey() ~= 0 and w:GetKey() ~= IN_DUCK
     or CurTime() > w:GetEnemyInkTouchTime() + ss.EnemyInkCrouchEndurance and ply:KeyDown(IN_DUCK)
@@ -136,8 +138,9 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         crouching = false
     end
 
+    -- Player speed clip
     local maxspeed = math.min(mv:GetMaxSpeed(), w.InklingSpeed * 1.1)
-    if ply:OnGround() then -- Max speed clip
+    if ply:OnGround() then
         maxspeed = ss.ProtectedCall(w.CustomMoveSpeed, w) or w.InklingSpeed
         maxspeed = maxspeed * Either(crouching, ss.SquidSpeedOutofInk, 1)
         maxspeed = w:GetInInk() and w.SquidSpeed or maxspeed
@@ -153,6 +156,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         ply:SetRunSpeed(maxspeed)
     end
 
+    -- Pad support: reset third person camera key input
     if ss.PlayerShouldResetCamera[ply] then
         local a = ply:GetAimVector():Angle()
         a.p = math.NormalizeAngle(a.p) / 2
@@ -166,6 +170,36 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     ply:SetJumpPower(jumppower)
     if CLIENT then w:UpdateInkState() end -- Ink state prediction
 
+    -- Swimming on the wall
+    ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
+
+    -- Send viewmodel animation.
+    if crouching then
+        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(math.Clamp(mv:GetVelocity():Length() / w.SquidSpeed * (w:GetInInk() and 1 or 0), 0, 1))
+        if not w:GetOldCrouching() then
+            w:SetWeaponAnim(ss.ViewModel.Squid)
+            if w:GetNWInt "playermodel" ~= ss.PLAYER.NOCHANGE then
+                ply:RemoveAllDecals()
+            end
+
+            if IsFirstTimePredicted() then
+                ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToSquid")
+            end
+        end
+    elseif w:GetOldCrouching() then
+        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(0)
+        w:SetWeaponAnim(w:GetThrowing() and ss.ViewModel.Throwing or ss.ViewModel.Standing)
+        if IsFirstTimePredicted() and w:GetSuperJumpState() < 0 then
+            ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToHuman")
+        end
+    end
+
+    w.OnOutofInk = w:GetInWallInk()
+    w:SetOldCrouching(crouching or infence)
+end
+
+function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
+    if w:GetSuperJumpState() >= 0 then return end
     for v, i in pairs {
         [mv:GetVelocity()] = true, -- Current velocity
         [ss.MoveEmulation.m_vecVelocity[ply] or false] = false,
@@ -219,30 +253,6 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         and math.min(vz, ply:GetJumpPower() * .7) or vz
         if i then mv:SetVelocity(v) end
     end
-
-    -- Send viewmodel animation.
-    if crouching then
-        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(math.Clamp(mv:GetVelocity():Length() / w.SquidSpeed * (w:GetInInk() and 1 or 0), 0, 1))
-        if not w:GetOldCrouching() then
-            w:SetWeaponAnim(ss.ViewModel.Squid)
-            if w:GetNWInt "playermodel" ~= ss.PLAYER.NOCHANGE then
-                ply:RemoveAllDecals()
-            end
-
-            if IsFirstTimePredicted() then
-                ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToSquid")
-            end
-        end
-    elseif w:GetOldCrouching() then
-        w.LoopSounds.SwimSound.SoundPatch:ChangeVolume(0)
-        w:SetWeaponAnim(w:GetThrowing() and ss.ViewModel.Throwing or ss.ViewModel.Standing)
-        if IsFirstTimePredicted() then
-            ss.EmitSoundPredicted(ply, w, "SplatoonSWEPs_Player.ToHuman")
-        end
-    end
-
-    w.OnOutofInk = w:GetInWallInk()
-    w:SetOldCrouching(crouching or infence)
 end
 
 -- Short for Entity:NetworkVar().
@@ -460,6 +470,7 @@ end
 
 function ss.UpdateAnimation(w, ply, velocity, maxseqspeed)
     ss.ProtectedCall(w.UpdateAnimation, w, ply, velocity, maxseqspeed)
+    ss.SuperJumpAnimationFix(w, ply)
 
     if not w:GetThrowing() then return end
 
@@ -542,12 +553,6 @@ function ss.OnPlayerHitGround(self, ply, inWater, onFloater, speed)
     util.Effect("SplatoonSWEPsMuzzleSplash", e, true)
 end
 
-hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
-hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook "UpdateAnimation")
-hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
-hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
-hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")
-
 cvars.AddChangeCallback("gmod_language", function(convar, old, new)
     CompileFile "splatoonsweps/text.lua" ()
 end, "SplatoonSWEPs: OnLanguageChanged")
@@ -575,3 +580,213 @@ concommand.Add("-splatoonsweps_reset_camera", function(ply) end, nil, ss.Text.CV
 concommand.Add("+splatoonsweps_reset_camera", function(ply)
     ss.PlayerShouldResetCamera[ply] = true
 end, nil, ss.Text.CVars.ResetCamera)
+
+function ss.GetMinimapAreaBounds(pos)
+    for _, t in ipairs(ss.MinimapAreaBounds) do
+        if pos:WithinAABox(t.mins, t.maxs) then
+            return t
+        end
+    end
+end
+
+-- Gets the point on the trajectory of super jump.
+-- It forms a parabolla using first two vectors,
+-- then calculates the position at time t (0 <= t <= ss.SuperJumpTravelTime)
+function ss.GetSuperJumpRoute(ply, start, endpos, t)
+    local apex = ss.GetSuperJumpApex(ply, start, endpos)
+    local jumpdir = endpos - start
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
+    local mid = 4 * apex - 2 * start - 2 * endpos
+    return start + jumpdir * frac + mid * frac - mid * frac * frac
+end
+
+-- = d/dt (ss.GetSuperJumpRoute())
+function ss.GetSuperJumpVelocity(ply, start, endpos, t)
+    local apex = ss.GetSuperJumpApex(ply, start, endpos)
+    local jumpdir = endpos - start
+    local frac = 1 / ss.SuperJumpTravelTime
+    local mid = 4 * apex - 2 * start - 2 * endpos
+    return jumpdir * frac + mid * frac - 2 * mid * frac * frac * t
+end
+
+-- Gets the apex of super jump trajectory.
+function ss.GetSuperJumpApex(ply, start, endpos)
+    local mid = (start + endpos) / 2
+    local trstart = Vector(mid)
+    local bb = ss.GetMinimapAreaBounds(trstart)
+    trstart.z = bb.maxs.z + 1
+    local tr = util.TraceLine {
+        start = trstart,
+        endpos = mid,
+    }
+    if tr.StartSolid then
+        trstart.z = tr.StartPos.z
+    end
+    return trstart - vector_up * ply:GetViewOffset().z * 3
+end
+
+function ss.EnterSuperJumpState(ply, beakon)
+    local w = ss.IsValidInkling(ply)
+    local squid = w and w:GetNWEntity "Squid"
+    if not (w and IsValid(squid)) then return end
+    if w:GetSuperJumpState() >= 0 then return end
+    if CLIENT then return end -- TODO: Predict the beginning of super jump
+    squid:SetCycle(0)
+    squid:ResetSequence "jet_start"
+    w:SetSuperJumpEntity(beakon)
+    w:SetSuperJumpFrom(ply:GetPos())
+    w:SetSuperJumpTo(beakon:GetNetworkOrigin())
+    w:SetSuperJumpStartTime(CurTime())
+    w:SetSuperJumpState(0)
+end
+
+function ss.PerformSuperJump(w, ply, mv)
+    local sjs = w:GetSuperJumpState()
+    if sjs < 0 then return end
+
+    local t = CurTime() - w:GetSuperJumpStartTime()
+    local targetentity = w:GetSuperJumpEntity()
+    local endpos = w:GetSuperJumpTo()
+    if IsValid(targetentity) then
+        endpos = targetentity:GetNetworkOrigin()
+    end
+
+    local ang = mv:GetMoveAngles()
+    local keys = mv:GetButtons()
+    ang.yaw = (endpos - mv:GetOrigin()):Angle().yaw
+    keys = bit.band(keys, bit.bnot(IN_DUCK, IN_JUMP, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
+    mv:SetForwardSpeed(0)
+    mv:SetSideSpeed(0)
+    mv:SetButtons(keys)
+    mv:SetMoveAngles(ang)
+
+    -- Initial wait of the super jump
+    if sjs == 0 then
+        mv:AddKey(IN_DUCK)
+        if w:GetInWallInk() then
+            local gravity = GetConVar "sv_gravity":GetFloat()
+            mv:SetUpSpeed(0)
+            mv:SetVelocity(vector_up * gravity * 0.5 * FrameTime())
+        end
+        if t < ss.SuperJumpWaitTime then return true end
+        if not (ply:OnGround() or w:GetInWallInk()) then return end
+
+        sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
+        w:EmitSound "SplatoonSWEPs_Player.SuperJump"
+        w:SetSuperJumpFrom(mv:GetOrigin())
+        w:SetSuperJumpStartTime(CurTime())
+        w:SetSuperJumpState(1)
+        local squid = w:GetNWEntity "Squid"
+        if IsValid(squid) then
+            squid:ResetSequence "jump_roll"
+            if SERVER then
+                squid.Trail = util.SpriteTrail(squid, 0,
+                    w:GetInkColor(), true, 20, 10, 0.5, 0.5, "effects/beam001_white")
+            end
+        end
+
+        return
+    end
+
+    local boneid = 0
+    local pm = w:GetNWInt "playermodel"
+    if pm == ss.PLAYER.GIRL or pm == ss.PLAYER.BOY then
+        boneid = 2
+    end
+
+    -- Actual jump
+    local squid = w:GetNWEntity "Squid"
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
+    if frac < 1 then
+        local start = w:GetSuperJumpFrom()
+        mv:SetOrigin(ss.GetSuperJumpRoute(ply, start, endpos, t))
+        if IsValid(squid) then
+            if IsValid(squid.Trail) then
+                squid.Trail:SetKeyValue("endwidth", tostring(Lerp(frac * 2, 10, 0)))
+                squid.Trail:SetKeyValue("lifetime", tostring(Lerp(frac * 2, 0.5, 0)))
+            end
+            if ss.sp or CLIENT then
+                local f = math.Clamp(math.Remap(frac, 0.45, 1, 1, 0), 0, 1)
+                local a = squid:GetAngles()
+                local pitch = f * 360 + a.y - ply:GetAngles().yaw
+                local roll = f == 1 and 0 or -a.p
+                if sjs == 4 then a = Angle() end
+                ply:ManipulateBoneAngles(boneid, Angle(pitch, 0, roll))
+            end
+        end
+
+        if frac < 0.45 then
+            mv:AddKey(IN_DUCK)
+        elseif frac < 0.75 then
+            w:SetSuperJumpState(2)
+        elseif sjs == 3 and mv:KeyPressed(IN_ATTACK) then
+            w:SetSuperJumpState(4)
+        elseif sjs == 2 then
+            w:SetSuperJumpState(3)
+            if IsValid(squid) then
+                SafeRemoveEntity(squid.Trail)
+            end
+        end
+
+        if not w.SuperJumpVoicePlayed and t > ss.SuperJumpVoiceDelay then
+            w.SuperJumpVoicePlayed = true
+            local pmtype = w:GetNWInt "playermodel"
+            if ss.SuperJumpVoice[pmtype] then
+                w:EmitSound(ss.SuperJumpVoice[pmtype])
+            end
+        end
+
+        return true
+    else
+        local dz = -vector_up * ply:GetViewOffset()
+        local trstart = endpos - dz
+        local tr = util.TraceHull {
+            start = trstart,
+            endpos = trstart + dz,
+            filter = { ply, targetentity },
+            mins = ply:OBBMins(),
+            maxs = ply:OBBMaxs(),
+        }
+        keys = bit.band(keys, bit.bnot(IN_DUCK))
+        mv:SetButtons(keys)
+        mv:SetOrigin(tr.HitPos)
+        w.SuperJumpVoicePlayed = nil
+        w:SetSuperJumpState(-1)
+        w:EmitSound "SplatoonSWEPs_Player.SuperJumpLand"
+        if ss.sp or CLIENT then
+            ply:ManipulateBoneAngles(boneid, angle_zero)
+        end
+        if SERVER then
+            if IsValid(targetentity) and targetentity.IsSquidBeakon then
+                SafeRemoveEntity(targetentity)
+            end
+            local e = EffectData()
+            e:SetOrigin(tr.HitPos)
+            e:SetMagnitude(1)
+            e:SetScale(1)
+            e:SetFlags(4)
+            util.Effect("Explosion", e, nil, true)
+        end
+    end
+end
+
+function ss.SuperJumpAnimationFix(w, ply)
+    local sjs = w:GetSuperJumpState()
+    if sjs < 2 then return end
+    if sjs == 4 then
+        ply:AnimResetGestureSlot(GESTURE_SLOT_JUMP)
+        return
+    end
+
+    local t = CurTime() - w:GetSuperJumpStartTime()
+    local frac = math.min(1, t / ss.SuperJumpTravelTime)
+    frac = math.Remap(frac, 0.75, 1, 0.5, 1)
+    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_JUMP,
+    ply:SelectWeightedSequence(ACT_HL2MP_SWIM), frac, true)
+end
+
+hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
+hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook "UpdateAnimation")
+hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
+hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
+hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")

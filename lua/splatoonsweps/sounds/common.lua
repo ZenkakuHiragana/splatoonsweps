@@ -73,6 +73,32 @@ sound.Add {
     pitch = 100,
 }
 
+
+sound.Add {
+    channel = CHAN_ITEM,
+    name = "SplatoonSWEPs_Player.SuperJump",
+    level = 75,
+    sound = "splatoonsweps/player/superjump.wav",
+    volume = 1,
+    pitch = 100,
+}
+sound.Add {
+    channel = CHAN_ITEM,
+    name = "SplatoonSWEPs_Player.SuperJumpAttention",
+    level = 60,
+    sound = "splatoonsweps/player/attentionjump.wav",
+    volume = 1,
+    pitch = 100,
+}
+sound.Add {
+    channel = CHAN_ITEM,
+    name = "SplatoonSWEPs_Player.SuperJumpLand",
+    level = 100,
+    sound = "splatoonsweps/player/superjumpland.wav",
+    volume = 1,
+    pitch = 100,
+}
+
 sound.Add {
     channel = CHAN_ITEM,
     name = "SplatoonSWEPs_Player.ToHuman",
@@ -93,7 +119,7 @@ sound.Add {
 
 sound.Add {
     channel = CHAN_AUTO,
-    name = "SplatoonSWEPs.PlayerDeathExplosion",
+    name = "SplatoonSWEPs_Player.DeathExplosion",
     level = 85,
     sound = "splatoonsweps/explosion/playerdeath.wav",
     volume = 1,
@@ -116,5 +142,37 @@ ss.PrecacheSoundList {
         sound = "splatoonsweps/player/footsteps/slime%d.wav",
         volume = 1,
         pitch = 80,
+    },
+    {
+        channel = CHAN_BODY,
+        name = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+        level = 75,
+        sound = "splatoonsweps/vo/superjump/squid_female%d.wav",
+        volume = 1,
+        pitch = 100,
+    },
+    {
+        channel = CHAN_BODY,
+        name = "SplatoonSWEPs_Voice.SuperJump_SquidMale",
+        level = 75,
+        sound = "splatoonsweps/vo/superjump/squid_male%d.wav",
+        volume = 1,
+        pitch = 100,
+    },
+    {
+        channel = CHAN_BODY,
+        name = "SplatoonSWEPs_Voice.SuperJump_OctoMale",
+        level = 75,
+        sound = "splatoonsweps/vo/superjump/octo_male%d.wav",
+        volume = 1,
+        pitch = 100,
+    },
+    {
+        channel = CHAN_BODY,
+        name = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
+        level = 75,
+        sound = "splatoonsweps/vo/superjump/octo_female%d.wav",
+        volume = 1,
+        pitch = 100,
     },
 }

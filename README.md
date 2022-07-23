@@ -52,24 +52,21 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
 * Basic GUI to change playermodel, ink color, and other settings.
     GUI menu is in the weapon tab and Utility -> Splatoon SWEPs.
 * All main weapons in Splatoon (Wii U).
+* All sub weapons in Splatoon (Wii U).
 
 ## Currently working on
 
-* Sub weapons!
-  * [x] Explosive effect for bombs
-  * [x] Guide marker
-  * [x] Explosive sub weapons
-    * [x] Burst Bomb
-    * [x] Ink Mine
-    * [x] Seeker
-    * [x] Splat Bomb
-    * [x] Suction Bomb
-  * [ ] Non-explosive sub weapons
-    * [x] Disruptor
-    * [x] Point Sensor
-    * [x] Sprinkler
-    * [x] Splash Wall
-    * [ ] Squid Beakon
+* Super Jump System
+  * [x] Minimap
+  * [x] Jump effect
+  * [x] Minor fixes
+  * [ ] Jump to other players
+  * [ ] Jump to the respawn
+  * [ ] Arrival indicator
+* Optimization
+  * [ ] Map loader
+  * [ ] Capability to handle more ink paint queue
+  * [ ] Better prediction for multiplayer
 
 ## I want to make the following, too
 
@@ -105,7 +102,7 @@ Playermodels are optional, but I recommend to install them, too.
 
 Using an external addon for third person view is also recommended.
 
-* [View Extension [ Thirdperson & Firstperson ]][9]
+* [Enhanced ThirdPerson [Reupload]][10]  
 
 [1]:https://steamcommunity.com/sharedfiles/filedetails/?id=746789974
 [2]:https://steamcommunity.com/workshop/filedetails/?id=688236142
@@ -116,3 +113,4 @@ Using an external addon for third person view is also recommended.
 [7]:https://steamcommunity.com/sharedfiles/filedetails/?id=476149543
 [8]:https://steamcommunity.com/sharedfiles/filedetails/?id=1544841933
 [9]:https://steamcommunity.com/sharedfiles/filedetails/?id=2589006389
+[10]:https://steamcommunity.com/sharedfiles/filedetails/?id=2593095865

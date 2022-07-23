@@ -63,6 +63,19 @@ ss.SquidmodelIndex = {
     [ss.PLAYER.MARINA]   = ss.SQUID.OCTO2,
 }
 
+ss.SuperJumpVoice = {
+    [ss.PLAYER.NOCHANGE] = nil,
+    [ss.PLAYER.GIRL]     = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+    [ss.PLAYER.BOY]      = "SplatoonSWEPs_Voice.SuperJump_SquidMale",
+    [ss.PLAYER.MARIE]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+    [ss.PLAYER.CALLIE]   = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+    [ss.PLAYER.OCTO]     = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
+    [ss.PLAYER.OCTOGIRL] = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
+    [ss.PLAYER.OCTOBOY]  = "SplatoonSWEPs_Voice.SuperJump_OctoMale",
+    [ss.PLAYER.PEARL]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+    [ss.PLAYER.MARINA]   = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+}
+
 ss.ChargingEyeSkin = {
     [Marie] = 0,
     [Callie] = 5,
@@ -257,6 +270,9 @@ ss.InklingJumpPower = 250
 ss.InklingSpeedMulSubWeapon = .75 -- Speed multiplier when holding MOUSE2
 ss.JumpPowerMulOnEnemyInk = .75
 ss.JumpPowerMulDisrupted = .6
+ss.SuperJumpWaitTime = 1.5 -- Time to wait for super jump
+ss.SuperJumpTravelTime = 2.8 -- Time from start to end of the super jump
+ss.SuperJumpVoiceDelay = 0.8 -- Delay to play super jump voice
 ss.ToHammerUnits = .1 * 3.28084 * 16 * (1.00965 / 1.5) -- = 3.53, Splatoon distance units -> Hammer distance units
 ss.ToHammerUnitsPerSec = ss.ToHammerUnits * framepersec -- = 212, Splatoon du/s -> Hammer du/s
 ss.ToHammerUnitsPerSec2 = ss.ToHammerUnitsPerSec * framepersec -- = 12720, Splatoon du/s^2 -> Hammer du/s^2
