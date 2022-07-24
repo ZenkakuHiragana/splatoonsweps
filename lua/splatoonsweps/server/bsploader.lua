@@ -258,6 +258,7 @@ local StructureDefinitions = {
         "Float  alpha",
     },
     DISP_TRIS = "UShort",
+    LIGHTING = "Long",
     GAME_LUMP = {
         size = -1, -- Negative size means this is a single lump
         "Long        lumpCount",
@@ -422,5 +423,176 @@ function ss.LoadBSP()
         end
     end
 
-    return t
+    t.TexDataStringTableToData = {}
+    local offset = 0
+    for i, str in ipairs(t.TEXDATA_STRING_DATA) do
+        t.TexDataStringTableToData[offset] = i
+        offset = offset + #str + 1
+    end
+
+    ss.BSP.Raw = t
+end
+
+-- Index to SURFEDGES array -> actual vertex
+local function surfEdgeToVertex(index)
+    local surfedge  = ss.BSP.Raw.SURFEDGES[index]
+    local edge      = ss.BSP.Raw.EDGES    [math.abs(surfedge)]
+    local vertindex = surfedge < 0 and edge[2] or edge[1]
+    return ss.BSP.Raw.VERTEXES[vertindex]
+end
+
+local TextureFilterBits = bit.bor(SURF_SKY,
+                                  SURF_WARP,
+                                  SURF_NOPORTAL,
+                                  SURF_TRIGGER,
+                                  SURF_NODRAW,
+                                  SURF_HINT,
+                                  SURF_SKIP)
+-- Construct a polygon from a raw face data
+local function buildFace(faceindex, rawFace)
+    local rawTexInfo   = ss.BSP.Raw.TEXINFO
+    local texInfo      = rawTexInfo[rawFace.texInfo]
+    if bit.band(texInfo.flags, TextureFilterBits) ~= 0 then return end
+
+    local rawTexData   = ss.BSP.Raw.TEXDATA
+    local rawTexDict   = ss.BSP.Raw.TEXDATA_STRING_TABLE
+    local rawTexIndex  = ss.BSP.Raw.TexDataStringTableToData
+    local rawTexString = ss.BSP.Raw.TEXDATA_STRING_DATA
+    local texData      = rawTexData[texInfo.texData + 1]
+    local texOffset    = rawTexDict[texData.nameStringTableID + 1]
+    local texIndex     = rawTexIndex[texOffset + 1]
+    local texName      = rawTexString[texIndex + 1]:lower()
+    local texMaterial  = Material(texName)
+    if texMaterial:GetString "$surfaceprop" == "metalgrate"
+    or texName:find "tools/" then return end
+
+    local rawPlanes = ss.BSP.Raw.PLANES
+    local plane     = rawPlanes[rawFace.planeNum + 1]
+    local firstedge = rawFace.firstEdge
+    local lastedge  = rawFace.firstEdge + rawFace.numEdges - 1
+    local normal    = plane.normal
+
+    -- Collect "raw" vertex list
+    local rawVertices = {}
+    for i = firstedge, lastedge do
+        rawVertices[#rawVertices + 1] = surfEdgeToVertex(i)
+    end
+
+    -- Filter out colinear vertices and calculate the center
+    local filteredVertices = {}
+    local vertexSum = Vector()
+    for i, current in ipairs(rawVertices) do
+        local before = rawVertices[(#rawVertices + i - 2) % #rawVertices + 1]
+        local after  = rawVertices[i % rawVertices + 1]
+        local cross  = (before - current):Cross(after - current)
+        if normal:Dot(cross:GetNormalized()) > 0 then
+            filteredVertices[#filteredVertices + 1] = current
+            vertexSum:Add(current)
+        end
+    end
+
+    if #filteredVertices < 3 then return end
+    local center = vertexSum / #filteredVertices
+    local contents = util.PointContents(center - normal * ss.eps)
+    local isDisplacement = rawFace.dispInfo >= 0
+    local isSolid = bit.band(contents, MASK_SOLID) > 0
+    local isWater = texName:find "water"
+    if isDisplacement or isSolid then
+        local minsx = rawFace.lightmapTextureMinsInLuxels[1]
+        local minsy = rawFace.lightmapTextureMinsInLuxels[2]
+        local sizex = rawFace.lightmapTextureSizeInLuxels[1]
+        local sizey = rawFace.lightmapTextureSizeInLuxels[2]
+        local offsetx = texInfo.lightmapOffsetS
+        local offsety = texInfo.lightmapOffsetT
+        return {
+            DisplacementInfo = nil,
+            IsDisplacement   = isDisplacement,
+            TextureName      = texName,
+            Vertices3D       = filteredVertices,
+            LightmapInfo = {
+                SampleStartIndex = rawFace.lightOffset,
+                Mins   = Vector(minsx, minsy),
+                Size   = Vector(sizex, sizey),
+                BasisX = texInfo.lightmapVecS,
+                BasisY = texInfo.lightmapVecT,
+                Origin = Vector(offsetx, offsety),
+            },
+        }
+    elseif isWater then
+        return {
+            IsWaterSurface = true,
+            TextureName    = texName,
+            Vertices3D     = filteredVertices,
+        }
+    end
+end
+
+-- DISPINFO = {
+--     size = 176,
+--     "Vector               startPosition",
+--     "Long                 dispVertStart",
+--     "Long                 dispTriStart",
+--     "Long                 power",
+--     "Long                 minTesselation",
+--     "Float                smoothingAngle",
+--     "Long                 contents",
+--     "UShort               mapFace",
+--     "UShort               padding",
+--     "Long                 lightmapAlphaTest",
+--     "Long                 lightmapSamplesPositionStart",
+--     "CDispNeighbor        edgeNeighbors   4", -- Probably these are
+--     "CDispCornerNeighbors cornerNeighbors 4", -- not correctly parsed
+--     "ULong                allowedVerts    10",
+-- },
+-- DISP_VERTS = {
+--     size = 20,
+--     "Vector vec",
+--     "Float  dist",
+--     "Float  alpha",
+-- },
+function ss.GenerateDisplacementInfo(face)
+    local rawDispInfo = ss.BSP.Raw.DISPINFO
+    local dispInfo = rawDispInfo[face.dispInfo + 1]
+
+    -- dispInfo.startPosition isn't always equal to face.Vertices3D[1]
+    -- so find correct one and sort them
+    do local indices, mindist, startindex = {}, math.huge, 0
+        for i, v in ipairs(face.Vertices3D) do
+            local dist = dispInfo.startPosition:DistToSqr(v)
+            if dist < mindist then
+                startindex, mindist = i, dist
+            end
+        end
+
+        for i = 1, 4 do
+            indices[i] = (i + startindex - 2) % 4 + 1
+        end
+
+        face.Vertices3D[1], face.Vertices3D[2],
+        face.Vertices3D[3], face.Vertices3D[4]
+            = face.Vertices3D[indices[1]], face.Vertices3D[indices[2]],
+              face.Vertices3D[indices[3]], face.Vertices3D[indices[4]]
+    end
+
+    local disp = {
+        Triangles = {},
+        Vertices = {},
+        VerticesGrid = {},
+    }
+    local u1 = face.Vertices3D[4] - face.Vertices3D[1]
+    local v1 = face.Vertices3D[2] - face.Vertices3D[1]
+    local v2 = face.Vertices3D[3] - face.Vertices3D[4]
+    face.DisplacementInfo = disp
+end
+
+function ss.CollectPolygons()
+    local t = {}
+    for i, face in ipairs(ss.BSP.Raw.FACES) do
+        t[#t + 1] = buildFace(i, face)
+        if t[#t].IsDisplacement then
+            ss.GenerateDisplacementInfo(t[#t])
+        end
+    end
+
+    ss.BSP.Polygons = t
 end

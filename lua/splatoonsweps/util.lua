@@ -174,6 +174,15 @@ function ss.To3D(source, orgpos, organg)
     return LocalToWorld(localpos, angle_zero, orgpos, organg)
 end
 
+-- Returns true if two numbers are close to equal.
+-- Arguments:
+--   number a, b | Numbers to compare.
+-- Returning:
+--   bool        | Mostly like a == b.
+function ss.IsClose(a, b)
+    return math.abs(a - b) <= ss.eps * math.max(1, math.abs(a), math.abs(b))
+end
+
 -- util.IsInWorld() only exists in serverside.
 -- This is shared version of it.
 -- Argument:
@@ -338,7 +347,7 @@ function ss.GetGravityDirection()
 end
 
 function ss.MakeAllyFilter(Owner)
-    local t = {Owner}
+    local t = { Owner }
     local w = ss.IsValidInkling(Owner)
     if not w then return t end
     for _, e in ipairs(ents.GetAll()) do

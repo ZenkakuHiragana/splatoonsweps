@@ -258,6 +258,7 @@ end
 
 local framepersec = 60
 local inklingspeed = .96 * framepersec
+ss.eps = 1e-9 -- Epsilon, representing "close-to-zero"
 ss.vector_one = Vector(1, 1, 1)
 ss.MaxInkAmount = 100
 ss.SquidBoundHeight = 32
