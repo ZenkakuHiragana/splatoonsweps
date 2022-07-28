@@ -337,14 +337,24 @@ function ss.GetGravityDirection()
     return g:GetNormalized()
 end
 
-function ss.MakeAllyFilter(weapon)
+function ss.RegisterEntity(ent)
+    local color = ent:GetNWInt("inkcolor", -1)
+    if color < 0 then return end
+    ss.EntityFilters[color] = ss.EntityFilters[color] or {}
+    ss.EntityFilters[color][ent] = true
+end
+
+function ss.MakeAllyFilter(weapon, ...)
     local owner = weapon:GetOwner()
-    local t = { owner, weapon }
-    for _, e in ipairs(ents.GetAll()) do
-        if e.UseSubWeaponFilter and ss.IsAlly(weapon, e) then
-            table.insert(t, e)
+    local color = weapon:GetNWInt "inkcolor"
+    local entities = { weapon, owner }
+    for ent in pairs(ss.EntityFilters[color] or {}) do
+        if IsValid(ent) then
+            entities[#entities + 1] = ent
+        else
+            ss.EntityFilters[color][ent] = nil
         end
     end
 
-    return t
+    return entities
 end

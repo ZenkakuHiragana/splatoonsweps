@@ -8,6 +8,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     AspectSumX = 0, -- Sum of widths for each surface
     AspectSumY = 0, -- Sum of heights for each surface
     CrosshairColors = {},
+    EntityFilters = {},
     IMesh = {},
     InkColors = {},
     InkShotMaterials = {},

@@ -14,8 +14,7 @@ local function SplashWallFilter(e1, e2)
     local w = ss.IsValidInkling(e2)
     if w and ss.IsAlly(e1, w) then return false end
     if not isstring(e2.SubWeaponName) then return end
-    if ss.IsAlly(e1, e2) then return false end
-    return true
+    return not ss.IsAlly(e1, e2)
 end
 
 hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter", function(e1, e2)
@@ -43,13 +42,17 @@ function ENT:Initialize()
     self:SetCollisionGroup(self.CollisionGroup)
     self:SetCustomCollisionCheck(true)
     self.DragCoeffChangeTime = CurTime() + self.StraightFrame
-    if CLIENT then return end
-    self:PhysicsInit(SOLID_VPHYSICS)
-    self:PhysWake()
-    local p = self:GetPhysicsObject()
-    if not IsValid(p) then return end
-    p:EnableDrag(false)
-    p:EnableGravity(false)
+    if SERVER then
+        self:PhysicsInit(SOLID_VPHYSICS)
+        self:PhysWake()
+        local p = self:GetPhysicsObject()
+        if IsValid(p) then
+            p:EnableDrag(false)
+            p:EnableGravity(false)
+        end
+    end
+
+    ss.RegisterEntity(self)
 end
 
 function ENT:SetupDataTables()
