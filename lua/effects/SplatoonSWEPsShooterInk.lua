@@ -186,7 +186,7 @@ function EFFECT:Think()
     ss.AdvanceBullet(self.Ink)
 
     -- Check collision agains local player
-    self.Ink.Trace.filter = ss.MakeAllyFilter(Weapon:GetOwner())
+    self.Ink.Trace.filter = ss.MakeAllyFilter(Weapon)
     local tr = util.TraceHull(self.Ink.Trace)
     local trlp = Weapon:GetOwner() ~= LocalPlayer()
     local start, endpos = self.Ink.Trace.start, self.Ink.Trace.endpos

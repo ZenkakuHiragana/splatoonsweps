@@ -24,7 +24,7 @@ function SWEP:GetFirePosition(ping)
     local t = {}
     t.start, t.endpos = shootpos, shootpos + aim
     t.mins, t.maxs = -col, col
-    t.filter = ss.MakeAllyFilter(self:GetOwner())
+    t.filter = ss.MakeAllyFilter(self)
     t.mask = ss.SquidSolidMask
     t.collisiongroup = COLLISION_GROUP_NONE
 
