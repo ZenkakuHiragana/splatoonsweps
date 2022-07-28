@@ -365,7 +365,7 @@ function SWEP:Think()
 
     local PMPath = ss.Playermodel[self:GetNWInt "playermodel"]
     if PMPath then
-        if file.Exists(PMPath, "GAME") then
+        if (not self.PMTable or PMPath ~= self:GetOwner():GetModel()) and file.Exists(PMPath, "GAME") then
             self.PMTable = {
                 Model = PMPath,
                 Skin = 0,
@@ -373,9 +373,6 @@ function SWEP:Think()
                 SetOffsets = true,
                 PlayerColor = self:GetInkColorProxy(),
             }
-        end
-
-        if self.PMTable and self.PMTable.Model ~= self:GetOwner():GetModel() then
             self:ChangePlayermodel(self.PMTable)
         end
     else

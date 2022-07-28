@@ -118,7 +118,7 @@ function ENT:Paint()
     local atts = self:GetAttachments()
     local dz = self:OBBMaxs().z
     local paintPos = {}
-    for i, att in ipairs(atts) do
+    for _, att in ipairs(atts) do
         -- get rid of leftmost/rightmost nozzle
         if not (att.name:find "7" or att.name:find "6") then
             local a = self:GetAttachment(att.id)

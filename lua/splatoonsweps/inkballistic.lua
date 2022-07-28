@@ -234,7 +234,7 @@ local function ProcessInkQueue(ink, ply)
     or not IsValid(weapon:GetOwner())
 
     if not removal and (not ink.Owner:IsPlayer() or ink.Owner == ply) then
-        tr.filter = ss.MakeAllyFilter(ink.Owner)
+        tr.filter = ss.MakeAllyFilter(weapon)
         Simulate(ink)
         if tr.start:DistToSqr(tr.endpos) > 0 then
             tr.maxs = ss.vector_one * data.ColRadiusWorld

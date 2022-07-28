@@ -7,6 +7,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     AspectSumX = 0,
     AspectSumY = 0,
     CrosshairColors = {},
+    EntityFilters = {},
     LastHitID = {},
     MinimapAreaBounds = {},
     NoCollide = {},
