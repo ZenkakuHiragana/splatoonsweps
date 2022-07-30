@@ -81,7 +81,11 @@ function SWEP:PlayChargeSound()
     if ss.mp and (SERVER or not IsFirstTimePredicted()) then return end
     local prog = self:GetChargeProgress()
     if not (ss.sp and SERVER and not self:GetOwner():IsPlayer()) and 0 < prog and prog < 1 then
-        self.LoopSounds.AimSound.SoundPatch:PlayEx(1, math.max(self.LoopSounds.AimSound.SoundPatch:GetPitch(), prog * 99 + 1))
+        local currentpitch = self.LoopSounds.AimSound.SoundPatch:GetPitch()
+        local desiredpitch = prog * 99 + 1
+        local minimumpitch = math.ceil(1 / ss.GetTimeScale())
+        local pitch = math.max(currentpitch, desiredpitch, minimumpitch)
+        self.LoopSounds.AimSound.SoundPatch:PlayEx(1, pitch)
     else
         self.LoopSounds.AimSound.SoundPatch:Stop()
         self.LoopSounds.AimSound.SoundPatch:ChangePitch(1)
@@ -164,7 +168,7 @@ function SWEP:SharedPrimaryAttack()
         end
 
         self.FullChargeFlag = false
-        self.LoopSounds.AimSound.SoundPatch:PlayEx(0, 1)
+        self.LoopSounds.AimSound.SoundPatch:PlayEx(0, 100)
         self:SetAimTimer(CurTime() + ss.AimDuration)
         self:SetCharge(CurTime())
         self:SetWeaponAnim(ACT_VM_IDLE)
