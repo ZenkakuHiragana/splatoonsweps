@@ -51,7 +51,7 @@ end
 
 -- Flags:
 -- +128 Lag compensation for local player
--- +8   Use custom gravity and air resist (GetEffectSplash.pitch and yaw)
+-- +8   Use custom gravity and air resist (GetEffectSplashInfo.pitch and yaw)
 -- +4   Is sprinkler
 -- +2   Explosion drop (unused)
 -- +1   Normal drop
@@ -79,7 +79,7 @@ function EFFECT:Init(e)
     local IsRoller         = Weapon.IsRoller
     local IsSlosher        = Weapon.IsSlosher
     local Ping             = IsLP and Weapon:Ping() or 0
-    local SplashInfo       = ss.GetEffectSplash(e)
+    local SplashInfo       = ss.GetEffectSplashInfo(e)
     local SplashInitRate   = ss.GetEffectSplashInitRate(e).x
     local SplashColRadius  = SplashInfo.pitch
     local SplashDrawRadius = SplashInfo.yaw
@@ -91,6 +91,7 @@ function EFFECT:Init(e)
     local AirResist        = Weapon.Projectile.AirResist
     local Gravity          = Weapon.Projectile.Gravity
     local TrailInitPos     = ApparentPos
+    print(ss.GetEffectSplashInitRate(e))
     if UseCustomGravity then
         IsDrop    = true
         AirResist = SplashInfo.pitch / 180

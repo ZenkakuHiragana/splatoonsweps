@@ -43,6 +43,7 @@ ss.SQUID = {
     OCTO = 3,
     OCTO2 = 4,
 }
+
 ss.Squidmodel = {
     [ss.SQUID.INKLING] = Model "models/splatoonsweps/squids/squid.mdl",
     [ss.SQUID.KRAKEN] = Model "models/props_splatoon/squids/kraken_beta.mdl",
@@ -125,6 +126,16 @@ ss.Particles = {
     RollerSplash = "splatoonsweps_roller_splash",
     SplashWall = "splatoonsweps_splash_wall",
     SplatlingMuzzleFlash = "splatoonsweps_splatling_muzzleflash",
+}
+
+ss.INK_EFFECT_TYPE = {
+    SHOOTER           = 1,
+    CHARGER           = 2,
+    ROLLER            = 3,
+    SLOSHER           = 4,
+    BLASTER_EXPLOSION = 5,
+    SPRINKLER         = 6,
+    SLOSHING_MACHINE  = 7,
 }
 
 ss.KeyMask = {IN_ATTACK, IN_DUCK, IN_ATTACK2}

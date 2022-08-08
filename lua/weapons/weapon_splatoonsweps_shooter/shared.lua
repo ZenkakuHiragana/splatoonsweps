@@ -9,8 +9,8 @@ local FirePosition = 10
 local randsplash = "SplatoonSWEPs: SplashNum"
 function SWEP:GetRange() return self.Range end
 function SWEP:GetInitVelocity() return self.Parameters.mInitVel end
-function SWEP:GetSplashInitRate()
-    return self.SplashInitTable[self:GetSplashInitMul()] / self.Parameters.mSplashSplitNum
+function SWEP:GetSplashInit()
+    return self.SplashInitTable[self:GetSplashInitMul()]
 end
 
 function SWEP:GetFirePosition(ping)
@@ -129,14 +129,64 @@ function SWEP:GetSpread()
     return rx, ry
 end
 
+SWEP.GetEffectSplashInit = ss.GetEffectUInt
+SWEP.SetEffectSplashInit = ss.SetEffectUInt
+function SWEP:CollectEffectData(effect, data)
+    local isBlasterExplosionDrop = bit.band(ss.GetEffectFlags(data), 16) > 0
+    local shouldCeilSplashNum = bit.band(ss.GetEffectFlags(data), 32) > 0
+    local splashInitIndex = self.GetEffectSplashInit(data)
+    if isBlasterExplosionDrop then
+        table.Merge(effect.Ink.Data, {
+            ColRadiusEntity = self.Parameters.mSphereSplashDropCollisionRadius,
+            ColRadiusWorld  = self.Parameters.mSphereSplashDropCollisionRadius,
+            DrawRadius      = self.Parameters.mSphereSplashDropDrawRadius,
+            StraightFrame   = 0,
+            SplashNum       = 0,
+            SplashLength    = 0,
+            SplashInitRate  = 0,
+            AirResist       = self.Projectile.AirResist,
+            Gravity         = self.Projectile.Gravity,
+        })
+    elseif effect.IsDrop then
+        table.Merge(effect.Ink.Data, {
+            ColRadiusEntity = self.Projectile.SplashColRadius,
+            ColRadiusWorld  = self.Projectile.SplashColRadius,
+            DrawRadius      = self.Parameters.mSplashDrawRadius,
+            StraightFrame   = 0,
+            SplashNum       = 0,
+            SplashLength    = 0,
+            SplashInitRate  = 0,
+            AirResist       = self.Projectile.AirResist,
+            Gravity         = self.Projectile.Gravity,
+        })
+    else
+        table.Merge(effect.Ink.Data, {
+            ColRadiusEntity = self.Projectile.ColRadiusEntity,
+            ColRadiusWorld  = self.Projectile.ColRadiusWorld,
+            DrawRadius = self.IsBlaster
+                and self.Parameters.mSphereSplashDropDrawRadius
+                or self.Parameters.mDrawRadius,
+            StraightFrame = self.Projectile.StraightFrame,
+            SplashNum = shouldCeilSplashNum
+                and math.ceil(self.Parameters.mCreateSplashNum)
+                or math.floor(self.Parameters.mCreateSplashNum),
+            SplashLength     = self.Projectile.SplashLength,
+            SplashInitRate   = splashInitIndex / self.Parameters.mSplashSplitNum,
+            AirResist        = self.Projectile.AirResist,
+            Gravity          = self.Projectile.Gravity,
+        })
+    end
+end
+
 function SWEP:CreateInk()
     local p = self.Parameters
     local pos, dir = self:GetFirePosition()
     local right = self:GetOwner():GetRight()
     local ang = dir:Angle()
     local rx, ry = self:GetSpread()
-    local splashnum = math.floor(p.mCreateSplashNum)
     local AlreadyAiming = CurTime() < self:GetAimTimer()
+    local shouldCeilSplashNum = util.SharedRandom(randsplash, 0, 1) < p.mCreateSplashNum % 1
+    local splashInit = self.SplashInitTable[self:GetSplashInitMul()]
     if CurTime() - self:GetJump() < p.mDegJumpBiasFrame then
         self:SetBias(p.mDegJumpBias)
     else
@@ -144,10 +194,9 @@ function SWEP:CreateInk()
         self:SetBias(math.min(self:GetBias() + p.mDegBiasKf, p.mDegBias))
     end
 
-    if util.SharedRandom(randsplash, 0, 1) < p.mCreateSplashNum % 1 then
-        splashnum = splashnum + 1
-    end
-
+    local splashNum = shouldCeilSplashNum
+        and math.ceil(p.mCreateSplashNum)
+        or math.floor(p.mCreateSplashNum)
     ang:RotateAroundAxis(right:Cross(dir), rx)
     ang:RotateAroundAxis(right, ry)
     table.Merge(self.Projectile, {
@@ -155,8 +204,8 @@ function SWEP:CreateInk()
         ID = CurTime() + self:EntIndex(),
         InitPos = pos,
         InitVel = ang:Forward() * self:GetInitVelocity(),
-        SplashInitRate = self:GetSplashInitRate(),
-        SplashNum = splashnum,
+        SplashInitRate = splashInit / p.mSplashSplitNum,
+        SplashNum = splashNum,
         Type = ss.GetShooterInkType(),
         Yaw = ang.yaw,
     })
@@ -181,20 +230,15 @@ function SWEP:CreateInk()
         self.ViewPunch = Angle(rnda, rndb, rnda)
 
         local e = EffectData()
-        local proj = self.Projectile
-        ss.SetEffectColor(e, proj.Color)
-        ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-        ss.SetEffectDrawRadius(e, self.IsBlaster and p.mSphereSplashDropDrawRadius or p.mDrawRadius)
+        local flags = shouldCeilSplashNum and 32 or 0
         ss.SetEffectEntity(e, self)
-        ss.SetEffectFlags(e, self)
-        ss.SetEffectInitPos(e, proj.InitPos)
-        ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
-        ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
-        ss.SetEffectSplashNum(e, proj.SplashNum)
-        ss.SetEffectStraightFrame(e, proj.StraightFrame)
+        ss.SetEffectFlags(e, self, ss.INK_EFFECT_TYPE.SHOOTER, flags)
+        ss.SetEffectInitPos(e, self.Projectile.InitPos)
+        ss.SetEffectInitDir(e, self.Projectile.InitDir)
+        ss.SetEffectInitSpeed(e, self.Projectile.InitSpeed)
+        self.SetEffectSplashInitRate(e, splashInit)
         ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsShooterInk", e, true, self.IgnorePrediction)
-        ss.AddInk(p, proj)
+        ss.AddInk(p, self.Projectile)
     end
 end
 

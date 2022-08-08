@@ -221,6 +221,22 @@ function SWEP:GetInitVelocity(i, splashnum, sb, sz, sx, sy, degmax)
     return forward, right + deg, up
 end
 
+function SWEP:CollectEffectData(effect, data)
+    local issub = bit.band(ss.GetEffectFlags(datta), 64) > 0
+    local colent, colworld = self:GetCollisionRadii(issub)
+    table.Merge(effect.Ink.Data, {
+        ColRadiusEntity  = colent,
+        ColRadiusWorld   = colworld,
+        DrawRadius       = self:GetDrawRadius(issub),
+        StraightFrame    = self:GetStraightFrame(issub),
+        SplashNum        = 0,
+        SplashLength     = 0,
+        SplashInitRate   = 0,
+        AirResist        = self.Parameters.AirResist,
+        Gravity          = self.Parameters.Gravity,
+    })
+end
+
 function SWEP:CreateInk(createnum)
     local p = self.Parameters
     local dir = self:GetAimVector()
@@ -277,17 +293,11 @@ function SWEP:CreateInk(createnum)
 
         local e = EffectData()
         local proj = self.Projectile
-        ss.SetEffectColor(e, proj.Color)
-        ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-        ss.SetEffectDrawRadius(e, self:GetDrawRadius(issub))
         ss.SetEffectEntity(e, self)
-        ss.SetEffectFlags(e, self)
+        ss.SetEffectFlags(e, self, ss.INK_EFFECT_TYPE.ROLLER, issub and 64 or 0)
         ss.SetEffectInitPos(e, proj.InitPos)
-        ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mDropSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
-        ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
-        ss.SetEffectSplashNum(e, proj.SplashNum)
-        ss.SetEffectStraightFrame(e, proj.StraightFrame)
+        ss.SetEffectInitDir(e, proj.InitVel:GetNormalized())
+        ss.SetEffectInitSpeed(e, proj.InitVel:Length())
         ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsShooterInk", e, true, self.IgnorePrediction)
         ss.AddInk(p, proj)
     end

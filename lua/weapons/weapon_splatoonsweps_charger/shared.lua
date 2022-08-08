@@ -6,39 +6,49 @@ SWEP.IsCharger = true
 SWEP.FlashDuration = .25
 SWEP.DelayAfterShot = 7 * ss.FrameToSec -- Hotfix: Chargers can shoot too often
 
-function SWEP:GetColRadius()
-    return Lerp(self:GetChargeProgress(CLIENT),
+function SWEP:GetColRadius(prog)
+    prog = prog or self:GetChargeProgress(CLIENT)
+    return Lerp(prog,
         self.Parameters.mMinChargeColRadiusForPlayer,
         self.Parameters.mMaxChargeColRadiusForPlayer)
 end
 
 function SWEP:GetDamage(ping)
-    return ss.Lerp3(
-        self:GetChargeProgress(ping),
+    local prog
+    if not ping or isbool(ping) then
+        prog = self:GetChargeProgress(ping)
+    else
+        prog = ping
+    end
+    return ss.Lerp3(prog,
         self.Parameters.mMinChargeDamage,
         self.Parameters.mMaxChargeDamage,
         self.Parameters.mFullChargeDamage)
 end
 
 function SWEP:GetRange(ping)
+    local prog
+    if not ping or isbool(ping) then
+        prog = self:GetChargeProgress(ping)
+    else
+        prog = ping
+    end
     if self.Scoped then
-        return ss.Lerp3(
-            self:GetChargeProgress(ping),
+        return ss.Lerp3(prog,
             self.Parameters.mMinDistance,
             self.Parameters.mMaxDistanceScoped,
             self.Parameters.mFullChargeDistanceScoped)
     else
-        return ss.Lerp3(
-            self:GetChargeProgress(ping),
+        return ss.Lerp3(prog,
             self.Parameters.mMinDistance,
             self.Parameters.mMaxDistance,
             self.Parameters.mFullChargeDistance)
     end
 end
 
-function SWEP:GetInkVelocity()
-    return ss.Lerp3(
-        self:GetChargeProgress(),
+function SWEP:GetInkVelocity(prog)
+    prog = prog or self:GetChargeProgress()
+    return ss.Lerp3(prog,
         self.Parameters.mInitVelL,
         self.Parameters.mInitVelH,
         self.Parameters.mInitVelF)
@@ -188,6 +198,45 @@ function SWEP:KeyPress(ply, key)
     self:SetCooldown(CurTime())
 end
 
+SWEP.GetEffectCharge = ss.GetEffectUInt
+SWEP.SetEffectCharge = ss.SetEffectUInt
+function SWEP:CollectEffectData(effect, data)
+    local prog  = self.GetEffectCharge(data) / 255
+    local col   = self:GetColRadius(prog)
+    local range = self:GetRange(prog)
+    local splashInit = bit.rshift(bit.band(ss.GetEffectFlags(data), 0x38), 3)
+    local splashPaintRadiusRate = Lerp(prog,
+        self.Parameters.mSplashBetweenMaxSplashPaintRadiusRate,
+        self.Parameters.mSplashBetweenMinSplashPaintRadiusRate)
+    local splashLength = splashPaintRadiusRate
+    * self.Parameters.mMaxChargeSplashPaintRadius
+    * Lerp(prog, self.Parameters.mPaintNearR_WeakRate, 1)
+    * Lerp(prog,
+        self.Parameters.mSplashDepthMinChargeScaleRateByWidth,
+        self.Parameters.mSplashDepthMaxChargeScaleRateByWidth)
+    table.Merge(effect.Ink.Data, effect.IsDrop and {
+        ColRadiusEntity = self.Parameters.mSplashColRadius,
+        ColRadiusWorld  = self.Parameters.mSplashColRadius,
+        DrawRadius      = self.Parameters.mSplashDrawRadius,
+        StraightFrame   = 0,
+        SplashNum       = 0,
+        SplashLength    = 0,
+        SplashInitRate  = 0,
+        AirResist       = self.Parameters.AirResist,
+        Gravity         = self.Parameters.Gravity,
+    } or {
+        ColRadiusEntity = col,
+        ColRadiusWorld  = col,
+        DrawRadius      = self.Parameters.mDrawRadius,
+        StraightFrame   = range / effect.Ink.Data.InitSpeed,
+        SplashNum       = range / splashLength,
+        SplashLength    = splashLength,
+        SplashInitRate  = splashInit + 1 / splashPaintRadiusRate,
+        AirResist       = self.Parameters.AirResist,
+        Gravity         = self.Parameters.Gravity,
+    })
+end
+
 function SWEP:Move(ply)
     local p = self.Parameters
     if ply:IsPlayer() then
@@ -272,18 +321,14 @@ function SWEP:Move(ply)
         self.ModifyWeaponSize = SysTime()
 
         local e = EffectData()
-        ss.SetEffectColor(e, proj.Color)
-        ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-        ss.SetEffectDrawRadius(e, p.mDrawRadius) -- Shooter's default value
+        local splashInit = bit.lshift(bit.band(self:GetSplashInitMul(), 0x07), 3)
         ss.SetEffectEntity(e, self)
-        ss.SetEffectFlags(e, self)
+        ss.SetEffectFlags(e, self, ss.INK_EFFECT_TYPE.CHARGER, splashInit)
         ss.SetEffectInitPos(e, proj.InitPos)
-        ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
-        ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
-        ss.SetEffectSplashNum(e, proj.SplashNum)
-        ss.SetEffectStraightFrame(e, proj.StraightFrame)
-        ss.UtilEffectPredicted(ply, "SplatoonSWEPsShooterInk", e, true, self.IgnorePrediction)
+        ss.SetEffectInitDir(e, dir)
+        ss.SetEffectInitSpeed(e, initspeed)
+        self.SetEffectCharge(math.floor(prog * 256))
+        ss.UtilEffectPredicted(ply, "SplatoonSWEPsChargerInk", e, true, self.IgnorePrediction)
         ss.AddInk(p, proj)
 
         if prog > p.mSplashNearFootOccurChargeRate then

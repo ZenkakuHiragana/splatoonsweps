@@ -53,6 +53,20 @@ function ENT:OnTakeDamage(d)
     return health
 end
 
+function ENT:CollectEffectData(effect, data)
+    table.Merge(effect.Ink.Data, {
+        ColRadiusEntity  = self.Parameters.Spout_SplashCollisionR_First,
+        ColRadiusWorld   = self.Parameters.Spout_SplashCollisionR_First,
+        DrawRadius       = self.Parameters.Spout_SplashDrawR_First,
+        StraightFrame    = self.Parameters.Spout_StraightFrame,
+        SplashNum        = 0,
+        SplashLength     = 0,
+        SplashInitRate   = 0,
+        AirResist        = self.Parameters.Spout_AirResist,
+        Gravity          = self.Parameters.Spout_Gravity,
+    })
+end
+
 function ENT:Spout()
     if not IsValid(self.Weapon) then return end
     local ink = ss.MakeProjectileStructure()
@@ -95,24 +109,26 @@ function ENT:Spout()
         localang.yaw = localang.yaw + ss.GetBiasedRandom(DegBias) * DegRand
         local _, ang = LocalToWorld(Vector(), localang, Vector(), self:GetAngles())
         local dir = ang:Forward()
+        local speed = math.Rand(VelL, VelH)
         ink.InitPos = a.Pos
-        ink.InitVel = dir * math.Rand(VelL, VelH)
+        ink.InitVel = dir * speed
         ink.Yaw     = ang.yaw
         local t = ss.AddInk({}, ink)
         t.SprinklerHitEffect = true
 
         local e = EffectData()
         ss.SetEffectColor(e, ink.Color)
-        ss.SetEffectColRadius(e, ink.ColRadiusWorld)
+        ss.SetEffectCollisionRadius(e, ink.ColRadiusWorld)
         ss.SetEffectDrawRadius(e, p.Spout_SplashDrawR_First)
         ss.SetEffectEntity(e, ink.Weapon)
         ss.SetEffectFlags(e, ink.Weapon, 8 + 4 + 1)
         ss.SetEffectInitPos(e, ink.InitPos)
-        ss.SetEffectInitVel(e, ink.InitVel)
-        ss.SetEffectSplash(e, Angle(ink.AirResist * 180, ink.Gravity / ss.InkDropGravity * 180))
+        ss.SetEffectInitDir(e, dir)
+        ss.SetEffectInitSpeed(e, speed)
+        ss.SetEffectSplashInfo(e, Angle(ink.AirResist * 180, ink.Gravity / ss.InkDropGravity * 180))
         ss.SetEffectSplashInitRate(e, Vector(0))
         ss.SetEffectSplashNum(e, 0)
-        ss.SetEffectStraightFrame(e, ink.StraightFrame)
+        ss.SetEffectStraightFrame(e, ink.StraightFrame * ss.SecToFrame)
         util.Effect("SplatoonSWEPsShooterInk", e)
     end
 end

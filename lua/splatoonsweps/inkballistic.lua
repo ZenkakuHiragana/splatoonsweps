@@ -373,17 +373,18 @@ end
 
 function ss.CreateDropEffect(data, drawradius, owner)
     local e = EffectData()
-    ss.SetEffectColor(e, data.Color)
-    ss.SetEffectColRadius(e, data.ColRadiusWorld)
-    ss.SetEffectDrawRadius(e, drawradius)
+    -- ss.SetEffectColor(e, data.Color)
+    -- ss.SetEffectCollisionRadius(e, data.ColRadiusWorld)
+    -- ss.SetEffectDrawRadius(e, drawradius)
     ss.SetEffectEntity(e, data.Weapon)
     ss.SetEffectFlags(e, data.Weapon, 8)
     ss.SetEffectInitPos(e, data.InitPos)
-    ss.SetEffectInitVel(e, data.InitVel)
-    ss.SetEffectSplash(e, Angle(data.AirResist * 180, data.Gravity / ss.InkDropGravity * 180))
-    ss.SetEffectSplashInitRate(e, Vector(0))
-    ss.SetEffectSplashNum(e, 0)
-    ss.SetEffectStraightFrame(e, data.StraightFrame)
+    ss.SetEffectInitDir(e, data.InitDir)
+    ss.SetEffectInitSpeed(e, data.InitSpeed)
+    -- ss.SetEffectSplashInfo(e, Angle(data.AirResist * 180, data.Gravity / ss.InkDropGravity * 180))
+    -- ss.SetEffectSplashInitRate(e, Vector(0))
+    -- ss.SetEffectSplashNum(e, 0)
+    -- ss.SetEffectStraightFrame(e, data.StraightFrame * ss.SecToFrame)
     if IsValid(owner) then
         ss.UtilEffectPredicted(owner, "SplatoonSWEPsShooterInk", e)
     else
@@ -434,22 +435,20 @@ function ss.DoDropSplashes(ink, iseffect)
                 ss.UtilEffectPredicted(ink.Owner, "SplatoonSWEPsBlasterTrail", e)
             end
 
-            ss.SetEffectColor(e, data.Color)
-            ss.SetEffectColRadius(e, data.SplashColRadius)
-            ss.SetEffectDrawRadius(e, data.SplashDrawRadius)
             ss.SetEffectEntity(e, data.Weapon)
-            ss.SetEffectFlags(e, 1)
             ss.SetEffectInitPos(e, droppos + ss.GetGravityDirection() * data.SplashDrawRadius)
-            ss.SetEffectInitVel(e, Vector())
-            ss.SetEffectSplash(e, Angle(0, 0, data.SplashLength / ss.ToHammerUnits))
-            ss.SetEffectSplashInitRate(e, Vector(0))
-            ss.SetEffectSplashNum(e, 0)
-            ss.SetEffectStraightFrame(e, 0)
+            ss.SetEffectInitDir(e, Vector())
+            ss.SetEffectInitSpeed(e, 0)
+            ss.SetEffectFlags(e, 64)
             if IsCharger then
-                ss.SetEffectInitVel(e, tr.endpos - tr.start)
+                local direction = tr.endpos - tr.start
+                local length = direction:Length()
+                direction:Normalize()
+                ss.SetEffectInitDir(e, direction)
+                ss.SetEffectInitSpeed(e, length)
             end
 
-            ss.UtilEffectPredicted(ink.Owner, "SplatoonSWEPsShooterInk", e)
+            ss.UtilEffectPredicted(ink.Owner, "SplatoonSWEPsInkBase", e)
         else
             hull.start = droppos
             hull.endpos = droppos + data.InitDir * data.SplashLength

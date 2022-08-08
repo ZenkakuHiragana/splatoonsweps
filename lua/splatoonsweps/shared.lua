@@ -57,38 +57,29 @@ function ss.SearchAABB(AABB, normal)
     return ipairs(recursive(ss.AABBTree[1]))
 end
 
--- The function names of EffectData() don't make sense, renaming.
-do local e = EffectData()
-    ss.GetEffectSplash         = e.GetAngles -- Angle(SplashColRadius, SplashDrawRadius, SplashLength)
-    ss.SetEffectSplash         = e.SetAngles
-    ss.GetEffectColor          = e.GetColor
-    ss.SetEffectColor          = e.SetColor
-    ss.GetEffectColRadius      = e.GetRadius
-    ss.SetEffectColRadius      = e.SetRadius
-    ss.GetEffectDrawRadius     = e.GetMagnitude
-    ss.SetEffectDrawRadius     = e.SetMagnitude
-    ss.GetEffectEntity         = e.GetEntity
-    ss.SetEffectEntity         = e.SetEntity
-    ss.GetEffectInitPos        = e.GetOrigin
-    ss.SetEffectInitPos        = e.SetOrigin
-    ss.GetEffectInitVel        = e.GetStart
-    ss.SetEffectInitVel        = e.SetStart
-    ss.GetEffectSplashInitRate = e.GetNormal
-    ss.SetEffectSplashInitRate = e.SetNormal
-    ss.GetEffectSplashNum      = e.GetSurfaceProp
-    ss.SetEffectSplashNum      = e.SetSurfaceProp
-    ss.GetEffectStraightFrame  = e.GetScale
-    ss.SetEffectStraightFrame  = e.SetScale
+do  -- The function names of EffectData() don't make sense, renaming.
+    local e = EffectData()
+    for alias, original in pairs { -- ss.[GS]etEffect<key> = EffectData().[GS]et<value>
+        Entity     = "Entity",     -- Weapon entity
+        InitPos    = "Origin",     -- 17bit floats [ -16384.0f -- +16384.0f ]
+        InitDir    = "Normal",     -- Vector that must be normalized
+        InitSpeed  = "Scale",      -- Unrestricted float
+        UInt       = "Color",      -- 8 bit int    [ 0    -- 255     ]
+        Float      = "Magnitude",  -- 12bit float  [ 0.0f -- 1023.0f ]
+    } do
+        ss["GetEffect" .. alias] = e["Get" .. original]
+        ss["SetEffect" .. alias] = e["Set" .. original]
+    end
     ss.GetEffectFlags = e.GetFlags
-    function ss.SetEffectFlags(eff, weapon, flags)
-        if isnumber(weapon) and not flags then
+    function ss.SetEffectFlags(eff, weapon, ...)
+        local flags = bit.bor(0, ...)
+        if isnumber(weapon) and flags == 0 then
             flags, weapon = weapon
         end
 
-        flags = flags or 0
         if IsValid(weapon) then
             local IsLP = CLIENT and weapon:IsCarriedByLocalPlayer()
-            flags = flags + (IsLP and 128 or 0)
+            if IsLP then flags = flags + 128 end
         end
 
         eff:SetFlags(flags)

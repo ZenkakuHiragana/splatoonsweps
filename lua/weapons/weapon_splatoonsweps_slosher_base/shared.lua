@@ -157,6 +157,42 @@ function SWEP:SharedHolster()
     self:SetNextInkSpawnTime3(0)
 end
 
+SWEP.GetEffectSplashInit = ss.GetEffectFloat
+SWEP.SetEffectSplashInit = ss.SetEffectFloat
+SWEP.GetEffectSpawnCount = ss.GetEffectUInt
+SWEP.SetEffectSpawnCount = ss.SetEffectUInt
+function SWEP:CollectEffectData(effect, data)
+    local number = bit.rshift(bit.band(ss.GetEffectFlags(data), 0x30), 4)
+    local order = OrdinalNumbers[number]
+    local spawncount = self.GetEffectSpawnCount(data)
+    local colent, colworld = self:GetCollisionRadii(number, spawncount)
+    local splashnum        = self.Parameters["m" .. order .. "GroupSplashMaxNum"]
+    local splashlength     = self.Parameters["m" .. order .. "GroupSplashBetween"]
+    local splashcolradius  = self.Parameters["m" .. order .. "GroupSplashColRadius"]
+    local splashdrawradius = self.Parameters["m" .. order .. "GroupSplashDrawRadius"]
+    table.Merge(effect.Ink.Data, effect.IsDrop and {
+        ColRadiusEntity  = splashcolradius,
+        ColRadiusWorld   = splashcolradius,
+        DrawRadius       = splashdrawradius,
+        StraightFrame    = 0,
+        SplashNum        = 0,
+        SplashLength     = 0,
+        SplashInitRate   = 0,
+        AirResist        = self.Parameters.AirResist,
+        Gravity          = self.Parameters.Gravity,
+    } or {
+        ColRadiusEntity  = colent,
+        ColRadiusWorld   = colworld,
+        DrawRadius       = self:GetDrawRadius(number, spawncount),
+        StraightFrame    = self.Parameters.mBulletStraightFrame,
+        SplashNum        = splashnum,
+        SplashLength     = splashlength,
+        SplashInitRate   = self.GetEffectSplashInit(data),
+        AirResist        = self.Parameters.AirResist,
+        Gravity          = self.Parameters.Gravity,
+    })
+end
+
 local randinit = "SpaltoonSWEPs: Slosher splash init rate"
 local randspread = "SplatoonSWEPs: Slosher random spread"
 function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 1, 2, ...)
@@ -166,18 +202,18 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
     local p = self.Parameters
     local dir = self:GetAimVector()
     local pos = self:GetShootPos()
-    local iscenter = p["m" .. order .. "GroupCenterLine"]
-    local isside = p["m" .. order .. "GroupSideLine"]
-    local splashcolradius = p["m" .. order .. "GroupSplashColRadius"]
-    local splashdrawradius = p["m" .. order .. "GroupSplashDrawRadius"]
-    local splashinitmin = p["m" .. order .. "GroupSplashFirstDropRandomRateMin"]
-    local splashinitmax = p["m" .. order .. "GroupSplashFirstDropRandomRateMax"]
-    local splashlength = p["m" .. order .. "GroupSplashBetween"]
-    local splashnum = p["m" .. order .. "GroupSplashMaxNum"]
+    local iscenter          = p["m" .. order .. "GroupCenterLine"]
+    local isside            = p["m" .. order .. "GroupSideLine"]
+    local splashcolradius   = p["m" .. order .. "GroupSplashColRadius"]
+    local splashinitmin     = p["m" .. order .. "GroupSplashFirstDropRandomRateMin"]
+    local splashinitmax     = p["m" .. order .. "GroupSplashFirstDropRandomRateMax"]
+    local splashlength      = p["m" .. order .. "GroupSplashBetween"]
+    local splashnum         = p["m" .. order .. "GroupSplashMaxNum"]
     local splashpaintradius = p["m" .. order .. "GroupSplashPaintRadius"]
-    local splashratio = p["m" .. order .. "GroupSplashDepthScaleRateByWidth"]
-    local spread = p.mShotRandomDegreeExceptBulletForGuide
-    local spreadbias = p.mShotRandomBiasExceptBulletForGuide
+    local splashratio       = p["m" .. order .. "GroupSplashDepthScaleRateByWidth"]
+    local spread            = p.mShotRandomDegreeExceptBulletForGuide
+    local spreadbias        = p.mShotRandomBiasExceptBulletForGuide
+    local splashinit        = util.SharedRandom(randinit, splashinitmin, splashinitmax)
     local vforward, vright, vup = self:GetInitVelocity(number, spawncount)
     local dmax, dmaxdist, dmin, dmindist = self:GetDamageParameters(number, spawncount)
     local pfardist, pfarradius, pfarrate, pneardist, pnearradius, pnearrate = self:GetPaintParameters(number, spawncount)
@@ -192,7 +228,8 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
             Yaw = yaw,
         })
 
-        ss.SetEffectInitVel(e, self.Projectile.InitVel)
+        ss.SetEffectInitDir(e, self.Projectile.InitVel:GetNormalized())
+        ss.SetEffectInitSpeed(e, self.Projectile.InitVel:Length())
         ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsShooterInk", e, true, self.IgnorePrediction)
         ss.AddInk(p, self.Projectile)
     end
@@ -216,7 +253,7 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
         PaintNearRadius = pnearradius,
         PaintNearRatio = pnearrate,
         SplashColRadius = splashcolradius,
-        SplashInitRate = util.SharedRandom(randinit, splashinitmin, splashinitmax),
+        SplashInitRate = splashinit,
         SplashLength = splashlength,
         SplashNum = splashnum,
         SplashPaintRadius = splashpaintradius,
@@ -236,17 +273,11 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
         self.Projectile.ScatterSplashCount = nil
     end
 
-    local proj = self.Projectile
-    ss.SetEffectColor(e, proj.Color)
-    ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-    ss.SetEffectDrawRadius(e, self:GetDrawRadius(number, spawncount))
+    local flags = bit.lshift(number, 4)
     ss.SetEffectEntity(e, self)
-    ss.SetEffectFlags(e, self)
-    ss.SetEffectInitPos(e, proj.InitPos)
-    ss.SetEffectSplash(e, Angle(proj.SplashColRadius, splashdrawradius, proj.SplashLength / ss.ToHammerUnits))
-    ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
-    ss.SetEffectSplashNum(e, proj.SplashNum)
-    ss.SetEffectStraightFrame(e, proj.StraightFrame)
+    ss.SetEffectFlags(e, self, ss.INK_EFFECT_TYPE.SLOSHER, flags)
+    self.SetEffectSplashInit(e, splashinit)
+    self.SetEffectSpawnCount(e, spawncount)
 
     local linenum = p.mLineNum - 1
     local centerline = math.floor(p.mLineNum / 2)
