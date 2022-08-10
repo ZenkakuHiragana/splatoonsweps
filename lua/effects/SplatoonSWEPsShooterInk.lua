@@ -52,7 +52,7 @@ end
 -- Flags:
 -- +128 Lag compensation for local player
 -- +8   Use custom gravity and air resist (GetEffectSplash.pitch and yaw)
--- +4   Is sprinkler
+-- +4   Is spout from other entity (sprinkler, or bomb)
 -- +2   Explosion drop (unused)
 -- +1   Normal drop
 function EFFECT:Init(e)
@@ -72,7 +72,7 @@ function EFFECT:Init(e)
     local InitDir          = InitVel:GetNormalized()
     local InitSpeed        = InitVel:Length()
     local IsDrop           = bit.band(f, 1) > 0
-    local IsSprinkler      = bit.band(f, 4) > 0
+    local IsFromEntity     = bit.band(f, 4) > 0
     local IsLP             = bit.band(f, 128) > 0 -- IsCarriedByLocalPlayer
     local IsBlaster        = Weapon.IsBlaster
     local IsCharger        = Weapon.IsCharger
@@ -99,10 +99,9 @@ function EFFECT:Init(e)
 
     if IsDrop then
         RenderFunc  = "RenderGeneral"
-        if IsCharger and not IsSprinkler then
+        if IsCharger and not IsFromEntity then
             ApparentPos = InitPos
             TrailInitPos = -InitDir * SplashLength
-            InitVel = Vector()
         else
             ApparentPos = InitPos
             TrailInitPos = InitPos
@@ -151,7 +150,7 @@ function EFFECT:Init(e)
     self.IsDrop      = IsDrop
     self.IsRoller    = IsRoller
     self.IsSlosher   = IsSlosher
-    self.IsSprinkler = IsSprinkler
+    self.IsFromEntity = IsFromEntity
     self.Render      = self[RenderFunc]
     self.UseCustomGravity = UseCustomGravity
 
@@ -169,7 +168,7 @@ function EFFECT:Init(e)
         self:SetModelScale(self.DrawRadius / 6)
     end
 
-    if IsCharger and IsDrop and not IsSprinkler then
+    if IsCharger and IsDrop and not IsFromEntity then
         self.TrailPos = ApparentPos - TrailInitPos
     end
 
@@ -224,6 +223,7 @@ function EFFECT:Think()
     self:SetAngles((self.TrailPos - self:GetPos()):Angle())
     ss.DoDropSplashes(self.Ink, true)
     CreateSpiralEffects(self)
+    debugoverlay.Cross(self:GetPos(), 10, 0.1, Color(0, 255, 0), true)
 
     if self.IsBlaster then
         local p = self.Ink.Parameters
@@ -234,7 +234,7 @@ function EFFECT:Think()
         return true
     end
 
-    if self.IsCharger and self.IsDrop and not self.IsSprinkler then
+    if self.IsCharger and self.IsDrop and not self.IsFromEntity then
         self.TrailPos = self:GetPos() - self.TrailInitPos
         return true
     end
@@ -244,11 +244,11 @@ function EFFECT:Think()
         local tmax = self.Ink.Data.StraightFrame
         local d = self.Ink.Data
         local f = math.Clamp((tt - tmax) / TrailLagTime, 0, 0.75)
-        if self.IsSprinkler then f = 0.75 end
+        if self.IsFromEntity then f = 0.75 end
         local v = LerpVector(f, self.TrailInitVel, d.InitVel)
         local p = ss.GetBulletPos(v, d.StraightFrame, d.AirResist, d.Gravity, tt + f * ss.ShooterTrailDelay)
         self.TrailPos = LerpVector(f, self.TrailInitPos, initpos) + p
-        if self.IsDrop and not self.IsSprinkler and (self.IsCharger or self.IsSlosher) then
+        if self.IsDrop and not self.IsFromEntity and (self.IsCharger or self.IsSlosher) then
             self.TrailPos:Add(d.InitDir * d.SplashLength / 4)
         end
 
