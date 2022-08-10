@@ -680,6 +680,7 @@ sd[SplatoonSWEPsMuzzleSplash] = function(self, options, pos, ang)
     ang = angle_zero
     local a, s, r = 7, 2, 25
     if options[2] == "CHARGER" then
+        attindex = self:LookupAttachment "muzzle"
         r, s = Lerp(self:GetFireAt(), 20, 60) / 2, 6
         if options[1] == 1 then
             if self:GetFireAt() < .3 then return end

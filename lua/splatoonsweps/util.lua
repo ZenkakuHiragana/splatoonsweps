@@ -262,11 +262,16 @@ end
 
 -- Get player timescale.
 -- Argument:
---   Entity ply    | Optional.
+--   Entity ply    | If given, it returns player's local timescale instead.
 -- Returning:
 --   number scale  | The game timescale.
+local HostTimeScale = GetConVar "host_timescale"
 function ss.GetTimeScale(ply)
-    return IsValid(ply) and ply:IsPlayer() and ply:GetLaggedMovementValue() or 1
+    if IsValid(ply) and ply:IsPlayer() then
+        return ply:GetLaggedMovementValue()
+    else
+        return game.GetTimeScale() * HostTimeScale:GetFloat()
+    end
 end
 
 -- Checks if the given entity is a valid inkling (if it has a SplatoonSWEPs weapon).

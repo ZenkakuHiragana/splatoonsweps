@@ -243,7 +243,7 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
     ss.SetEffectEntity(e, self)
     ss.SetEffectFlags(e, self)
     ss.SetEffectInitPos(e, proj.InitPos)
-    ss.SetEffectSplash(e, Angle(proj.SplashColRadius, splashdrawradius, proj.SplashLength))
+    ss.SetEffectSplash(e, Angle(proj.SplashColRadius, splashdrawradius, proj.SplashLength / ss.ToHammerUnits))
     ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
     ss.SetEffectSplashNum(e, proj.SplashNum)
     ss.SetEffectStraightFrame(e, proj.StraightFrame)

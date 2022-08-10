@@ -104,10 +104,10 @@ ss.Materials = {
         LineColor = Material "splatoonsweps/crosshair/linecolor.vmt",
     },
     Effects = {
-        Hit = Material "splatoonsweps/effects/splatling_muzzleflash",
+        Hit         = Material "splatoonsweps/effects/splatling_muzzleflash",
         HitCritical = Material "particle/particle_glow_04_additive",
-        Ink = Material "splatoonsweps/inkeffect",
-        Invisible = Material "splatoonsweps/weapons/primaries/shared/weapon_hider",
+        Ink         = Material "splatoonsweps/effects/ink",
+        Invisible   = Material "splatoonsweps/weapons/primaries/shared/weapon_hider",
     },
 }
 

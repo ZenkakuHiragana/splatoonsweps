@@ -377,7 +377,7 @@ function ss.CreateDropEffect(data, drawradius, owner)
     ss.SetEffectColRadius(e, data.ColRadiusWorld)
     ss.SetEffectDrawRadius(e, drawradius)
     ss.SetEffectEntity(e, data.Weapon)
-    ss.SetEffectFlags(e, data.Weapon, 8)
+    ss.SetEffectFlags(e, data.Weapon, 8 + 4)
     ss.SetEffectInitPos(e, data.InitPos)
     ss.SetEffectInitVel(e, data.InitVel)
     ss.SetEffectSplash(e, Angle(data.AirResist * 180, data.Gravity / ss.InkDropGravity * 180))
@@ -440,11 +440,15 @@ function ss.DoDropSplashes(ink, iseffect)
             ss.SetEffectEntity(e, data.Weapon)
             ss.SetEffectFlags(e, 1)
             ss.SetEffectInitPos(e, droppos + ss.GetGravityDirection() * data.SplashDrawRadius)
-            ss.SetEffectInitVel(e, data.Weapon.IsSloshingMachine and Vector() or data.InitVel)
-            ss.SetEffectSplash(e, Angle(0, 0, data.SplashLength))
+            ss.SetEffectInitVel(e, Vector())
+            ss.SetEffectSplash(e, Angle(0, 0, data.SplashLength / ss.ToHammerUnits))
             ss.SetEffectSplashInitRate(e, Vector(0))
             ss.SetEffectSplashNum(e, 0)
             ss.SetEffectStraightFrame(e, 0)
+            if IsCharger then
+                ss.SetEffectInitVel(e, tr.endpos - tr.start)
+            end
+
             ss.UtilEffectPredicted(ink.Owner, "SplatoonSWEPsShooterInk", e)
         else
             hull.start = droppos

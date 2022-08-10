@@ -93,7 +93,6 @@ local function ProcessPaintQueue()
     while not rt.Ready do coroutine.yield() end
     local NumRepetition = 4
     local Painted = 0
-    local Benchmark = SysTime()
     local BaseTexture = rt.BaseTexture
     local Lightmap = rt.Lightmap
     local ceil = math.ceil
@@ -101,7 +100,6 @@ local function ProcessPaintQueue()
     local Lerp = Lerp
     local PaintQueue = ss.PaintQueue
     local SortedPairs = SortedPairs
-    local SysTime = SysTime
     local yield = coroutine.yield
 
     local Start2D = cam.Start2D
@@ -114,7 +112,6 @@ local function ProcessPaintQueue()
     local SetDrawColor = surface.SetDrawColor
     local SetMaterial = surface.SetMaterial
     while true do
-        Benchmark = SysTime()
         NumRepetition = ceil(Lerp(Painted / MAX_QUEUES_TOLERANCE, 4, 0))
         for order, q in SortedPairs(PaintQueue) do
             local alpha = Clamp(NumRepetition - q.done, 1, 4)
@@ -152,7 +149,6 @@ local function ProcessPaintQueue()
                 PaintQueue[order] = nil
             end
 
-            if SysTime() - Benchmark > MAX_QUEUE_TIME then break end
             -- if ss.Debug then ss.Debug.ShowInkDrawn(q.start, q.center, q.endpos, q.surf, q, q.surf.Moved) end
         end
 

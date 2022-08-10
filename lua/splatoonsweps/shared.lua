@@ -59,26 +59,26 @@ end
 
 -- The function names of EffectData() don't make sense, renaming.
 do local e = EffectData()
-    ss.GetEffectSplash = e.GetAngles -- Angle(SplashColRadius, SplashDrawRadius, SplashLength)
-    ss.SetEffectSplash = e.SetAngles
-    ss.GetEffectColor = e.GetColor
-    ss.SetEffectColor = e.SetColor
-    ss.GetEffectColRadius = e.GetRadius
-    ss.SetEffectColRadius = e.SetRadius
-    ss.GetEffectDrawRadius = e.GetMagnitude
-    ss.SetEffectDrawRadius = e.SetMagnitude
-    ss.GetEffectEntity = e.GetEntity
-    ss.SetEffectEntity = e.SetEntity
-    ss.GetEffectInitPos = e.GetOrigin
-    ss.SetEffectInitPos = e.SetOrigin
-    ss.GetEffectInitVel = e.GetStart
-    ss.SetEffectInitVel = e.SetStart
+    ss.GetEffectSplash         = e.GetAngles -- Angle(SplashColRadius, SplashDrawRadius, SplashLength)
+    ss.SetEffectSplash         = e.SetAngles
+    ss.GetEffectColor          = e.GetColor
+    ss.SetEffectColor          = e.SetColor
+    ss.GetEffectColRadius      = e.GetRadius
+    ss.SetEffectColRadius      = e.SetRadius
+    ss.GetEffectDrawRadius     = e.GetMagnitude
+    ss.SetEffectDrawRadius     = e.SetMagnitude
+    ss.GetEffectEntity         = e.GetEntity
+    ss.SetEffectEntity         = e.SetEntity
+    ss.GetEffectInitPos        = e.GetOrigin
+    ss.SetEffectInitPos        = e.SetOrigin
+    ss.GetEffectInitVel        = e.GetStart
+    ss.SetEffectInitVel        = e.SetStart
     ss.GetEffectSplashInitRate = e.GetNormal
     ss.SetEffectSplashInitRate = e.SetNormal
-    ss.GetEffectSplashNum = e.GetSurfaceProp
-    ss.SetEffectSplashNum = e.SetSurfaceProp
-    ss.GetEffectStraightFrame = e.GetScale
-    ss.SetEffectStraightFrame = e.SetScale
+    ss.GetEffectSplashNum      = e.GetSurfaceProp
+    ss.SetEffectSplashNum      = e.SetSurfaceProp
+    ss.GetEffectStraightFrame  = e.GetScale
+    ss.SetEffectStraightFrame  = e.SetScale
     ss.GetEffectFlags = e.GetFlags
     function ss.SetEffectFlags(eff, weapon, flags)
         if isnumber(weapon) and not flags then
