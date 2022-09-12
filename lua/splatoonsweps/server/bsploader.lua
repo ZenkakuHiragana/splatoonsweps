@@ -435,6 +435,23 @@ function ss.LoadBSP()
     ss.BSP = { Raw = t }
 end
 
+--------------------------------------------------------------------------------
+
+ss.class "PaintableSurface" {
+    Angle          = Angle(),
+    Contents       = CONTENTS_EMPTY,
+    InkColorGrid   = {}, -- number[][]
+    IsWaterSurface = false,
+    Origin         = Vector(),
+    Triangles      = {}, -- number[][3]
+    Vertices2D     = {}, -- Vector[]
+    Vertices3D     = {}, -- Vector[]
+    ---
+    Maxs           = -ss.vector_one * math.huge,
+    Mins           =  ss.vector_one * math.huge,
+    Boundary2D     =  ss.vector_one * math.huge,
+}
+
 -- Index to SURFEDGES array -> actual vertex
 local abs = math.abs
 local function surfEdgeToVertex(index)
@@ -442,6 +459,61 @@ local function surfEdgeToVertex(index)
     local edge      = ss.BSP.Raw.EDGES    [abs(surfedge) + 1]
     local vertindex = surfedge < 0 and edge[2] or edge[1]
     return ss.BSP.Raw.VERTEXES[vertindex + 1]
+end
+
+-- Minimizes AABB of given convex using Rotating caliper method.
+local function minimizeAABB(face)
+    local desiredDir = nil
+    local add90deg   = false
+    local minarea    = math.huge
+    local convex     = face.Vertices2D
+    for i = 1, #convex do
+        local p0, p1 = convex[i], convex[i % #convex + 1]
+        local dp = p1 - p0
+        if dp:LengthSqr() > 0 then
+            local dir  = dp:GetNormalized()
+
+            -- Rotaion matrix
+            local rx = Vector( dir.x, dir.y)
+            local ry = Vector(-dir.y, dir.x)
+
+            local xmax, xmin = -math.huge, math.huge
+            local ymax, ymin = -math.huge, math.huge
+            for _, v in ipairs(convex) do
+                local x, y = v:Dot(rx), v:Dot(ry)
+                xmin = math.min(xmin, x)
+                ymin = math.min(ymin, y)
+                xmax = math.max(xmax, x)
+                ymax = math.max(ymax, y)
+            end
+
+            local xlength = xmax - xmin
+            local ylength = ymax - ymin
+            if minarea > xlength * ylength then
+                desiredDir = dir
+                add90deg = xlength < ylength
+                minarea = xlength * ylength
+            end
+        end
+    end
+
+    -- Rotation matrix
+    local rx = Vector( desiredDir.x, desiredDir.y)
+    local ry = Vector(-desiredDir.y, desiredDir.x)
+
+    --  cos(x)  sin(x)   +90deg    -sin(x)  cos(x)
+    -- -sin(x)  cos(x)  -------->  -cos(x) -sin(x)
+    if add90deg then rx, ry = ry, -rx end
+    face.Angle.roll = -math.deg(math.atan2(ry.x, rx.x))
+
+    local mins = ss.vector_one * math.huge
+    for _, v in ipairs(convex) do
+        v.x, v.y = v:Dot(rx), v:Dot(ry)
+        mins = ss.MinVector(mins, v)
+    end
+
+    face.Origin = ss.To3D(mins, face.Center, face.Angle)
+    for _, v in ipairs(convex) do v:Sub(mins) end
 end
 
 local TextureFilterBits = bit.bor(
@@ -452,6 +524,7 @@ local function buildFace(faceindex, rawFace)
     -- Collect texture information and see if it's valid
     local rawTexInfo = ss.BSP.Raw.TEXINFO
     local texInfo    = rawTexInfo[rawFace.texInfo]
+    if not texInfo then return end
     local rawTexData   = ss.BSP.Raw.TEXDATA
     local rawTexDict   = ss.BSP.Raw.TEXDATA_STRING_TABLE
     local rawTexIndex  = ss.BSP.Raw.TexDataStringTableToIndex
@@ -466,12 +539,11 @@ local function buildFace(faceindex, rawFace)
     if texName:find "tools/" then return end
 
     -- Collect geometrical information
-    local rawPlanes   = ss.BSP.Raw.PLANES
-    local plane       = rawPlanes[rawFace.planeNum + 1]
-    local firstedge   = rawFace.firstEdge + 1
-    local lastedge    = rawFace.firstEdge + rawFace.numEdges
-    local normal      = plane.normal
-    local planeOrigin = normal * plane.dist
+    local rawPlanes = ss.BSP.Raw.PLANES
+    local plane     = rawPlanes[rawFace.planeNum + 1]
+    local firstedge = rawFace.firstEdge + 1
+    local lastedge  = rawFace.firstEdge + rawFace.numEdges
+    local normal    = plane.normal
 
     -- Collect "raw" vertex list
     local rawVertices = {}
@@ -505,95 +577,38 @@ local function buildFace(faceindex, rawFace)
     local isWater = texName:find "water"
     if not (isDisplacement or isSolid or isWater) then return end
 
-    -- Collect lightmap information
-    local minsx = rawFace.lightmapTextureMinsInLuxels[1]
-    local minsy = rawFace.lightmapTextureMinsInLuxels[2]
-    local sizex = rawFace.lightmapTextureSizeInLuxels[1]
-    local sizey = rawFace.lightmapTextureSizeInLuxels[2]
-    local offsetx = texInfo.lightmapOffsetS
-    local offsety = texInfo.lightmapOffsetT
-
     -- 3D-2D conversion
     local vertices2D = {}
     local angle = normal:Angle()
+    local mins2D, maxs2D
     for i, v in ipairs(filteredVertices) do
         vertices2D[i] = ss.To2D(v, center, angle)
+        mins2D = ss.MinVector(mins2D or vertices2D[i], vertices2D[i])
+        maxs2D = ss.MaxVector(maxs2D or vertices2D[i], vertices2D[i])
     end
 
-    return {
-        Angle            = angle,
-        Center           = center,
-        Contents         = contents,
-        DisplacementInfo = rawFace.dispInfo, -- Replaced by table later
-        IsDisplacement   = isDisplacement,
-        IsWaterSurface   = isWater,
-        Maxs             = maxs,
-        Mins             = mins,
-        Normal           = normal,
-        PlaneOrigin      = planeOrigin,
-        TextureName      = texName,
-        Vertices3D       = filteredVertices,
-        Vertices2D       = vertices2D,
-        LightmapInfo = {
-            SampleStartIndex = rawFace.lightOffset,
-            Mins   = Vector(minsx, minsy),
-            Size   = Vector(sizex, sizey),
-            BasisX = texInfo.lightmapVecS,
-            BasisY = texInfo.lightmapVecT,
-            Origin = Vector(offsetx, offsety),
-        },
-    }
-end
-
--- Minimizes AABB of given convex using Rotating caliper method.
-function ss.MinimizeAABB(convex)
-    local desiredDir = nil
-    local add90deg   = false
-    local minarea    = math.huge
-    for i = 1, #convex do
-        local p0, p1 = convex[i], convex[i % #convex + 1]
-        local dp = p1 - p0
-        if dp:LengthSqr() > 0 then
-            local dir  = dp:GetNormalized()
-
-            -- Rotaion matrix
-            local rx   = Vector( dir.x, dir.y)
-            local ry   = Vector(-dir.y, dir.x)
-
-            local xmax, xmin = -math.huge, math.huge
-            local ymax, ymin = -math.huge, math.huge
-            for _, v in ipairs(convex) do
-                local x, y = v:Dot(rx), v:Dot(ry)
-                xmin = math.min(xmin, x)
-                ymin = math.min(ymin, y)
-                xmax = math.max(xmax, x)
-                ymax = math.max(ymax, y)
-            end
-
-            local xlength = xmax - xmin
-            local ylength = ymax - ymin
-            if minarea > xlength * ylength then
-                desiredDir = dir
-                add90deg = xlength < ylength
-                minarea = xlength * ylength
-            end
+    local face = ss.class "PaintableSurface"
+    face.Angle          = angle
+    face.Contents       = contents
+    face.IsWaterSurface = isWater
+    face.Origin         = center
+    face.Vertices2D     = vertices2D
+    face.Vertices3D     = filteredVertices
+    face.Maxs           = maxs
+    face.Mins           = mins
+    face.Boundary2D     = maxs2D - mins2D
+    if not isWater then minimizeAABB(face) end
+    if not isDisplacement then
+        for i = 2, #filteredVertices - 1 do
+            face.Triangles[#face.Triangles + 1] = { 1, i, i + 1 }
         end
+        return face
     end
 
-    -- Rotation matrix
-    local rx = Vector( desiredDir.x, desiredDir.y)
-    local ry = Vector(-desiredDir.y, desiredDir.x)
-    if add90deg then rx, ry = ry, rx end
-    for _, v in ipairs(convex) do
-        v.x, v.y = v:Dot(rx), v:Dot(ry)
-    end
-end
-
-function ss.GenerateDisplacementInfo(face)
-    if not (face and face.IsDisplacement) then return end
+    -- Collect displacement info
     local rawDispInfo     = ss.BSP.Raw.DISPINFO
     local rawDispVerts    = ss.BSP.Raw.DISP_VERTS
-    local dispInfo        = rawDispInfo[face.DisplacementInfo + 1]
+    local dispInfo        = rawDispInfo[rawFace.dispInfo + 1]
     local power           = 2 ^ dispInfo.power + 1
     local numMeshVertices = power ^ 2
     do
@@ -629,10 +644,9 @@ function ss.GenerateDisplacementInfo(face)
     local u1 = face.Vertices3D[4] - face.Vertices3D[1]
     local v1 = face.Vertices3D[2] - face.Vertices3D[1]
     local v2 = face.Vertices3D[3] - face.Vertices3D[4]
-    local triangles    = {} -- Indices of triangle mesh
-    local vertices     = {} -- List of vertices
-    local verticesGrid = {} -- List of vertices without deformation
-    local maxs, mins   = nil, nil
+    local triangles = {} -- Indices of triangle mesh
+    local vertices  = {} -- List of vertices
+    maxs, mins = nil, nil
     for i = 1, numMeshVertices do
         -- Calculate x-y offset
         local dispVert = rawDispVerts[dispInfo.dispVertStart + i]
@@ -641,14 +655,10 @@ function ss.GenerateDisplacementInfo(face)
         local origin = u1 * x + LerpVector(x, v1, v2) * y
 
         -- Calculate mesh vertex position
-        local displacement       = dispVert.vec * dispVert.dist
-        local displacementNormal = face.Normal  * face.Normal:Dot(displacement)
-        local localPos           = origin   + displacement
-        local localPosOnGrid     = localPos - displacementNormal
-        local worldPos           = dispInfo.startPosition + localPos
-        local worldPosOnGrid     = dispInfo.startPosition + localPosOnGrid
-        vertices    [#vertices     + 1] = worldPos
-        verticesGrid[#verticesGrid + 1] = worldPosOnGrid
+        local displacement = dispVert.vec * dispVert.dist
+        local localPos     = origin   + displacement
+        local worldPos     = dispInfo.startPosition + localPos
+        vertices[#vertices + 1] = worldPos
 
         -- Modifies indices a bit to invert triangle orientation
         local invert = Either(i % 2 == 1, 1, 0)
@@ -666,38 +676,54 @@ function ss.GenerateDisplacementInfo(face)
         mins = ss.MinVector(mins or worldPos, worldPos)
     end
 
-    face.DisplacementInfo = {
-        Maxs         = maxs,
-        Mins         = mins,
-        Triangles    = triangles,
-        Vertices3D   = vertices,
-        VerticesGrid = verticesGrid,
-    }
+    face.Vertices3D = vertices
+    face.Triangles = triangles
+    return face
+end
+
+local function buildStaticProp(i, prop)
+    local name = ss.BSP.Raw.sprp.name[prop.propType]
+    if prop.solid ~= SOLID_VPHYSICS then return end
+    if not name then return end
+    if not file.Exists(name, "GAME") then return end
+    if not file.Exists(name:sub(1, -4) .. "phy", "GAME") then return end
+
+    local mdl = ents.Create "prop_physics"
+    if not IsValid(mdl) then return end
+    mdl:SetModel(name)
+    mdl:Spawn()
+    local ph = mdl:GetPhysicsObject()
+    local mat = IsValid(ph) and ph:GetMaterial()
+    local physmesh = IsValid(ph) and ph:GetMeshConvexes()
+    mdl:Remove()
+
+    if not IsValid(ph) then return end
+    if mat:find "chain" or mat:find "grate" then return end
 end
 
 function ss.CollectPolygons()
     local t = {}
     for i, face in ipairs(ss.BSP.Raw.FACES) do
         local f = buildFace(i, face)
-        ss.GenerateDisplacementInfo(f)
+        t[#t + 1] = f
+    end
+
+    for i, prop in ipairs(ss.BSP.Raw.sprp.prop) do
+        local f = buildStaticProp(i, prop)
         t[#t + 1] = f
     end
 
     ss.BSP.Polygons = t
 end
 
-function ss.GenerateSurface(faceindex)
-    local face = ss.BSP.Polygons[faceindex]
-    ss.MinimizeAABB(face.Vertices2D)
-    return face
-end
-
 function ss.GenerateSurfaces()
     ss.SurfaceArray = {}
     ss.WaterSurfaces = {}
-    for i, face in ipairs(ss.BSP.Polygons) do
+    ss.LoadBSP()
+    ss.CollectPolygons()
+    for _, face in ipairs(ss.BSP.Polygons) do
         if not face.IsWaterSurface then
-            ss.SurfaceArray[#ss.SurfaceArray + 1] = ss.GenerateSurface(i)
+            ss.SurfaceArray[#ss.SurfaceArray + 1] = face
         else
             ss.WaterSurfaces[#ss.WaterSurfaces + 1] = face
         end

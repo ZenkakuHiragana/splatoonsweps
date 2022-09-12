@@ -6,6 +6,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     AspectSum = 0,
     AspectSumX = 0,
     AspectSumY = 0,
+    ClassDefinitions = {},
     CrosshairColors = {},
     EntityFilters = {},
     LastHitID = {},

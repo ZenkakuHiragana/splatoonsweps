@@ -7,6 +7,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     AspectSum = 0,  -- Sum of aspect ratios for each surface
     AspectSumX = 0, -- Sum of widths for each surface
     AspectSumY = 0, -- Sum of heights for each surface
+    ClassDefinitions = {},
     CrosshairColors = {},
     EntityFilters = {},
     IMesh = {},
