@@ -24,7 +24,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local ink = s.InkColorGrid
     local t = ss.InkShotMaterials[inktype]
     local w, h = t.width, t.height
-    local surfsize = s.Bound * griddivision
+    local surfsize = s.Boundary2D * griddivision
     local sw, sh = floor(surfsize.x), floor(surfsize.y)
     local dy = radius * griddivision
     local dx = ratio * dy
@@ -82,9 +82,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
 
     local area = 0
     local ang = normal:Angle()
-    local AABB = {mins = ss.vector_one * math.huge, maxs = -ss.vector_one * math.huge}
-    local dot = -normal:Dot(ss.GetGravityDirection())
-    ang.roll = math.abs(dot) > ss.MAX_COS_DIFF and angle * dot or ang.yaw
+    local AABB = { mins = ss.vector_one * math.huge, maxs = -ss.vector_one * math.huge }
     for _, v in ipairs(reference_polys) do
         local vertex = ss.To3D(v * radius, pos, ang)
         AABB.mins = ss.MinVector(AABB.mins, vertex)
@@ -95,10 +93,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
     AABB.maxs:Add(ss.vector_one * MIN_BOUND)
     ss.SuppressHostEventsMP(ply)
     for _, s in ss.SearchAABB(AABB, normal) do
-        local _, localang = WorldToLocal(vector_origin, ang, vector_origin, s.Normal:Angle())
-        localang = ang.yaw - localang.roll + s.DefaultAngles + (CLIENT and s.Moved and 90 or 0)
-        localang = math.Round(math.NormalizeAngle(localang)) -- -180 to 179, integer
-        area = area + AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
+        area = area + AddInkRectangle(color, inktype, angle, pos, radius, ratio, s)
 
         Order = Order + 1
         if engine.TickCount() > OrderTick then
@@ -113,7 +108,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
             net.WriteUInt(inktype, ss.INK_TYPE_BITS)
             net.WriteUInt(radius, 8)
             net.WriteVector(Vector(ratio))
-            net.WriteInt(localang, 9)
+            net.WriteInt(math.NormalizeAngle(angle), 9)
             net.WriteInt(pos.x * 2, 16)
             net.WriteInt(pos.y * 2, 16)
             net.WriteInt(pos.z * 2, 16)
@@ -121,7 +116,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
             net.WriteFloat(OrderTick)
             net.Send(ss.PlayersReady)
         else
-            ss.ReceiveInkQueue(s.Index, radius, localang, ratio, color, inktype, pos, Order - 256, OrderTick)
+            ss.ReceiveInkQueue(s.Index, radius, angle, ratio, color, inktype, pos, Order - 256, OrderTick)
         end
     end
 

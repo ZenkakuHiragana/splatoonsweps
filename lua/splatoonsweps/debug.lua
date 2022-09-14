@@ -186,7 +186,7 @@ if CLIENT then
 
                 if DrawInkUVBounds then
                     d.DColor(255, 255, 255)
-                    local bu, bv = -s.Bound.x * ss.UnitsToUV, s.Bound.y * ss.UnitsToUV
+                    local bu, bv = -s.Boundary2D.x * ss.UnitsToUV, s.Boundary2D.y * ss.UnitsToUV
                     for i, ti in ipairs(t) do
                         d.DVector(ti, vector_up * c / 500)
                         d.DPoly {
@@ -255,7 +255,7 @@ if ShowInkStateMesh then
         local ink = surf.InkColorGrid
         local colorid = ink[pos.x] and ink[pos.x][pos.y]
         local color = ss.GetColor(colorid) or color_white
-        local sw, sh = surf.Bound.x, surf.Bound.y
+        local sw, sh = surf.Boundary2D.x, surf.Boundary2D.y
         local gw, gh = math.floor(sw / gridsize), math.floor(sh / gridsize)
         d.DShort()
         d.DColor(color.r, color.g, color.b, colorid and 64 or 16)

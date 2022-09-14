@@ -10,20 +10,20 @@ if not ss then return end
 
 local function AABB()
     return {
-        Maxs = ss.vector_one * -math.huge,
-        Mins = ss.vector_one * math.huge,
+        maxs = ss.vector_one * -math.huge,
+        mins = ss.vector_one * math.huge,
     }
 end
 
 local function surfaceAreaAABB(x)
-    local diff = x.Maxs - x.Mins
+    local diff = x.maxs - x.mins
     return 2 * (diff.x * diff.y + diff.x * diff.z + diff.y * diff.z)
 end
 
 local function mergeAABB(a, b)
     local aabb = AABB()
-    aabb.Maxs = ss.MaxVector(a.Maxs, b.Maxs)
-    aabb.Mins = ss.MinVector(a.Mins, b.Mins)
+    aabb.maxs = ss.MaxVector(a.maxs, b.maxs)
+    aabb.mins = ss.MinVector(a.mins, b.mins)
     return aabb
 end
 
@@ -31,8 +31,8 @@ local function createWholeAABB(indices)
     local aabb = AABB()
     for _, i in ipairs(indices) do
         local surfaceAABB = AABB()
-        surfaceAABB.Maxs = ss.SurfaceArray[i].Maxs
-        surfaceAABB.Mins = ss.SurfaceArray[i].Mins
+        surfaceAABB.maxs = ss.SurfaceArray[i].maxs
+        surfaceAABB.mins = ss.SurfaceArray[i].mins
         aabb = mergeAABB(aabb, surfaceAABB)
     end
 
@@ -52,8 +52,8 @@ function ss.GenerateAABBTree()
         local axisToSort = 1
         local function sorter(i, j)
             i, j = ss.SurfaceArray[i], ss.SurfaceArray[j]
-            local iCenter = (i.Maxs + i.Mins) / 2
-            local jCenter = (j.Maxs + j.Mins) / 2
+            local iCenter = (i.maxs + i.mins) / 2
+            local jCenter = (j.maxs + j.mins) / 2
             for axisIndex = 1, 3 do
                 local iComponent = iCenter[axes[axisIndex][axisToSort]]
                 local jComponent = jCenter[axes[axisIndex][axisToSort]]
@@ -76,8 +76,8 @@ function ss.GenerateAABBTree()
                 split1SurfaceAreas[i] = surfaceAreaAABB(testAABB)
                 split1[#split1 + 1] = ss.tablepop(split2)
                 local aabb = AABB()
-                aabb.Maxs = ss.SurfaceArray[split1[#split1]].Maxs
-                aabb.Mins = ss.SurfaceArray[split1[#split1]].Mins
+                aabb.maxs = ss.SurfaceArray[split1[#split1]].maxs
+                aabb.mins = ss.SurfaceArray[split1[#split1]].mins
                 testAABB = mergeAABB(testAABB, aabb)
             end
 
@@ -93,8 +93,8 @@ function ss.GenerateAABBTree()
                 end
 
                 local aabb = AABB()
-                aabb.Maxs = ss.SurfaceArray[split1[#split1]].Maxs
-                aabb.Mins = ss.SurfaceArray[split1[#split1]].Mins
+                aabb.maxs = ss.SurfaceArray[split1[#split1]].maxs
+                aabb.mins = ss.SurfaceArray[split1[#split1]].mins
                 testAABB = mergeAABB(testAABB, aabb)
                 ss.tablepush(split2, split1[#split1])
                 split1[#split1] = nil

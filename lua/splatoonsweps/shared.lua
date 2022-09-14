@@ -17,19 +17,19 @@ function ss.SearchAABB(AABB, normal)
         if aabb.SurfIndices then
             for _, i in ipairs(aabb.SurfIndices) do
                 local surf = ss.SurfaceArray[i]
-                if surf.Angle:Forward():Dot(normal) > ss.MAX_COS_DIFF
-                and ss.CollisionAABB(surf.Mins, surf.Maxs, AABB.mins, AABB.maxs) then
+                if surf.Angles:Forward():Dot(normal) > ss.MAX_COS_DIFF
+                and ss.CollisionAABB(surf.mins, surf.maxs, AABB.mins, AABB.maxs) then
                     t[#t + 1] = surf
                 end
             end
         else
             local l = ss.AABBTree[aabb.Children[1]]
             local r = ss.AABBTree[aabb.Children[2]]
-            if l and ss.CollisionAABB(l.AABB.Mins, l.AABB.Maxs, AABB.Mins, AABB.Maxs) then
+            if l and ss.CollisionAABB(l.AABB.mins, l.AABB.maxs, AABB.mins, AABB.maxs) then
                 table.Add(t, recursive(l))
             end
 
-            if r and ss.CollisionAABB(r.AABB.Mins, r.AABB.Maxs, AABB.Mins, AABB.Maxs) then
+            if r and ss.CollisionAABB(r.AABB.mins, r.AABB.maxs, AABB.mins, AABB.maxs) then
                 table.Add(t, recursive(r))
             end
         end

@@ -378,39 +378,39 @@ function ss.MakeAllyFilter(weapon, ...)
     return entities
 end
 
+function ss.deepcopy(t, lookup)
+    if t == nil then return nil end
+
+    local copy = setmetatable({}, ss.deepcopy(getmetatable(t)))
+    for k, v in pairs(t) do
+        if istable(v) then
+            lookup = lookup or {}
+            lookup[t] = copy
+            if lookup[v] then
+                copy[k] = lookup[v]
+            else
+                copy[k] = ss.deepcopy(v, lookup)
+            end
+        elseif isvector(v) then
+            copy[k] = Vector(v)
+        elseif isangle(v) then
+            copy[k] = Angle(v)
+        elseif ismatrix(v) then
+            copy[k] = Matrix(v)
+        else
+            copy[k] = v
+        end
+    end
+
+    return copy
+end
+
 function ss.class(name)
     local def = ss.ClassDefinitions
     if not def[name] then
         return function(t) def[name] = t end
     else
-        local function deepcopy(t, lookup)
-            if t == nil then return nil end
-
-            local copy = setmetatable({}, deepcopy(getmetatable(t)))
-            for k, v in pairs(t) do
-                if istable(v) then
-                    lookup = lookup or {}
-                    lookup[t] = copy
-                    if lookup[v] then
-                        copy[k] = lookup[v]
-                    else
-                        copy[k] = deepcopy(v, lookup)
-                    end
-                elseif isvector(v) then
-                    copy[k] = Vector(v)
-                elseif isangle(v) then
-                    copy[k] = Angle(v)
-                elseif ismatrix(v) then
-                    copy[k] = Matrix(v)
-                else
-                    copy[k] = v
-                end
-            end
-
-            return copy
-        end
-
-        local instance = deepcopy(def[name])
+        local instance = ss.deepcopy(def[name])
         local function read(self, key)
             assert(rawget(-self, key) ~= nil, "no matching field '" .. key .. "'")
             return rawget(-self, key)

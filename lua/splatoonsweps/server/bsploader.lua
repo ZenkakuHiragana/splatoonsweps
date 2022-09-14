@@ -391,7 +391,7 @@ local function readLump(bsp, header, lumpname)
     bsp:Seek(offset)
     local numElements = length / strlen
     if struct == "String" then
-        local i, readBytes = 0, 1
+        local i, readBytes = 1, 1
         while readBytes < length do
             t[i] = read(bsp, struct, header)
             i, readBytes = i + 1, readBytes + #t[i]
@@ -438,13 +438,13 @@ function ss.LoadBSP()
         if area > 0 then
             if not ss.MinimapAreaBounds[area] then
                 ss.MinimapAreaBounds[area] = {
-                    Maxs = ss.vector_one * -math.huge,
-                    Mins = ss.vector_one * math.huge,
+                    maxs = ss.vector_one * -math.huge,
+                    mins = ss.vector_one * math.huge,
                 }
             end
 
-            ss.MinimapAreaBounds[area].Mins = ss.MinVector(ss.MinimapAreaBounds[area].Mins, leaf.mins)
-            ss.MinimapAreaBounds[area].Maxs = ss.MaxVector(ss.MinimapAreaBounds[area].Maxs, leaf.maxs)
+            ss.MinimapAreaBounds[area].mins = ss.MinVector(ss.MinimapAreaBounds[area].mins, leaf.mins)
+            ss.MinimapAreaBounds[area].maxs = ss.MaxVector(ss.MinimapAreaBounds[area].maxs, leaf.maxs)
         end
     end
 end

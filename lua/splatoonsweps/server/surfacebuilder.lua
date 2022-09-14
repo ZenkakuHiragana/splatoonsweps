@@ -3,17 +3,20 @@ local ss = SplatoonSWEPs
 if not ss then return end
 
 ss.class "PaintableSurface" {
-    Angle          = Angle(),
+    Angles         = Angle(),
     Contents       = CONTENTS_EMPTY,
+    Index          = 0,
     InkColorGrid   = {}, -- number[][]
     IsWaterSurface = false,
+    Normal         = Vector(),
     Origin         = Vector(),
+    Origin2D       = Vector(),
     Triangles      = {}, -- number[][3]
     Vertices2D     = {}, -- Vector[]
     Vertices3D     = {}, -- Vector[]
     ---
-    Maxs           = -ss.vector_one * math.huge,
-    Mins           =  ss.vector_one * math.huge,
+    maxs           = -ss.vector_one * math.huge,
+    mins           =  ss.vector_one * math.huge,
     Boundary2D     =  ss.vector_one * math.huge,
 }
 
@@ -31,7 +34,7 @@ local function get2DComponents(surf)
     local minarea    = math.huge
     local convex     = {}
     for i, v in ipairs(surf.Vertices3D) do
-        convex[i] = ss.To2D(v, surf.Origin, surf.Angle)
+        convex[i] = ss.To2D(v, surf.Origin, surf.Angles)
     end
 
     for i = 1, #convex do
@@ -71,7 +74,7 @@ local function get2DComponents(surf)
     --  cos(x)  sin(x)   +90deg    -sin(x)  cos(x)
     -- -sin(x)  cos(x)  -------->  -cos(x) -sin(x)
     if add90deg then rx, ry = ry, -rx end
-    surf.Angle.roll = -math.deg(math.atan2(ry.x, rx.x))
+    surf.Angles.roll = -math.deg(math.atan2(ry.x, rx.x))
 
     local mins = ss.vector_one * math.huge
     for _, v in ipairs(convex) do
@@ -79,7 +82,7 @@ local function get2DComponents(surf)
         mins = ss.MinVector(mins, v)
     end
 
-    surf.Origin = ss.To3D(mins, surf.Origin, surf.Angle)
+    surf.Origin = ss.To3D(mins, surf.Origin, surf.Angles)
 
     local mins2D, maxs2D
     for _, v in ipairs(convex) do
@@ -98,19 +101,17 @@ local TextureFilterBits = bit.bor(
 -- Construct a polygon from a raw face data
 local function buildFace(faceindex, rawFace)
     -- Collect texture information and see if it's valid
-    local rawTexInfo = ss.BSP.Raw.TEXINFO
-    local texInfo    = rawTexInfo[rawFace.texInfo]
-    if not texInfo then return end
+    local rawTexInfo   = ss.BSP.Raw.TEXINFO
     local rawTexData   = ss.BSP.Raw.TEXDATA
     local rawTexDict   = ss.BSP.Raw.TEXDATA_STRING_TABLE
     local rawTexIndex  = ss.BSP.Raw.TexDataStringTableToIndex
     local rawTexString = ss.BSP.Raw.TEXDATA_STRING_DATA
+    local texInfo      = rawTexInfo[rawFace.texInfo + 1]
     local texData      = rawTexData[texInfo.texData + 1]
     local texOffset    = rawTexDict[texData.nameStringTableID + 1]
     local texIndex     = rawTexIndex[texOffset]
     local texName      = rawTexString[texIndex]:lower()
     local texMaterial  = Material(texName)
-    if not texMaterial then return end
     if bit.band(texInfo.flags, TextureFilterBits) ~= 0 then return end
     if texMaterial:GetString "$surfaceprop" == "metalgrate" then return end
     if texName:find "tools/" then return end
@@ -148,18 +149,19 @@ local function buildFace(faceindex, rawFace)
     -- Check if it's valid to add to polygon list
     if #filteredVertices < 3 then return end
     local center = vertexSum / #filteredVertices
-    local contents = util.PointContents(center - normal * ss.eps)
+    local contents = util.PointContents(center - normal * 0.01)
     local isDisplacement = rawFace.dispInfo >= 0
     local isSolid = bit.band(contents, MASK_SOLID) > 0
     local isWater = texName:find "water"
     if not (isDisplacement or isSolid or isWater) then return end
 
     local surf = ss.class "PaintableSurface"
-    surf.Angle          = normal:Angle()
+    surf.Angles         = normal:Angle()
     surf.Contents       = contents
     surf.IsWaterSurface = tobool(isWater)
-    surf.Maxs           = maxs
-    surf.Mins           = mins
+    surf.maxs           = maxs
+    surf.mins           = mins
+    surf.Normal         = normal
     surf.Origin         = center
     surf.Vertices3D     = filteredVertices
     if not isDisplacement then
@@ -241,8 +243,8 @@ local function buildFace(faceindex, rawFace)
         mins = ss.MinVector(mins or worldPos, worldPos)
     end
 
-    surf.Maxs = maxs
-    surf.Mins = mins
+    surf.maxs = maxs
+    surf.mins = mins
     surf.Triangles = triangles
     surf.Vertices3D = vertices
     if not isWater then get2DComponents(surf) end
@@ -369,8 +371,9 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         mins_all[tostring(pn)] = ss.MinVector(mins_all[tostring(pn)], v3)
 
         local surf = surfaces[tostring(pn)]
-        surf.Angle = pn:Angle()
+        surf.Angles = pn:Angle()
         surf.Contents = contents
+        surf.Normal = pn
         surf.Origin:Add(v1 + v2 + v3)
         table.Add(surf.Triangles, {
             #surf.Triangles + 1,
@@ -384,8 +387,8 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         local surf = surfaces[tostring(n)]
         if #surf.Vertices3D < 3 then continue end
         surf.Origin:Div(#surf.Vertices3D)
-        surf.Maxs = maxs_all[tostring(n)]
-        surf.Mins = mins_all[tostring(n)]
+        surf.maxs = maxs_all[tostring(n)]
+        surf.mins = mins_all[tostring(n)]
         get2DComponents(surf)
     end
 
@@ -395,6 +398,7 @@ end
 local function addSurface(surf)
     if not surf then return end
     if not surf.IsWaterSurface then
+        surf.Index = #ss.SurfaceArray + 1
         ss.SurfaceArray[#ss.SurfaceArray + 1] = surf
     else
         ss.WaterSurfaces[#ss.WaterSurfaces + 1] = surf

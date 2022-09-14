@@ -183,6 +183,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
     if data.MapCRC ~= mapCRC then
+        util.TimerCycle()
         ss.LoadBSP()
         ss.GenerateSurfaces()
         ss.GenerateAABBTree()
@@ -191,6 +192,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
+        print("MAKE", util.TimerCycle())
 
         file.Write(path, util.Compress(util.TableToJSON(data)))
     else

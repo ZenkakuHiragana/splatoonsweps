@@ -33,7 +33,9 @@ include "drawui.lua"
 include "inkmanager.lua"
 include "minimap.lua"
 include "network.lua"
+include "packer.lua"
 include "splatoonsweps/shared.lua"
+include "structure.lua"
 include "userinfo.lua"
 
 local ss = SplatoonSWEPs
