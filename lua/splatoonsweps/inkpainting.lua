@@ -21,7 +21,7 @@ local To2D, floor, rad, sin, cos = ss.To2D, math.floor, math.rad, math.sin, math
 function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local pos2d = To2D(pos, s.Origin, s.Angles) * griddivision
     local x0, y0 = pos2d.x, pos2d.y
-    local ink = s.InkSurfaces
+    local ink = s.InkColorGrid
     local t = ss.InkShotMaterials[inktype]
     local w, h = t.width, t.height
     local surfsize = s.Bound * griddivision
@@ -149,7 +149,7 @@ function ss.GetSurfaceColor(tr)
     local AABB = {mins = pos - POINT_BOUND, maxs = pos + POINT_BOUND}
     for _, s in ss.SearchAABB(AABB, tr.HitNormal) do
         local p2d = ss.To2D(pos, s.Origin, s.Angles)
-        local ink = s.InkSurfaces
+        local ink = s.InkColorGrid
         local x, y = math.floor(p2d.x * griddivision), math.floor(p2d.y * griddivision)
         local colorid = ink[x] and ink[x][y]
         if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), i, s) end

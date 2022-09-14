@@ -77,7 +77,7 @@ function sd.ShowInkStateMesh(pos, id, surf)
     ShowInkStateID = id
     ShowInkStateSurf = surf
     if SERVER ~= player.GetByID(1):KeyDown(IN_ATTACK2) then return end
-    local ink = surf.InkSurfaces
+    local ink = surf.InkColorGrid
     local colorid = ink[pos.x] and ink[pos.x][pos.y]
     local c = ss.GetColor(colorid) or color_white
     local p = ss.To3D(pos * gridsize, surf.Origin, surf.Angles)
@@ -252,7 +252,7 @@ if ShowInkStateMesh then
         local pos = ShowInkStatePos
         local id = ShowInkStateID
         local surf = ShowInkStateSurf
-        local ink = surf.InkSurfaces
+        local ink = surf.InkColorGrid
         local colorid = ink[pos.x] and ink[pos.x][pos.y]
         local color = ss.GetColor(colorid) or color_white
         local sw, sh = surf.Bound.x, surf.Bound.y

@@ -85,8 +85,13 @@ function ss.SanitizeJSONLimit(source)
         local t = {}
         for i = 1, 15000 do
             local index = (chunk - 1) * 15000 + i
+            local value = source[index]
             if index > #source then break end
-            t[#t + 1] = source[index]
+            if istable(value) and getmetatable(value) and getmetatable(value).__class then
+                value = -value
+            end
+
+            t[#t + 1] = value
         end
 
         s[chunk] = t
@@ -432,6 +437,7 @@ function ss.class(name)
 
         return setmetatable({}, {
             instance = instance,
+            __call = function() end,
             __class = name,
             __index = read,
             __newindex = write,

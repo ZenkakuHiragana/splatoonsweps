@@ -2,10 +2,6 @@
 -- Serverside SplatoonSWEPs structure
 
 SplatoonSWEPs = SplatoonSWEPs or {
-    AreaBound = 0,
-    AspectSum = 0,
-    AspectSumX = 0,
-    AspectSumY = 0,
     ClassDefinitions = {},
     CrosshairColors = {},
     EntityFilters = {},
@@ -21,6 +17,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     PlayerID = {},
     PlayerShouldResetCamera = {},
     PlayersReady = {},
+    SurfaceArray = {},
     RenderTarget = {},
     WeaponRecord = {},
     WaterSurfaces = {},
@@ -29,8 +26,9 @@ SplatoonSWEPs = SplatoonSWEPs or {
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
 include "bsploader.lua"
-include "buildsurfaces.lua"
+include "bvh.lua"
 include "network.lua"
+include "surfacebuilder.lua"
 
 local ss = SplatoonSWEPs
 if not ss.GetOption "enabled" then
@@ -65,7 +63,7 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if not ss.SurfaceArray then return end -- Workaround for changelevel
     for _, s in ipairs(ss.SurfaceArray) do
-        for _, v in pairs(s.InkSurfaces) do
+        for _, v in pairs(s.InkColorGrid) do
             table.Empty(v)
         end
     end
@@ -185,18 +183,14 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
     if data.MapCRC ~= mapCRC then
-        include "splatoonsweps/server/buildsurfaces.lua"
+        ss.LoadBSP()
+        ss.GenerateSurfaces()
+        ss.GenerateAABBTree()
         data.MapCRC = mapCRC
         data.AABBTree = ss.SanitizeJSONLimit(ss.AABBTree)
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
-        data.UVInfo = {
-            AreaBound = ss.AreaBound,
-            AspectSum = ss.AspectSum,
-            AspectSumX = ss.AspectSumX,
-            AspectSumY = ss.AspectSumY,
-        }
 
         file.Write(path, util.Compress(util.TableToJSON(data)))
     else

@@ -162,7 +162,7 @@ function ss.ClearAllInk()
     table.Empty(ss.InkQueue)
     table.Empty(ss.PaintSchedule)
     if rt.Ready then table.Empty(ss.PaintQueue) end
-    for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkSurfaces) end
+    for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkColorGrid) end
     local amb = ss.AmbientColor
     if not amb then
         amb = render.GetAmbientLightColor():ToColor()
