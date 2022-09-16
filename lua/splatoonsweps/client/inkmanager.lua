@@ -50,10 +50,10 @@ end
 function ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, order, tick)
     if color == 0 or inktype == 0 then return end
     local s = ss.SurfaceArray[index]
-    local pos2d = ss.To2D(pos, s.Origin, s.Angles) * ss.UnitsToPixels
-    local b = s.Boundary2D * ss.UVToPixels
+    local pos2d = ss.To2D(pos, s.OriginUV, s.AnglesUV) * ss.UnitsToPixels
+    local b = s.BoundaryUV * ss.UVToPixels
 
-    local start = s.Origin2D * ss.UVToPixels
+    local start = s.OffsetUV * ss.UVToPixels
     local center = Vector(math.Round(pos2d.x + start.x), math.Round(pos2d.y + start.y))
     local endpos = Vector(math.ceil(start.x + b.x) + 1, math.ceil(start.y + b.y) + 1)
     start = Vector(math.floor(start.x) - 1, math.floor(start.y) - 1)
@@ -62,7 +62,7 @@ function ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, orde
     if not ss.CollisionAABB2D(start, endpos, center - vr, center + vr) then return end
     local lightmapoffset = r / 2
     ss.PaintQueue[tick * 512 + order + 256] = {
-        angle = s.Angles.roll - ang,
+        angle = s.AnglesUV.roll + s.AnglesUV.yaw - ang,
         center = center,
         color = ss.GetColor(color),
         colorid = color,

@@ -73,7 +73,7 @@ net.Receive("SplatoonSWEPs: Send an ink queue", function(len)
     local color = net.ReadUInt(ss.COLOR_BITS)
     local inktype = net.ReadUInt(ss.INK_TYPE_BITS)
     local radius = net.ReadUInt(8)
-    local ratio = net.ReadVector().x
+    local ratio = net.ReadFloat()
     local ang = net.ReadInt(9)
     local x = net.ReadInt(16)
     local y = net.ReadInt(16)

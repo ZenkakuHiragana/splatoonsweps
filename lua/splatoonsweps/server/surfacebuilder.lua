@@ -10,7 +10,6 @@ ss.class "PaintableSurface" {
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
-    Origin2D       = Vector(),
     Triangles      = {}, -- number[][3]
     Vertices2D     = {}, -- Vector[]
     Vertices3D     = {}, -- Vector[]
@@ -413,7 +412,7 @@ function ss.GenerateSurfaces()
         addSurface(buildFace(i, face))
     end
 
-    for _, prop in ipairs(ss.BSP.Raw.sprp.prop) do
+    for _, prop in ipairs(ss.BSP.Raw.sprp.prop or {}) do
         for _, surf in ipairs(buildStaticProp(prop) or {}) do
             addSurface(surf)
         end

@@ -60,11 +60,13 @@ function ss.BuildInkMesh()
         local surf = r.tag
         local v3 = surf.Vertices3D
         local v2 = surf.Vertices2D
-        surf.Origin2D = Vector(r.left, r.bottom) * ss.UnitsToUV
-        surf.Boundary2D = Vector(r.width - margin, r.height - margin) * ss.UnitsToUV
+        surf.OffsetUV = Vector(r.left, r.bottom) * ss.UnitsToUV
+        surf.BoundaryUV = Vector(r.width - margin, r.height - margin) * ss.UnitsToUV
+        surf.AnglesUV = Angle(surf.Angles)
+        surf.OriginUV = Vector(surf.Origin)
         if r.istall then
-            surf.Angles.roll = surf.Angles.roll + 90
-            surf.Origin:Sub(surf.Angles:Up() * (r.height - margin))
+            surf.AnglesUV.roll = surf.AnglesUV.roll + 90
+            surf.OriginUV:Sub(surf.AnglesUV:Up() * (r.height - margin))
         end
 
         for i in ipairs(v2) do
@@ -72,7 +74,7 @@ function ss.BuildInkMesh()
                 v2[i].x, v2[i].y = v2[i].y, r.height - margin - v2[i].x
             end
             v2[i]:Mul(ss.UnitsToUV)
-            v2[i]:Add(surf.Origin2D)
+            v2[i]:Add(surf.OffsetUV)
         end
 
         for _, t in ipairs(surf.Triangles) do

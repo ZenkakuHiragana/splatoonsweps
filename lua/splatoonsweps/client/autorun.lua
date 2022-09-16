@@ -138,7 +138,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         dataJSON = file.Read("data/" .. path, true) or ""
         dataTable = util.JSONToTable(util.Decompress(dataJSON))
         inkCRC = util.CRC(dataJSON)
-        isvalid = dataTable.MapCRC == mapCRC and inkCRC == inkCRCServer
+        isvalid = dataTable and dataTable.MapCRC == mapCRC and inkCRC == inkCRCServer
         file.Rename(path .. ".txt", path)
     end
 

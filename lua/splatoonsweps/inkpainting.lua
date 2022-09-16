@@ -93,7 +93,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
     AABB.maxs:Add(ss.vector_one * MIN_BOUND)
     ss.SuppressHostEventsMP(ply)
     for _, s in ss.SearchAABB(AABB, normal) do
-        area = area + AddInkRectangle(color, inktype, angle, pos, radius, ratio, s)
+        area = area + AddInkRectangle(color, inktype, s.Angles.roll + s.Angles.yaw - angle, pos, radius, ratio, s)
 
         Order = Order + 1
         if engine.TickCount() > OrderTick then
@@ -107,7 +107,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
             net.WriteUInt(color, ss.COLOR_BITS)
             net.WriteUInt(inktype, ss.INK_TYPE_BITS)
             net.WriteUInt(radius, 8)
-            net.WriteVector(Vector(ratio))
+            net.WriteFloat(ratio)
             net.WriteInt(math.NormalizeAngle(angle), 9)
             net.WriteInt(pos.x * 2, 16)
             net.WriteInt(pos.y * 2, 16)
