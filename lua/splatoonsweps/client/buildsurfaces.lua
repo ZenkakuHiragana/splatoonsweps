@@ -109,20 +109,19 @@ function ss.BuildWaterMesh()
         math.min(NumMeshTriangles - MAX_TRIANGLES * meshindex, MAX_TRIANGLES))
         meshindex = meshindex + 1
     end
-    local function PushVertex(pos)
-        mesh.Normal(vector_up)
-        mesh.Position(pos + vector_up * INK_SURFACE_DELTA_NORMAL)
-        mesh.TexCoord(0, pos.x, pos.y)
-        mesh.TexCoord(1, pos.x, pos.y)
-        mesh.AdvanceVertex()
-    end
 
     for _, surf in ipairs(ss.WaterSurfaces) do
-        local v = surf.Vertices3D
-        for i = 2, #v - 1 do
-            PushVertex(v[1])
-            PushVertex(v[i])
-            PushVertex(v[i + 1])
+        for _, t in ipairs(surf.Triangles) do
+            local v3 = surf.Vertices3D
+            local n = (v3[t[1]] - v3[t[2]]):Cross(v3[t[3]] - v3[t[2]]):GetNormalized()
+            for _, i in ipairs(t) do
+                mesh.Normal(n)
+                mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
+                mesh.TexCoord(0, v3[i].x, v3[i].y)
+                mesh.TexCoord(1, v3[i].x, v3[i].y)
+                mesh.AdvanceVertex()
+            end
+
             ContinueMesh()
         end
     end

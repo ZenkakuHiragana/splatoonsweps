@@ -96,7 +96,7 @@ local function get2DComponents(surf)
 end
 
 local TextureFilterBits = bit.bor(
-    SURF_SKY, SURF_WARP, SURF_NOPORTAL, SURF_TRIGGER,
+    SURF_SKY, SURF_NOPORTAL, SURF_TRIGGER,
     SURF_NODRAW, SURF_HINT, SURF_SKIP)
 -- Construct a polygon from a raw face data
 local function buildFace(faceindex, rawFace)
@@ -397,11 +397,12 @@ end
 
 local function addSurface(surf)
     if not surf then return end
-    if not surf.IsWaterSurface then
+    if surf.IsWaterSurface then
+        surf.Index = #ss.WaterSurfaces + 1
+        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = surf
+    else
         surf.Index = #ss.SurfaceArray + 1
         ss.SurfaceArray[#ss.SurfaceArray + 1] = surf
-    else
-        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = surf
     end
 end
 
