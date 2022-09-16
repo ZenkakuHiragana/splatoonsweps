@@ -85,8 +85,13 @@ function ss.SanitizeJSONLimit(source)
         local t = {}
         for i = 1, 15000 do
             local index = (chunk - 1) * 15000 + i
+            local value = source[index]
             if index > #source then break end
-            t[#t + 1] = source[index]
+            if istable(value) and getmetatable(value) and getmetatable(value).__class then
+                value = -value
+            end
+
+            t[#t + 1] = value
         end
 
         s[chunk] = t
@@ -172,6 +177,15 @@ end
 function ss.To3D(source, orgpos, organg)
     local localpos = Vector(0, source.x, source.y)
     return LocalToWorld(localpos, angle_zero, orgpos, organg)
+end
+
+-- Returns true if two numbers are close to equal.
+-- Arguments:
+--   number a, b | Numbers to compare.
+-- Returning:
+--   bool        | Mostly like a == b.
+function ss.IsClose(a, b)
+    return math.abs(a - b) <= ss.eps * math.max(1, math.abs(a), math.abs(b))
 end
 
 -- util.IsInWorld() only exists in serverside.
@@ -362,4 +376,73 @@ function ss.MakeAllyFilter(weapon, ...)
     end
 
     return entities
+end
+
+function ss.deepcopy(t, lookup)
+    if t == nil then return nil end
+
+    local copy = setmetatable({}, ss.deepcopy(getmetatable(t)))
+    for k, v in pairs(t) do
+        if istable(v) then
+            lookup = lookup or {}
+            lookup[t] = copy
+            if lookup[v] then
+                copy[k] = lookup[v]
+            else
+                copy[k] = ss.deepcopy(v, lookup)
+            end
+        elseif isvector(v) then
+            copy[k] = Vector(v)
+        elseif isangle(v) then
+            copy[k] = Angle(v)
+        elseif ismatrix(v) then
+            copy[k] = Matrix(v)
+        else
+            copy[k] = v
+        end
+    end
+
+    return copy
+end
+
+function ss.class(name)
+    local def = ss.ClassDefinitions
+    if not def[name] then
+        return function(t) def[name] = t end
+    else
+        local instance = ss.deepcopy(def[name])
+        local function read(self, key)
+            assert(rawget(-self, key) ~= nil, "no matching field '" .. key .. "'")
+            return rawget(-self, key)
+        end
+
+        local function write(self, key, value)
+            local v = rawget(-self, key)
+            local t = type(v)
+            local u = type(value)
+            if t == "table" then t = (getmetatable(v) or {}).__class or t end
+            if u == "table" then u = (getmetatable(value) or {}).__class or u end
+            assert(v ~= nil, "no matching field '" .. key .. "'")
+            assert(t == u, "type mismatch, expected: '" .. t .. "', given: '" .. u .. "'")
+            rawset(-self, key, value)
+        end
+
+        local function str(self)
+            return "[instanceof " .. getmetatable(self).__class .. "]"
+        end
+
+        local function raw(self)
+            return getmetatable(self).instance
+        end
+
+        return setmetatable({}, {
+            instance = instance,
+            __call = function() end,
+            __class = name,
+            __index = read,
+            __newindex = write,
+            __tostring = str,
+            __unm = raw,
+        })
+    end
 end

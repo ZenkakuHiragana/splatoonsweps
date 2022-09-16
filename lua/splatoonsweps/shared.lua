@@ -4,23 +4,6 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
--- Each surface should have these fields.
-function ss.CreateSurfaceStructure()
-    return CLIENT and {} or {
-        Angles = {},
-        Areas = {},
-        Bounds = {},
-        DefaultAngles = {},
-        Indices = {},
-        InkCircles = {},
-        Maxs = {},
-        Mins = {},
-        Normals = {},
-        Origins = {},
-        Vertices = {},
-    }
-end
-
 -- Finds AABB-tree nodes/leaves which includes the given AABB.
 -- Use as an iterator function:
 --   for nodes in SplatoonSWEPs:SearchAABB(AABB) do ... end
@@ -33,10 +16,10 @@ function ss.SearchAABB(AABB, normal)
         local t = {}
         if aabb.SurfIndices then
             for _, i in ipairs(aabb.SurfIndices) do
-                local a = ss.SurfaceArray[i]
-                local max_diff = a.Displacement and ss.MAX_COS_DIFF_DISP or ss.MAX_COS_DIFF
-                if a.Normal:Dot(normal) > max_diff and ss.CollisionAABB(a.AABB.mins, a.AABB.maxs, AABB.mins, AABB.maxs) then
-                    t[#t + 1] = a
+                local surf = ss.SurfaceArray[i]
+                if surf.Angles:Forward():Dot(normal) > ss.MAX_COS_DIFF
+                and ss.CollisionAABB(surf.mins, surf.maxs, AABB.mins, AABB.maxs) then
+                    t[#t + 1] = surf
                 end
             end
         else
@@ -654,7 +637,7 @@ function ss.PerformSuperJump(w, ply, mv)
     local ang = mv:GetMoveAngles()
     local keys = mv:GetButtons()
     ang.yaw = (endpos - mv:GetOrigin()):Angle().yaw
-    keys = bit.band(keys, bit.bnot(IN_DUCK, IN_JUMP, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT))
+    keys = bit.band(keys, bit.bnot(bit.bor(IN_DUCK, IN_JUMP, IN_FORWARD, IN_BACK, IN_MOVELEFT, IN_MOVERIGHT)))
     mv:SetForwardSpeed(0)
     mv:SetSideSpeed(0)
     mv:SetButtons(keys)

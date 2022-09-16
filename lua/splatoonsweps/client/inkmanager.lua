@@ -50,17 +50,10 @@ end
 function ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, order, tick)
     if color == 0 or inktype == 0 then return end
     local s = ss.SurfaceArray[index]
-    local angle = Angle(s.Angles)
-    if s.Moved then angle:RotateAroundAxis(s.Normal, -90) end
-    local pos2d = ss.To2D(pos, s.Origin, angle) * ss.UnitsToPixels
-    local b = s.Bound * ss.UnitsToPixels
-    local bound_offset = Vector(0, b.x, 0)
-    if s.Moved then
-        b.x, b.y = b.y, b.x
-        pos2d = bound_offset - pos2d
-    end
+    local pos2d = ss.To2D(pos, s.Origin, s.Angles) * ss.UnitsToPixels
+    local b = s.Boundary2D * ss.UVToPixels
 
-    local start = Vector(s.u, s.v) * ss.UVToPixels
+    local start = s.Origin2D * ss.UVToPixels
     local center = Vector(math.Round(pos2d.x + start.x), math.Round(pos2d.y + start.y))
     local endpos = Vector(math.ceil(start.x + b.x) + 1, math.ceil(start.y + b.y) + 1)
     start = Vector(math.floor(start.x) - 1, math.floor(start.y) - 1)
@@ -69,7 +62,7 @@ function ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, orde
     if not ss.CollisionAABB2D(start, endpos, center - vr, center + vr) then return end
     local lightmapoffset = r / 2
     ss.PaintQueue[tick * 512 + order + 256] = {
-        angle = ang,
+        angle = s.Angles.roll - ang,
         center = center,
         color = ss.GetColor(color),
         colorid = color,
@@ -162,7 +155,7 @@ function ss.ClearAllInk()
     table.Empty(ss.InkQueue)
     table.Empty(ss.PaintSchedule)
     if rt.Ready then table.Empty(ss.PaintQueue) end
-    for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkSurfaces) end
+    for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkColorGrid) end
     local amb = ss.AmbientColor
     if not amb then
         amb = render.GetAmbientLightColor():ToColor()
