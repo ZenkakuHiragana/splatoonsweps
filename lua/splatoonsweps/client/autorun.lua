@@ -132,6 +132,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     local inkCRC = util.CRC(dataJSON)
     local isvalid = dataTable.MapCRC == mapCRC and (ss.sp or inkCRC == inkCRCServer)
+        and dataTable.Revision and dataTable.Revision == ss.MAPCACHE_REVISION
     if ss.mp and not isvalid then -- Local ink cache ~= Ink cache from server
         file.Rename(path, path .. ".txt")
         dataJSON = file.Read("data/" .. path, true) or ""

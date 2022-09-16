@@ -182,12 +182,13 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     local data = util.JSONToTable(util.Decompress(file.Read(path) or "") or "") or {}
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
-    if data.MapCRC ~= mapCRC then
+    if data.MapCRC ~= mapCRC or not data.Revision or data.Revision < ss.MAPCACHE_REVISION then
         util.TimerCycle()
         ss.LoadBSP()
         ss.GenerateSurfaces()
         ss.GenerateAABBTree()
         data.MapCRC = mapCRC
+        data.Revision = ss.MAPCACHE_REVISION
         data.AABBTree = ss.SanitizeJSONLimit(ss.AABBTree)
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
