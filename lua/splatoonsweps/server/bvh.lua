@@ -2,7 +2,8 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
--- Begin constructing AABB-tree ------------------------------------------------
+-- Construction of Bounding Volume Hierarchy (AABB tree)
+
 -- Reference: Ingo Wald, et al., 2007,
 -- "Ray Tracing Deformable Scenes using Dynamic Bounding Volume Hierarchies",
 -- and its Japanese explaination
