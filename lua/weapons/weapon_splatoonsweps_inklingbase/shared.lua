@@ -329,12 +329,19 @@ function SWEP:SharedHolsterBase()
     return true
 end
 
+function SWEP:DisplayAmmo()
+    return ss.GetMaxInkAmount()
+end
+
 function SWEP:SharedThinkBase()
     local vm = self:GetViewModel()
     if IsValid(vm) and vm:IsSequenceFinished()
     and vm:GetSequenceActivity(vm:GetSequence()) == ACT_VM_DRAW then
         self:SetWeaponAnim(ACT_VM_IDLE)
     end
+
+    self:SetClip1(math.Round(self:GetInk()))
+    self:GetOwner():SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
 
     local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
     self:GetOwner():DrawShadow(not ShouldNoDraw)

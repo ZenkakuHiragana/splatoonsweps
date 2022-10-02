@@ -128,7 +128,7 @@ function ss.SetPrimary(weapon, parameters)
         Ammo = "Ink",
         Automatic = true,
         ClipSize = maxink,
-        DefaultClip = maxink,
+        DefaultClip = 0,
     }
 
     table.Merge(weapon.Parameters, parameters or {})

@@ -785,3 +785,16 @@ hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook
 hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
 hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
 hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")
+hook.Add("Initialize", "SplatoonSWEPs: Add ammo type of ink", function()
+    game.AddAmmoType {
+        dmgtype = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL),
+        force = 1,
+        maxsplash = 0,
+        minsplash = 0,
+        name = "Ink",
+        npcdmg = -1,
+        plydmg = -1,
+        tracer = TRACER_NONE,
+        flags = 0,
+    }
+end)

@@ -341,7 +341,7 @@ function SWEP:CustomAmmoDisplay()
     self.AmmoDisplay = self.AmmoDisplay or {}
     self.AmmoDisplay.Draw = true
     self.AmmoDisplay.PrimaryClip = math.Round(self:GetInk())
-    self.AmmoDisplay.PrimaryAmmo = ss.ProtectedCall(self.DisplayAmmo, self) or ss.GetMaxInkAmount()
+    self.AmmoDisplay.PrimaryAmmo = self:DisplayAmmo()
     return self.AmmoDisplay
 end
 
