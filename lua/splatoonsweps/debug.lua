@@ -14,14 +14,12 @@ function d.DLoop() end
 if CLIENT then hook.Remove("CreateMove", "Test") end
 local ShowInkChecked     = false -- Draws ink boundary.
 local ShowInkDrawn       = false -- When ink hits, show ink surface painted by it.
-local MovedOnly          = false -- ShowInkDrawn but only for surfaces with "moved" tag.
 local ShowBlasterRadius  = false -- Shows where blaster explosion will be.
 local ChargeQuarter      = false -- Press Shift to fire any charger at 25% charge.
 local DrawInkUVMap       = false -- Press Shift to draw ink UV map.
 local DrawInkUVBounds    = false -- Also draws UV boundary.
 local ShowInkSurface     = false -- Press E for serverside, Shift for clientside, draws ink surface nearby player #1.
 local ShowInkStateMesh   = false -- Shows the mesh to determine ink color of surface.
-local ShowDisplacement   = false -- Shows a displacement mesh where player is looking at.
 local ShowInkChecked_ServerTime = CurTime()
 function sd.ShowInkChecked(r, s)
     if not ShowInkChecked then return end
@@ -55,16 +53,13 @@ function sd.ShowInkChecked(r, s)
     end
 end
 
-function sd.ShowInkDrawn(s, c, b, surf, q, moved)
+function sd.ShowInkDrawn(s, c, b, surf, q)
     if not ShowInkDrawn then return end
-    if MovedOnly and not moved then return end
     d.DShort()
     d.DColor()
-    -- d.DBox(s * ss.PixelsToUV * 500, b * ss.PixelsToUV * 500)
-    -- d.DPoint(c * ss.PixelsToUV * 500)
-    local v = {}
-    for i, w in ipairs(surf.Vertices) do v[i] = w.pos end
-    d.DPoly(v)
+    d.DBox(s * ss.PixelsToUV * 500, b * ss.PixelsToUV * 500)
+    d.DPoint(c * ss.PixelsToUV * 500)
+    d.DPoly(surf.Vertices3D)
 end
 
 local gridsize = 12 -- [Hammer Units]
@@ -170,16 +165,14 @@ if CLIENT then
             if not ply:KeyPressed(IN_SPEED) then return end
             d.DShort()
             d.DColor(255, 255, 255)
-            d.DPoly {Vector(0, 0), Vector(0, c), Vector(-c, c), Vector(-c, 0)}
+            d.DPoly {Vector(0, 0), Vector(0, c), Vector(c, c), Vector(c, 0)}
             d.DColor(255, 0, 0)
-            d.DVector(Vector(-c, 0), Vector(-c, 0))
+            d.DVector(Vector(c, 0), Vector(c, 0))
             d.DColor(0, 255, 0)
             d.DVector(Vector(0, c), Vector(0, c))
             for _, s in ipairs(ss.SurfaceArray) do
                 local t = {}
-                for i, v in ipairs(s.Vertices) do
-                    t[i] = Vector(-v.u, v.v) * c
-                end
+                for i, v in ipairs(s.Vertices2D) do t[i] = v * c end
 
                 d.DColor()
                 d.DPoly(t)
@@ -200,27 +193,6 @@ if CLIENT then
             end
         end
     end
-
-    if ShowDisplacement then
-        function d.DLoop()
-            local ply = LocalPlayer()
-            if not ply:KeyDown(IN_SPEED) then return end
-            local tr = ply:GetEyeTrace()
-            local normal = tr.HitNormal
-            local pos = tr.HitPos
-            local aabb = {mins = pos, maxs = pos}
-            for _, s in ss.SearchAABB(aabb, normal) do
-                if s.Displacement then
-                    local verts = s.Displacement.Vertices
-                    for _, v in ipairs(s.Displacement.Triangles) do
-                        local t = {verts[v[1]].pos, verts[v[2]].pos, verts[v[3]].pos}
-                        local n = (t[1] - t[2]):Cross(t[3] - t[2]):GetNormalized() * .8
-                        d.DPoly({t[1] + n, t[2] + n, t[3] + n}, false)
-                    end
-                end
-            end
-        end
-    end
 end
 
 if ShowInkSurface then
@@ -235,7 +207,7 @@ if ShowInkSurface then
         local AABB = {mins = p - ss.vector_one, maxs = p + ss.vector_one}
         for _, s in ss.SearchAABB(AABB, vector_up) do
             local v = {}
-            for i, w in ipairs(s.Vertices) do v[i] = SERVER and w or w.pos end
+            for i, w in ipairs(s.Vertices3D) do v[i] = w end
             d.DPoint(s.Origin)
             d.DPoly(v)
         end
