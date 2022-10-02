@@ -623,9 +623,28 @@ function ss.EnterSuperJumpState(ply, beakon)
     w:SetSuperJumpState(0)
 end
 
+function ss.SetSuperJumpBoneManipulation(ply, ang)
+    if not (ss.sp or CLIENT) then return end
+
+    local w = ss.IsValidInkling(ply)
+    if not w then return end
+
+    local boneid = 0
+    local pm = w:GetNWInt "playermodel"
+    if pm == ss.PLAYER.GIRL or pm == ss.PLAYER.BOY then
+        boneid = 2
+    end
+
+    ply:ManipulateBoneAngles(boneid, ang)
+end
+
 function ss.PerformSuperJump(w, ply, mv)
     local sjs = w:GetSuperJumpState()
     if sjs < 0 then return end
+    if ply:Health() == 0 then
+        w:SetSuperJumpState(-1)
+        ss.SetSuperJumpBoneManipulation(ply, angle_zero)
+    end
 
     local t = CurTime() - w:GetSuperJumpStartTime()
     local targetentity = w:GetSuperJumpEntity()
@@ -671,12 +690,6 @@ function ss.PerformSuperJump(w, ply, mv)
         return
     end
 
-    local boneid = 0
-    local pm = w:GetNWInt "playermodel"
-    if pm == ss.PLAYER.GIRL or pm == ss.PLAYER.BOY then
-        boneid = 2
-    end
-
     -- Actual jump
     local squid = w:GetNWEntity "Squid"
     local frac = math.min(1, t / ss.SuperJumpTravelTime)
@@ -694,7 +707,7 @@ function ss.PerformSuperJump(w, ply, mv)
                 local pitch = f * 360 + a.y - ply:GetAngles().yaw
                 local roll = f == 1 and 0 or -a.p
                 if sjs == 4 then a = Angle() end
-                ply:ManipulateBoneAngles(boneid, Angle(pitch, 0, roll))
+                ss.SetSuperJumpBoneManipulation(ply, Angle(pitch, 0, roll))
             end
         end
 
@@ -736,9 +749,7 @@ function ss.PerformSuperJump(w, ply, mv)
         w.SuperJumpVoicePlayed = nil
         w:SetSuperJumpState(-1)
         w:EmitSound "SplatoonSWEPs_Player.SuperJumpLand"
-        if ss.sp or CLIENT then
-            ply:ManipulateBoneAngles(boneid, angle_zero)
-        end
+        ss.SetSuperJumpBoneManipulation(ply, angle_zero)
         if SERVER then
             if IsValid(targetentity) and targetentity.IsSquidBeakon then
                 SafeRemoveEntity(targetentity)
