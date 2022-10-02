@@ -287,7 +287,7 @@ function ss.IsConvexExposed(verts, normal)
 end
 
 local function buildStaticProp(prop)
-    local name = ss.BSP.Raw.sprp.name[prop.propType]
+    local name = ss.BSP.Raw.sprp.name[prop.propType + 1]
     if prop.solid ~= SOLID_VPHYSICS then return end
     if not name then return end
     if not file.Exists(name, "GAME") then return end
@@ -306,7 +306,7 @@ local function buildStaticProp(prop)
 
     local surfaces = {}
     for _, t in ipairs(ph:GetMeshConvexes()) do
-        for _, surf in ipairs(ss.ProcessStaticPropConvex(
+        for _, surf in pairs(ss.ProcessStaticPropConvex(
             prop.origin, prop.angle, ph:GetContents(), t)) do
             if #surf.Vertices3D < 3 then continue end
             surfaces[#surfaces + 1] = surf
@@ -345,7 +345,8 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         if n:LengthSqr() < MIN_NORMAL_LENGTH_SQR then continue end -- normal is valid then
         n:Normalize()
 
-        if not ss.IsConvexExposed({ v1, v2, v3 }, n) then continue end
+        if not ss.SplatoonMapPorts[game.GetMap()]
+        and not ss.IsConvexExposed({ v1, v2, v3 }, n) then continue end
 
         -- Find proper plane for projection
         local plane_index, max_dot = 1, -1
@@ -374,10 +375,10 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         surf.Contents = contents
         surf.Normal = pn
         surf.Origin:Add(v1 + v2 + v3)
-        table.Add(surf.Triangles, {
-            #surf.Triangles + 1,
-            #surf.Triangles + 2,
-            #surf.Triangles + 3
+        table.insert(surf.Triangles, {
+            #surf.Vertices3D + 1,
+            #surf.Vertices3D + 2,
+            #surf.Vertices3D + 3,
         })
         table.Add(surf.Vertices3D, { v1, v2, v3 })
     end
