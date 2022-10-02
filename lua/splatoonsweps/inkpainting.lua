@@ -152,6 +152,19 @@ function ss.GetSurfaceColor(tr)
     end
 end
 
+-- Returns if given position is paintable against given normal.
+-- Arguments:
+--   Vector pos
+--   Vector normal
+-- Returning:
+--   boolean
+function ss.IsPaintable(pos, normal)
+    local AABB = {mins = pos - POINT_BOUND, maxs = pos + POINT_BOUND}
+    for _, s in ss.SearchAABB(AABB, normal) do
+        if s.InkColorGrid then return true end
+    end
+end
+
 -- Traces and picks up colors in an area on XY plane and returns the representative color of the area
 -- Arguments:
 --   Vector org       | the origin/center of the area.
