@@ -396,6 +396,7 @@ function SWEP:CalcView(ply, pos, ang, fov)
 end
 
 function SWEP:GetCameraFade()
+    if not ss.GetOption "translucentnearbylocalplayer" then return 1 end
     return math.Clamp(self:GetPos():DistToSqr(EyePos()) / ss.CameraFadeDistance, 0, 1)
 end
 

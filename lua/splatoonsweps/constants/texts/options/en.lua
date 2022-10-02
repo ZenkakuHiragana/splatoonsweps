@@ -56,6 +56,8 @@ Otherwise, all victims splatted by the SWEPs will.]],
     TakeFallDamage = "Enable fall damage",
     ToggleADS = "Toggle ADS instead of holding",
     ToggleADS_help = "Checked: Toggle ADS, Unchecked: Hold to ADS",
+    TranslucentNearbyLocalPlayer = "Make local player translucent when nearby",
+    TranslucentNearbyLocalPlayer_help = "If local player is too close to the camera, it will become translucent for clear vision.",
     weapon_splatoonsweps_charger = {
         UseRTScope = "Use realistic scope",
         UseRTScope_help = "If checked, you will look into the scope in first person.  You won't look into the scope in third person.",

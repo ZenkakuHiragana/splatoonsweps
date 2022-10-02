@@ -43,6 +43,7 @@ return {
     RTResolution = {1, hidden = true},
     TakeFallDamage = {false, order = 5, serverside = true},
     ToggleADS = false,
+    TranslucentNearbyLocalPlayer = true,
     weapon_splatoonsweps_charger = {
         UseRTScope = false,
         weapon_splatoonsweps_herocharger = {Level = {0, min = 0, max = 3}, __subcategory = true},

@@ -57,6 +57,7 @@ Make sure your graphics card has enough space of video memory.
 5: 16384x16384, 2GB.]],
     TakeFallDamage = "Whether to take fall damage when you equip a Splatoon weapon. (1: do, 0: do not)",
     ToggleADS = "Aim down sight mode. (1: toggle, 0: hold)",
+    TranslucentNearbyLocalPlayer = "Whether or not local player should be translucent when it's too close to the camera. (1: do, 0: do not)",
     weapon_splatoonsweps_charger = {
         UseRTScope = "For scoped chargers, use realistic scope instead of standard scope effect. (1: enabled, 0: disabled)",
         weapon_splatoonsweps_herocharger = {
