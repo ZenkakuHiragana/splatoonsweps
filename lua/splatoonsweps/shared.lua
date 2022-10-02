@@ -596,7 +596,8 @@ end
 function ss.GetSuperJumpApex(ply, start, endpos)
     local mid = (start + endpos) / 2
     local trstart = Vector(mid)
-    local bb = ss.GetMinimapAreaBounds(trstart)
+    local bb = ss.GetMinimapAreaBounds(endpos)
+    if not bb then return mid end
     trstart.z = bb.maxs.z + 1
     local tr = util.TraceLine {
         start = trstart,
@@ -671,7 +672,7 @@ function ss.PerformSuperJump(w, ply, mv)
             mv:SetVelocity(vector_up * gravity * 0.5 * FrameTime())
         end
         if t < ss.SuperJumpWaitTime then return true end
-        if not (ply:OnGround() or w:GetInWallInk()) then return end
+        if not (ply:OnGround() or w:GetInWallInk() or ply:IsEFlagSet(EFL_NOCLIP_ACTIVE)) then return end
 
         sound.Play("SplatoonSWEPs_Player.SuperJumpAttention", endpos)
         w:EmitSound "SplatoonSWEPs_Player.SuperJump"
