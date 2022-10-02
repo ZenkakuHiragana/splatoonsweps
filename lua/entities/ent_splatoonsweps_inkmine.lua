@@ -1,9 +1,9 @@
 
+AddCSLuaFile()
+ENT.Type = "anim"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
-ENT.Type = "anim"
 ENT.Model = Model "models/splatoonsweps/subs/inkmine/inkmine.mdl"
 ENT.WeaponClassName = ""
 ENT.AlertSoundPlayed = false

@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_throwable"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Base = "ent_splatoonsweps_throwable"
 ENT.CollisionGroup = COLLISION_GROUP_NONE
 ENT.Model = Model "models/splatoonsweps/subs/splashwall/splashwall.mdl"
 ENT.SubWeaponName = "splashwall"

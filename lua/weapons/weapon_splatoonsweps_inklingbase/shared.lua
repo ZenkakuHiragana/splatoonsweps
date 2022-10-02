@@ -163,16 +163,18 @@ local InkTraceXYSteps = 2
 function SWEP:UpdateInkState() -- Set if player is in ink
     local ang = Angle(0, self:GetOwner():GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
-    local filter = {self, self:GetOwner()}
     local org = self:GetOwner():GetPos()
     local fw, right = ang:Forward() * InkTraceLength, ang:Right() * InkTraceLength
     local mins, maxs = self:GetOwner():GetCollisionBounds()
-    local ink_t = {filter = filter, mask = MASK_SHOT, maxs = maxs, mins = mins}
+    local ink_t = ss.SquidTrace
     local gcolor = ss.GetSurfaceColorArea(org, mins, maxs, InkTraceXYSteps, InkTraceLength, 0.5, self:GetOwner())
     local onink = gcolor >= 0
     local onourink = gcolor == c
     local onenemyink = onink and not onourink
 
+    ink_t.filter = { self, self:GetOwner() }
+    ink_t.maxs = maxs
+    ink_t.mins = mins
     ink_t.start = org
     local dz = vector_up * maxs.z / InkTraceZSteps
     local normal, onwallink = Vector(), false

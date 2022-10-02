@@ -73,7 +73,7 @@ ss.SuperJumpVoice = {
     [ss.PLAYER.OCTOGIRL] = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
     [ss.PLAYER.OCTOBOY]  = "SplatoonSWEPs_Voice.SuperJump_OctoMale",
     [ss.PLAYER.PEARL]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-    [ss.PLAYER.MARINA]   = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
+    [ss.PLAYER.MARINA]   = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
 }
 
 ss.ChargingEyeSkin = {

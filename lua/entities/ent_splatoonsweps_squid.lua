@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Type = "anim"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Type = "anim"
 
 function ENT:GetInkColorProxy()
     if IsValid(self:GetNWEntity "Weapon") then

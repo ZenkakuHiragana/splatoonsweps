@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_splatbomb"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Base = "ent_splatoonsweps_splatbomb"
 ENT.HitSound = "SplatoonSWEPs.SubWeaponPut"
 ENT.Model = Model "models/splatoonsweps/subs/sprinkler/sprinkler.mdl"
 ENT.RunningSound = nil
@@ -95,11 +95,11 @@ function ENT:Spout()
         localang.yaw = localang.yaw + ss.GetBiasedRandom(DegBias) * DegRand
         local _, ang = LocalToWorld(Vector(), localang, Vector(), self:GetAngles())
         local dir = ang:Forward()
-        ink.InitPos = a.Pos
-        ink.InitVel = dir * math.Rand(VelL, VelH)
-        ink.Yaw     = ang.yaw
-        local t = ss.AddInk({}, ink)
-        t.SprinklerHitEffect = true
+        ss.AddInk({}, table.Merge(ink, {
+            InitPos = a.Pos,
+            InitVel = dir * math.Rand(VelL, VelH),
+            Yaw     = ang.yaw,
+        }))
 
         local e = EffectData()
         ss.SetEffectColor(e, ink.Color)

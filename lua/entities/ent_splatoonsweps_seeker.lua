@@ -1,9 +1,9 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_throwable"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
-ENT.Base = "ent_splatoonsweps_throwable"
 ENT.Model = Model "models/splatoonsweps/subs/seekers/seeker.mdl"
 ENT.SubWeaponName = "seeker"
 ENT.AlertSoundPlayed = false

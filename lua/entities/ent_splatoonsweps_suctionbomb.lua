@@ -1,9 +1,9 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_splatbomb"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
-ENT.Base = "ent_splatoonsweps_splatbomb"
 ENT.ExplosionOffset = 10
 ENT.HitSound = "SplatoonSWEPs.SuctionBomb"
 ENT.IsSplatoonBomb = true

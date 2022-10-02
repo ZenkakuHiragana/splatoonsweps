@@ -209,7 +209,7 @@ local function HitEntity(ink, t)
 
     local te = util.TraceLine {start = t.HitPos, endpos = e:WorldSpaceCenter()}
     local flags = (data.IsCritical and 1 or 0) + (ink.IsCarriedByLocalPlayer and 128 or 0)
-    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, ink.SprinklerHitEffect and o)
+    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, o)
     if ss.mp and CLIENT then return end
 
     local dt = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL)
