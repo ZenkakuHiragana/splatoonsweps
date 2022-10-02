@@ -307,7 +307,9 @@ function SWEP:Move(ply)
 end
 
 function SWEP:KeyPress(ply, key)
-    if key == IN_JUMP then self:SetJump(CurTime()) end
+    if key == IN_JUMP and ply:OnGround() then
+        self:SetJump(CurTime())
+    end
 end
 
 function SWEP:GetAnimWeight()
