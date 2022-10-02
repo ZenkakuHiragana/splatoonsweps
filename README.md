@@ -23,17 +23,14 @@ The aim of this rework is the following:
 ***
 **I don't intend to let you enjoy the new SWEPs.  Actually I want you to test it to help me fix bugs.**  
 **So, I think something like "The addon isn't working for me" isn't worth reading.**  
-**If you're going to tell me you're in trouble, write at least the following:**  
+**If you're going to tell me you're in trouble, go to Issues page and follow the template.**  
 
 * [ ] What happened to you? Write the detail.
 * [ ] How to get the same problem? The "step to reproduce" section.
 * [ ] Any errors?  If so, the message in the console.
 * [ ] Your environment (OS, Graphics card, and so on).
 * [ ] Addons in your game - Some of them may conflict. Please specify the one.  
-**Something like "I have 300+ addons" isn't helpful, either.**
-* [ ] Try removing cache files! Some updates conflict with your old cache files.  
-They're located in *garrysmod/data/splatoonsweps/mapname.txt* for singleplayer and listen server host,  
-and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
+      **Something like "I have 300+ addons" isn't helpful.**
 
 ## Known issues
 
@@ -41,6 +38,9 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
     You can still load them in 64-bit build so I recommend to switch to it.
 * You may experience major frame drops if your VRAM amount is not enough.
     Make sure to set the ink resolution option (found in where you change playermodel for the SWEPs) correctly.
+* If you see errors on map load and can't paint at all, try removing cache files.
+    * They are located in `garrysmod/data/splatoonsweps/<mapname>.txt` for singleplayer and listen server host.
+    * They are located in `garrysmod/download/data/splatoonsweps/<mapname>.txt` for multiplayer games.
 
 ***
 
@@ -64,7 +64,7 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
   * [ ] Jump to the respawn
   * [ ] Arrival indicator
 * Optimization
-  * [ ] Map loader
+  * [x] Map loader
   * [ ] Capability to handle more ink paint queue
   * [ ] Better prediction for multiplayer
 
