@@ -576,7 +576,9 @@ function SWEP:UpdateAnimation(ply, velocity, maxseqspeed)
 
     local f = math.TimeFraction(start, start + duration, ct)
     local cycle = Lerp(math.EaseInOut(math.Clamp(f, 0, 1), 0, 1), c1, c2)
-    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD, ply:SelectWeightedSequence(ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2), cycle, true)
+    local seq = ply:LookupSequence "range_melee2_b"
+    if seq < 0 then seq = ply:SelectWeightedSequenceSeeded(ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2, 0) end
+    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD, seq, cycle, true)
 end
 
 function SWEP:CustomMoveSpeed()

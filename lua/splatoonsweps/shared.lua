@@ -465,9 +465,9 @@ function ss.UpdateAnimation(w, ply, velocity, maxseqspeed)
     end
 
     if 0 <= f and f <= 1 then
-        ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD,
-        ply:SelectWeightedSequence(ACT_HL2MP_GESTURE_RANGE_ATTACK_GRENADE),
-        f * .55, true)
+        local seq = ply:LookupSequence "range_grenade"
+        if seq < 0 then seq = ply:SelectWeightedSequenceSeeded(ACT_HL2MP_GESTURE_RANGE_ATTACK_GRENADE, 0) end
+        ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD, seq, f * .55, true)
     end
 end
 
@@ -774,10 +774,10 @@ function ss.SuperJumpAnimationFix(w, ply)
     end
 
     local t = CurTime() - w:GetSuperJumpStartTime()
-    local frac = math.min(1, t / ss.SuperJumpTravelTime)
-    frac = math.Remap(frac, 0.75, 1, 0.5, 1)
-    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_JUMP,
-    ply:SelectWeightedSequence(ACT_HL2MP_SWIM), frac, true)
+    local frac = math.Remap(math.min(1, t / ss.SuperJumpTravelTime), 0.75, 1, 0.5, 1)
+    local seq = ply:LookupSequence "swimming_all"
+    if seq < 0 then seq = ply:SelectWeightedSequenceSeeded(ACT_HL2MP_SWIM, 0) end
+    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_JUMP, seq, frac, true)
 end
 
 hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
