@@ -223,7 +223,6 @@ function EFFECT:Think()
     self:SetAngles((self.TrailPos - self:GetPos()):Angle())
     ss.DoDropSplashes(self.Ink, true)
     CreateSpiralEffects(self)
-    debugoverlay.Cross(self:GetPos(), 10, 0.1, Color(0, 255, 0), true)
 
     if self.IsBlaster then
         local p = self.Ink.Parameters

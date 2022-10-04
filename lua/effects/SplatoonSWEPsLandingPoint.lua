@@ -83,9 +83,7 @@ function EFFECT:Think()
         tr.endpos = tr.endpos + velocity * dt
         local t = count * dt
         local trace = util.TraceHull(tr)
-        local dv = Vector(velocity)
-        if dv.z < 0 then dv.z = 0 end
-        velocity:Add(dv * (p.Fly_VelKd - 1))
+        velocity:Add(velocity * (p.Fly_VelKd - 1))
         if t > p.Fly_AirFrm then
             velocity:Add(g_dir * p.Fly_Gravity * dt)
         end
