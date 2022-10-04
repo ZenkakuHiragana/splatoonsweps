@@ -9,6 +9,7 @@ local FirePosition = 10
 local randsplash = "SplatoonSWEPs: SplashNum"
 function SWEP:GetRange() return self.Range end
 function SWEP:GetInitVelocity() return self.Parameters.mInitVel end
+function SWEP:GetColRadius() return self.Parameters.mColRadius end
 function SWEP:GetSplashInitRate()
     return self.SplashInitTable[self:GetSplashInitMul()] / self.Parameters.mSplashSplitNum
 end
@@ -18,7 +19,7 @@ function SWEP:GetFirePosition(ping)
     local aim = self:GetAimVector() * self:GetRange(ping)
     local ang = aim:Angle()
     local shootpos = self:GetShootPos()
-    local col = ss.vector_one * self.Parameters.mColRadius
+    local col = ss.vector_one * self:GetColRadius()
     local dy = FirePosition * (self:GetNWBool "lefthand" and -1 or 1)
     local dp = -Vector(0, dy, FirePosition) dp:Rotate(ang)
     local t = {}

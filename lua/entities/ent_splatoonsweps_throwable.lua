@@ -53,6 +53,9 @@ function ENT:Initialize()
     end
 
     ss.RegisterEntity(self)
+    self:SetNWVarProxy("inkcolor", function(ent, name, old, new)
+        ss.RegisterEntity(ent, new)
+    end)
 end
 
 function ENT:SetupDataTables()

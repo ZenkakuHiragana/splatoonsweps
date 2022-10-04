@@ -356,8 +356,8 @@ function ss.GetGravityDirection()
     return g:GetNormalized()
 end
 
-function ss.RegisterEntity(ent)
-    local color = ent:GetNWInt("inkcolor", -1)
+function ss.RegisterEntity(ent, color)
+    color = color or ent:GetNWInt("inkcolor", -1)
     if color < 0 then return end
     ss.EntityFilters[color] = ss.EntityFilters[color] or {}
     ss.EntityFilters[color][ent] = true

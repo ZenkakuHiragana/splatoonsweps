@@ -124,10 +124,10 @@ function SWEP:RenderScreenspaceEffects()
         surface.SetDrawColor(ColorAlpha(color_black, prog * 255))
         surface.SetMaterial(material)
         surface.DrawTexturedRect(x, y - 1, sx, sy + 1)
-        if x > 0 then padding(-1, -1, x + 1, ScrH() + 1, 0, 0, u, v) end
-        if ex < ScrW() then padding(ex - 1, -1, ScrW() - ex + 1, ScrH() + 1, 0, 0, u, v) end
-        if y > 0 then padding(x, -1, sx, y + 1, 0, 0, u, v) end
-        if ey < ScrH() then padding(x, ey - 1, ScrW(), ScrH() - ey + 1, 0, 0, u, v) end
+        if x  > 0      then padding(-1,     -1,     x + 1,           ScrH()      + 1, 0, 0, u, v) end
+        if y  > 0      then padding(x,      -1,     sx,              y           + 1, 0, 0, u, v) end
+        if ex < ScrW() then padding(ex - 1, -1,     ScrW() - ex + 1, ScrH()      + 1, 0, 0, u, v) end
+        if ey < ScrH() then padding(x,      ey - 1, ScrW(),          ScrH() - ey + 1, 0, 0, u, v) end
     end
 
     MatRefScope:SetFloat("$refractamount", MatRefDefault)
