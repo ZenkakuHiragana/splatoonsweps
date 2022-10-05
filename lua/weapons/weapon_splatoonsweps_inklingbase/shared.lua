@@ -340,8 +340,10 @@ function SWEP:SharedThinkBase()
         self:SetWeaponAnim(ACT_VM_IDLE)
     end
 
-    self:SetClip1(math.Round(self:GetInk()))
-    self:GetOwner():SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
+    if IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() then
+        self:SetClip1(math.Round(self:GetInk()))
+        self:GetOwner():SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
+    end
 
     local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
     self:GetOwner():DrawShadow(not ShouldNoDraw)

@@ -265,16 +265,21 @@ hook.Add("EntityTakeDamage", "SplatoonSWEPs: Ink damage manager", function(ent, 
     net.Send(ent)
 end)
 
-local function DeathExplosion(ply, attacker)
-    local w = ss.IsValidInkling(attacker)
-    if not w then return end
-    if ss.GetOption "explodeonlysquids" and not ss.IsValidInkling(ply) then return end
-    ss.MakeDeathExplosion(ply:WorldSpaceCenter(), attacker, w:GetNWInt "inkcolor")
-    for _, e in ipairs(ents.FindByClass "env_entity_dissolver") do print(e) end
+local function OnPlayerDeath(ply, attacker)
+    local w = ss.IsValidInkling(ply)
+    local inflictor = ss.IsValidInkling(attacker)
+    if inflictor and (not ss.GetOption "explodeonlysquids" or w) then
+        ss.MakeDeathExplosion(ply:WorldSpaceCenter(), attacker, inflictor:GetNWInt "inkcolor")
+    end
+
+    if w and w:GetSuperJumpState() >= 0 then
+        w:SetSuperJumpState(-1)
+        ss.SetSuperJumpBoneManipulation(ply, angle_zero)
+    end
 end
 
-hook.Add("DoPlayerDeath", "SplatoonSWEPs: Make a death explosion", DeathExplosion)
-hook.Add("OnNPCKilled", "SplatoonSWEPs: Make a death explosion", DeathExplosion)
+hook.Add("DoPlayerDeath", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
+hook.Add("OnNPCKilled", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
 hook.Add("OnDamagedByExplosion", "SplatoonSWEPs: No sound effect needed", function(_, dmg)
     local inflictor = dmg:GetInflictor()
     return IsValid(inflictor) and (inflictor.IsSplatoonWeapon or inflictor.IsSplatoonBomb) or nil

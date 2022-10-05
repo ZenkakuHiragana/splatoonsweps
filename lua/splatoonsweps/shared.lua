@@ -642,10 +642,6 @@ end
 function ss.PerformSuperJump(w, ply, mv)
     local sjs = w:GetSuperJumpState()
     if sjs < 0 then return end
-    if ply:Health() == 0 then
-        w:SetSuperJumpState(-1)
-        ss.SetSuperJumpBoneManipulation(ply, angle_zero)
-    end
 
     local t = CurTime() - w:GetSuperJumpStartTime()
     local targetentity = w:GetSuperJumpEntity()

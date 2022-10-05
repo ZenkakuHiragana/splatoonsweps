@@ -103,6 +103,10 @@ function module:ServerSecondaryAttack(throwable)
     local tr = util.QuickTrace(start, tracedz, self:GetOwner())
     if not tr.Hit then return end
 
+    for _, e in ipairs(ents.FindInSphere(tr.HitPos, 10)) do
+        if e.IsSquidBeakon then return end
+    end
+
     local inkcolor = self:GetNWInt "inkcolor"
     local e = ents.Create "ent_splatoonsweps_squidbeakon"
     local ang = Angle()

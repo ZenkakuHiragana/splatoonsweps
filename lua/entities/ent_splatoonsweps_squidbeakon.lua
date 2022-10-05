@@ -151,7 +151,7 @@ function ENT:Think()
     self:UpdateLightEmission()
     self:UpdateRadio()
 
-    if IsValid(self.Weapon) then
+    if IsValid(self.Weapon) and IsValid(self.Weapon:GetOwner()) and self.Weapon:GetOwner():Health() > 0 then
         self:SetNWInt("inkcolor", self.Weapon:GetNWInt "inkcolor")
         local color = ss.GetColor(self:GetNWInt "inkcolor")
         if color then self:SetInkColorProxy(color:ToVector()) end

@@ -49,6 +49,7 @@ function ENT:Initialize()
         if IsValid(p) then
             p:EnableDrag(false)
             p:EnableGravity(false)
+            p:AddGameFlag(FVPHYSICS_NO_IMPACT_DMG)
         end
     end
 
