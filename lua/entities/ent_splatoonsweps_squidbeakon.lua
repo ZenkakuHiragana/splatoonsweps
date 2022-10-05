@@ -169,6 +169,7 @@ function ENT:PhysicsCollide(data, collider)
     if self:IsStuck() then return end
     self.BaseClass.PhysicsCollide(self, data, collider)
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
 
     self.HitNormal = -data.HitNormal
     self.ContactEntity = data.HitEntity

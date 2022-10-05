@@ -152,6 +152,7 @@ function ENT:PhysicsCollide(data, collider)
     ang:RotateAroundAxis(ang:Forward(), deg)
     ang:RotateAroundAxis(ang:Right(), -90)
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
     collider:SetPos(data.HitPos)
     collider:SetAngles(ang)
 

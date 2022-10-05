@@ -103,6 +103,6 @@ function ENT:PhysicsUpdate(p)
     if CurTime() < self.DragCoeffChangeTime then return end
 
     -- Gravity
-    local g_dir = ss.GetGravityDirection()
+    local g_dir = self.GravityDirection or ss.GetGravityDirection()
     p:AddVelocity(g_dir * self.Gravity * FrameTime() * fix)
 end

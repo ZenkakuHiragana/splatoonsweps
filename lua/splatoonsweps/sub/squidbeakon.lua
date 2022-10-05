@@ -131,6 +131,7 @@ function module:ServerSecondaryAttack(throwable)
     local ph = e:GetPhysicsObject()
     if not IsValid(ph) then return end
     ph:EnableMotion(not tr.Entity:IsWorld())
+    ph:EnableGravity(true)
 
     e.HitNormal = tr.HitNormal
     e.ContactEntity = tr.Entity

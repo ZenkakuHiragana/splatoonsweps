@@ -136,8 +136,11 @@ function ENT:Paint()
 end
 
 function ENT:OnTakeDamage(d)
+    local health = self:Health()
     self:SetHealth(math.max(0, self:Health() - d:GetDamage()))
-    if self:Health() == 0 then self.DestroyWaitStartTime = CurTime() end
+    if health > 0 and self:Health() == 0 then
+        self.DestroyWaitStartTime = CurTime()
+    end
 
     return d:GetDamage()
 end
@@ -172,6 +175,7 @@ function ENT:Think()
         local ph = self:GetPhysicsObject()
         if IsValid(ph) then
             ph:EnableMotion(not self.ContactEntity:IsWorld())
+            ph:EnableGravity(true)
         end
     end
 
@@ -223,6 +227,7 @@ function ENT:PhysicsCollide(data, collider)
     end
 
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
     collider:SetPos(data.HitPos)
     collider:SetAngles(Angle(0, collider:GetAngles().yaw, 0))
 

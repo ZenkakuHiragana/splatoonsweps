@@ -62,6 +62,7 @@ function ENT:PhysicsCollide(data, collider)
     local deg = math.deg(math.acos(dot)) * sign
     ang:RotateAroundAxis(ang:Forward(), deg)
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
     collider:SetPos(data.HitPos)
     collider:SetAngles(ang)
     self.HitNormal = -data.HitNormal

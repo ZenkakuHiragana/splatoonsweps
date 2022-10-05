@@ -33,7 +33,9 @@ function EFFECT:Render()
         scprog = 0
     end
 
-    local color = ColorAlpha(ss.GetColor(w:GetNWInt "inkcolor"), 255 - scprog)
+    local c = ss.GetColor(w:GetNWInt "inkcolor")
+    if not c then return end
+    local color = ColorAlpha(c, 255 - scprog)
     local shootpos, dir = w:GetFirePosition(true)
     local pos, ang = w:GetMuzzlePosition()
     local col = ss.vector_one * w:GetColRadius(true)

@@ -255,6 +255,7 @@ function SWEP:SetWeaponAnim(act, index)
 end
 
 function SWEP:ConsumeInk(amount)
+    if not isnumber(amount) then return end
     if self:GetIsDisrupted() then amount = amount * 2 end
     self:SetInk(math.max(self:GetInk() - amount, 0))
 end

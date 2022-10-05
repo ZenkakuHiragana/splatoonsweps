@@ -121,6 +121,7 @@ function ENT:Think()
             self.SeekerNearSound:Play()
         end
     else
+        self.MoveDirection = self:GetForward()
         self.SeekerFarSound:Stop()
         self.SeekerNearSound:Stop()
     end
@@ -135,9 +136,11 @@ function ENT:PhysicsUpdate(p)
     local dot = self.MoveDirection:Dot(self:GetForward())
     p:AddAngleVelocity(axis * (dot - 1) * 180)
     if p:GetStress() == 0 then
+        self.GravityDirection = nil
         self.Gravity = self.GravityHold
     else
-        self.Gravity = 0
+        self.GravityDirection = -self:GetUp()
+        self.Gravity = ss.eps
     end
 end
 
