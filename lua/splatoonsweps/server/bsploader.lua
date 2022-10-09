@@ -335,7 +335,7 @@ local function read(bsp, arg, ...)
         local chr = read(bsp, 1)
         local minlen = tonumber(arg:sub(#"String" + 1)) or 0
         local MAX_STRING_LENGTH = 1024
-        while chr ~= "\x00" and #str < MAX_STRING_LENGTH do
+        while chr and chr ~= "\x00" and #str < MAX_STRING_LENGTH do
             str = str .. chr
             chr = read(bsp, 1)
         end
@@ -374,6 +374,29 @@ local function getGameLumpStr(id)
     return string.char(a, b, c, d)
 end
 
+local function decompress(bsp)
+    local current       = bsp:Tell()
+    local actualSize    = read(bsp, 4)
+    bsp:Seek(current)
+    local actualSizeNum = read(bsp, "Long")
+    local lzmaSize      = read(bsp, "Long")
+    local props         = read(bsp, 5)
+    local contents      = read(bsp, lzmaSize)
+    local formatted     = props .. actualSize .. "\0\0\0\0" .. contents
+    return util.Decompress(formatted) or "", actualSizeNum
+end
+
+local function getDecompressed(bsp)
+    local decompressed, length = decompress(bsp)
+    file.Write("splatoonsweps/temp.txt", decompressed)
+    return file.Open("splatoonsweps/temp.txt", "rb", "DATA"), length
+end
+
+local function closeDecompressed(tmp)
+    tmp:Close()
+    file.Delete "splatoonsweps/temp.txt"
+end
+
 local function readLump(bsp, header, lumpname)
     local t = {}
     local offset = header.fileOffset
@@ -389,13 +412,17 @@ local function readLump(bsp, header, lumpname)
     end
 
     bsp:Seek(offset)
+    local isCompressed = read(bsp, 4) == "LZMA"
+    if isCompressed then
+        bsp, length = getDecompressed(bsp)
+    else
+        bsp:Seek(offset)
+    end
+
     local numElements = length / strlen
     if struct == "String" then
-        local i, readBytes = 1, 1
-        while readBytes < length do
-            t[i] = read(bsp, struct, header)
-            i, readBytes = i + 1, readBytes + #t[i]
-        end
+        local all = read(bsp, length)
+        t = string.Explode("\0", all)
     elseif numElements > 0 then
         for i = 1, numElements do
             t[i] = read(bsp, struct, header)
@@ -404,6 +431,7 @@ local function readLump(bsp, header, lumpname)
         t = read(bsp, struct, header)
     end
 
+    if isCompressed then closeDecompressed(bsp) end
     return t
 end
 
@@ -425,7 +453,14 @@ function ss.LoadBSP()
         local gamelump = GameLumpContents[idstr]
         if gamelump then
             bsp:Seek(header.fileOffset)
-            t[idstr] = read(bsp, gamelump, header)
+            local LZMAHeader = read(bsp, 4)
+            if LZMAHeader == "LZMA" then
+                local tmp = getDecompressed(bsp)
+                t[idstr] = read(tmp, gamelump, header)
+                closeDecompressed(tmp)
+            else
+                t[idstr] = read(bsp, gamelump, header)
+            end
         end
     end
 
