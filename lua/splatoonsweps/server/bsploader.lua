@@ -459,6 +459,7 @@ function ss.LoadBSP()
                 t[idstr] = read(tmp, gamelump, header)
                 closeDecompressed(tmp)
             else
+                bsp:Seek(header.fileOffset)
                 t[idstr] = read(bsp, gamelump, header)
             end
         end
