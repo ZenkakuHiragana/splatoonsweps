@@ -26,16 +26,61 @@ local function surfEdgeToVertex(index)
     local vertindex = edge[surfedge < 0 and 2 or 1]
     return ss.BSP.Raw.VERTEXES[vertindex + 1]
 end
+
+-- Generating convex hull by monotone chain method
+local function getConvex(source)
+    local vertices2D = table.Copy(source)
+    table.sort(vertices2D, function(a, b)
+        return Either(a.x == b.x, a.y < b.y, a.x < b.x)
+    end)
+
+    local convex = {}
+    for i = 1, #vertices2D do
+        if i > 2 then
+            local p = convex[#convex]
+            local q = convex[#convex - 1]
+            local pq = q - p
+            local pr = vertices2D[i] - p
+            local cross = pq:Cross(pr)
+            if cross.z > 0 or pq:LengthSqr() < ss.eps or pr:LengthSqr() < ss.eps then
+                convex[#convex] = nil
+            end
+        end
+
+        if i == #vertices2D then continue end
+        convex[#convex + 1] = vertices2D[i]
+    end
+
+    for i = #vertices2D, 1, -1 do
+        if i < #vertices2D - 1 then
+            local p = convex[#convex]
+            local q = convex[#convex - 1]
+            local pq = q - p
+            local pr = vertices2D[i] - p
+            local cross = pq:Cross(pr)
+            if cross.z > 0 or pq:LengthSqr() < ss.eps or pr:LengthSqr() < ss.eps then
+                convex[#convex] = nil
+            end
+        end
+
+        if i == 1 then continue end
+        convex[#convex + 1] = vertices2D[i]
+    end
+
+    return convex
+end
+
 -- Minimizes AABB of given convex.
 local function get2DComponents(surf)
     local desiredDir = nil
     local add90deg   = false
     local minarea    = math.huge
-    local convex     = {}
+    local vertices2D = {}
     for i, v in ipairs(surf.Vertices3D) do
-        convex[i] = ss.To2D(v, surf.Origin, surf.Angles)
+        vertices2D[i] = ss.To2D(v, surf.Origin, surf.Angles)
     end
 
+    local convex = getConvex(vertices2D)
     for i = 1, #convex do
         local p0, p1 = convex[i], convex[i % #convex + 1]
         local dp = p1 - p0
@@ -75,22 +120,25 @@ local function get2DComponents(surf)
     if add90deg then rx, ry = ry, -rx end
     surf.Angles.roll = -math.deg(math.atan2(ry.x, rx.x))
 
+    -- Rotate all vertices to minimize AABB
     local mins = ss.vector_one * math.huge
-    for _, v in ipairs(convex) do
+    for _, v in ipairs(vertices2D) do
         v.x, v.y = v:Dot(rx), v:Dot(ry)
         mins = ss.MinVector(mins, v)
     end
 
+    -- Set new origin to bounding box minimum
     surf.Origin = ss.To3D(mins, surf.Origin, surf.Angles)
 
+    -- Shift vertices to eliminate negative components
     local mins2D, maxs2D
-    for _, v in ipairs(convex) do
+    for _, v in ipairs(vertices2D) do
         v:Sub(mins)
         mins2D = ss.MinVector(mins2D or v, v)
         maxs2D = ss.MaxVector(maxs2D or v, v)
     end
 
-    surf.Vertices2D = convex
+    surf.Vertices2D = vertices2D
     surf.Boundary2D = maxs2D - mins2D
 end
 
@@ -336,9 +384,9 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
     end
 
     for i = 1, #phys, 3 do
-        local v1 = phys[i].pos
-        local v2 = phys[i + 1].pos
-        local v3 = phys[i + 2].pos
+        local v1 = LocalToWorld(phys[i].pos, angle_zero, origin, angle)
+        local v2 = LocalToWorld(phys[i + 1].pos, angle_zero, origin, angle)
+        local v3 = LocalToWorld(phys[i + 2].pos, angle_zero, origin, angle)
         local v2v1 = v1 - v2
         local v2v3 = v3 - v2
         local n = v2v1:Cross(v2v3) -- normal around v1<-v2->v3
@@ -359,10 +407,6 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         end
 
         local pn = PROJECTION_NORMALS[plane_index]
-        v1 = LocalToWorld(v1, angle_zero, origin, angle)
-        v2 = LocalToWorld(v2, angle_zero, origin, angle)
-        v3 = LocalToWorld(v3, angle_zero, origin, angle)
-        n = LocalToWorld(n, angle_zero, vector_origin, angle)
         maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v1)
         maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v2)
         maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v3)

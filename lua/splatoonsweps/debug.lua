@@ -175,20 +175,25 @@ if CLIENT then
                 for i, v in ipairs(s.Vertices2D) do t[i] = v * c end
 
                 d.DColor()
-                d.DPoly(t)
+                for _, tri in ipairs(s.Triangles) do
+                    local v1 = t[tri[1]]
+                    local v2 = t[tri[2]]
+                    local v3 = t[tri[3]]
+                    d.DLine(v1, v2, true)
+                    d.DLine(v2, v3, true)
+                    d.DLine(v3, v1, true)
+                end
 
                 if DrawInkUVBounds then
                     d.DColor(255, 255, 255)
-                    local bu, bv = -s.Boundary2D.x * ss.UnitsToUV, s.Boundary2D.y * ss.UnitsToUV
-                    for i, ti in ipairs(t) do
-                        d.DVector(ti, vector_up * c / 500)
-                        d.DPoly {
-                            t[i],
-                            t[i] + Vector(bu, 0) * c,
-                            t[i] + Vector(bu, bv) * c,
-                            t[i] + Vector(0, bv) * c,
-                        }
-                    end
+                    local org = Vector(s.OffsetUV.x, s.OffsetUV.y) * c + vector_up
+                    local u, v = s.BoundaryUV.x, s.BoundaryUV.y
+                    d.DPoly {
+                        org,
+                        org + Vector(u, 0) * c,
+                        org + Vector(u, v) * c,
+                        org + Vector(0, v) * c,
+                    }
                 end
             end
         end
