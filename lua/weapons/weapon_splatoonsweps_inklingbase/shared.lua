@@ -122,6 +122,7 @@ local function RetrieveOption(self, name, pt)
 end
 
 function SWEP:GetOptions()
+    if ss.mp and CLIENT and not IsFirstTimePredicted() then return end
     if not self:IsMine() then return end
     for name, pt in greatzenkakuman.cvartree.IteratePreferences "splatoonsweps" do
         RetrieveOption(self, name, pt)
@@ -217,6 +218,7 @@ function SWEP:UpdateInkState() -- Set if player is in ink
     self:SetWallNormal(normal)
 
     self:GetOptions()
+    if not self:GetInkColor() then return end
     self:SetInkColorProxy(self:GetInkColor():ToVector())
 end
 
