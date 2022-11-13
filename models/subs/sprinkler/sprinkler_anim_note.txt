@@ -1,0 +1,18 @@
+hammer
+0f, 0deg
+5f, 30deg
+9f, -22deg
+10f, -22deg
+11f, -12deg
+15f, -12deg
+muzzle
+0f, 0deg
+8f, 0deg
+10f, -22deg
+13f, -12deg
+15f, -12deg
+base
+0f, 0deg
+8f, 0deg
+10f, -12deg
+15f, 0deg

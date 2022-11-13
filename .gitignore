@@ -24,3 +24,6 @@ $RECYCLE.BIN/
 
 # Debug scripts for GMOD
 lua/do.lua
+
+# Don't sync VSCode configurations
+.vscode
