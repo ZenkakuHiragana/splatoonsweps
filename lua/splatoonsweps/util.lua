@@ -132,19 +132,7 @@ function ss.MaxVector(a, b)
     return Vector(math.max(a.x, b.x), math.max(a.y, b.y), math.max(a.z, b.z))
 end
 
--- Takes two AABBs and returns if they are colliding each other.
--- Arguments:
---   Vector mins1, maxs1 | The first AABB.
---   Vector mins2, maxs2 | The second AABB.
--- Returning:
---   bool                | Whether or not the two AABBs intersect each other.
-function ss.CollisionAABB(mins1, maxs1, mins2, maxs2)
-    return mins1.x < maxs2.x and maxs1.x > mins2.x and
-            mins1.y < maxs2.y and maxs1.y > mins2.y and
-            mins1.z < maxs2.z and maxs1.z > mins2.z
-end
-
--- Basically same as SplatoonSWEPs:CollisionAABB(), but ignores Z-component.
+-- Takes two AABBs and returns if they are colliding each other, but ignores Z-component.
 -- Arguments:
 --   Vector mins1, maxs1 | The first AABB.
 --   Vector mins2, maxs2 | The second AABB.

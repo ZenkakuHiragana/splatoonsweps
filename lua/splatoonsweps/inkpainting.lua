@@ -3,8 +3,6 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
-local MIN_BOUND = 20 -- Ink minimum bounding box scale
-local POINT_BOUND = ss.vector_one * .1
 local reference_polys = {}
 local reference_vert = Vector(1)
 local circle_polys = 360 / 12
@@ -82,17 +80,15 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
 
     local area = 0
     local ang = normal:Angle()
-    local AABB = { mins = ss.vector_one * math.huge, maxs = -ss.vector_one * math.huge }
+    local mins, maxs = ss.vector_one * math.huge, -ss.vector_one * math.huge
     for _, v in ipairs(reference_polys) do
         local vertex = ss.To3D(v * radius, pos, ang)
-        AABB.mins = ss.MinVector(AABB.mins, vertex)
-        AABB.maxs = ss.MaxVector(AABB.maxs, vertex)
+        mins = ss.MinVector(mins, vertex)
+        maxs = ss.MaxVector(maxs, vertex)
     end
 
-    AABB.mins:Add(-ss.vector_one * MIN_BOUND)
-    AABB.maxs:Add(ss.vector_one * MIN_BOUND)
     ss.SuppressHostEventsMP(ply)
-    for _, s in ss.SearchAABB(AABB, normal) do
+    for s in ss.CollectSurfaces(mins, maxs, normal) do
         area = area + AddInkRectangle(color, inktype, s.Angles.roll + s.Angles.yaw - angle, pos, radius, ratio, s)
 
         Order = Order + 1
@@ -138,16 +134,16 @@ end
 -- Returning:
 --   number         | The ink color of the specified position.
 --   nil            | If there is no ink, this returns nil.
+local CollectSurfaces = ss.CollectSurfaces
 function ss.GetSurfaceColor(tr)
     if not tr.Hit then return end
     local pos = tr.HitPos
-    local AABB = {mins = pos - POINT_BOUND, maxs = pos + POINT_BOUND}
-    for _, s in ss.SearchAABB(AABB, tr.HitNormal) do
-        local p2d = ss.To2D(pos, s.Origin, s.Angles)
+    for s in CollectSurfaces(pos, pos, tr.HitNormal) do
+        local p2d = To2D(pos, s.Origin, s.Angles)
         local ink = s.InkColorGrid
-        local x, y = math.floor(p2d.x * griddivision), math.floor(p2d.y * griddivision)
+        local x, y = floor(p2d.x * griddivision), floor(p2d.y * griddivision)
         local colorid = ink[x] and ink[x][y]
-        if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), i, s) end
+        -- if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), i, s) end
         if colorid then return colorid end
     end
 end
@@ -159,8 +155,7 @@ end
 -- Returning:
 --   boolean
 function ss.IsPaintable(pos, normal)
-    local AABB = {mins = pos - POINT_BOUND, maxs = pos + POINT_BOUND}
-    for _, s in ss.SearchAABB(AABB, normal) do
+    for s in CollectSurfaces(pos, pos, normal) do
         if s.InkColorGrid then return true end
     end
 end
@@ -177,6 +172,10 @@ end
 -- Returning:
 --   number           | The ink color.
 --   nil              | If there is no ink or it's too mixed, this returns nil.
+local GetSurfaceColor = ss.GetSurfaceColor
+local GetWinningKey = table.GetWinningKey
+local TraceLine = util.TraceLine
+local Vector = Vector
 function ss.GetSurfaceColorArea(org, mins, maxs, num, tracez, tolerance, filter)
     local ink_t = {filter = filter, mask = MASK_SHOT}
     local gcoloravailable = 0 -- number of points whose color is not -1
@@ -185,7 +184,7 @@ function ss.GetSurfaceColorArea(org, mins, maxs, num, tracez, tolerance, filter)
         for dy = -num, num do
             ink_t.start = org + Vector(maxs.x * dx, maxs.y * dy) / num
             ink_t.endpos = ink_t.start - vector_up * tracez
-            local color = ss.GetSurfaceColor(util.TraceLine(ink_t)) or -1
+            local color = GetSurfaceColor(TraceLine(ink_t)) or -1
             if color >= 0 then
                 gcoloravailable = gcoloravailable + 1
                 gcolorlist[color] = (gcolorlist[color] or 0) + 1
@@ -193,6 +192,6 @@ function ss.GetSurfaceColorArea(org, mins, maxs, num, tracez, tolerance, filter)
         end
     end
 
-    local gcolorkey = table.GetWinningKey(gcolorlist)
+    local gcolorkey = GetWinningKey(gcolorlist)
     return gcoloravailable / (num * 2 + 1) ^ 2 > tolerance and gcolorkey or -1
 end

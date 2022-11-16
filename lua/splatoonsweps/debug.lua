@@ -209,8 +209,8 @@ if ShowInkSurface then
         d.DShort()
         d.DColor()
         local p = ply:GetPos()
-        local AABB = {mins = p - ss.vector_one, maxs = p + ss.vector_one}
-        for _, s in ss.SearchAABB(AABB, vector_up) do
+        local mins, maxs = p - ss.vector_one, p + ss.vector_one
+        for s in ss.CollectSurfaces(mins, maxs, vector_up) do
             local v = {}
             for i, w in ipairs(s.Vertices3D) do v[i] = w end
             d.DPoint(s.Origin)
