@@ -22,8 +22,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local ink = s.InkColorGrid
     local t = ss.InkShotMaterials[inktype]
     local w, h = t.width, t.height
-    local surfsize = s.Boundary2D * griddivision
-    local sw, sh = floor(surfsize.x), floor(surfsize.y)
+    local sw, sh = s.GridSize.x, s.GridSize.y
     local dy = radius * griddivision
     local dx = ratio * dy
     local y_const = dy * 2 / h
@@ -32,7 +31,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local sind, cosd = sin(ang), cos(ang)
     local pointcount = {}
     local area = 0
-    local paint_threshold = math.floor(gridarea / (dx * dy)) + 1
+    local paint_threshold = floor(gridarea / (dx * dy)) + 1
     for x = 0, w - 1, 0.5 do
         local tx = t[floor(x)]
         if not tx then continue end
@@ -41,14 +40,13 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
             local p = x * x_const - dx
             local q = y * y_const - dy
             local i = floor(p * cosd - q * sind + x0)
-            local k = floor(p * sind + q * cosd + y0)
-            if 0 <= i and i <= sw and 0 <= k and k <= sh then
-                pointcount[i] = pointcount[i] or {}
-                pointcount[i][k] = (pointcount[i][k] or 0) + 1
-                if pointcount[i][k] > paint_threshold then
-                    ink[i] = ink[i] or {}
-                    if ink[i][k] ~= color then area = area + 1 end
-                    ink[i][k] = color
+            local j = floor(p * sind + q * cosd + y0)
+            local k = i * 32768 + j
+            if 0 <= i and i <= sw and 0 <= j and j <= sh then
+                pointcount[k] = (pointcount[k] or 0) + 1
+                if pointcount[k] > paint_threshold then
+                    if ink[k] ~= color then area = area + 1 end
+                    ink[k] = color
                 end
             end
         end
@@ -71,12 +69,12 @@ local Order, OrderTick = 1, 0 -- The ink paint order at OrderTime[sec]
 local AddInkRectangle = ss.AddInkRectangle
 function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classname)
     -- Parameter limit to reduce network traffic
-    pos.x = math.Round(pos.x * 2) / 2
-    pos.y = math.Round(pos.y * 2) / 2 -- -16384 to 16384, 0.5 step
-    pos.z = math.Round(pos.z * 2) / 2
+    pos.x = math.Round(pos.x / 2) * 2
+    pos.y = math.Round(pos.y / 2) * 2 -- -16384 to 16384, 2 step
+    pos.z = math.Round(pos.z / 2) * 2
     radius = math.min(math.Round(radius), 255) -- 0 to 255, integer
     inktype = math.floor(inktype) -- 0 to MAX_INK_TYPE, integer
-    angle = math.Round(math.NormalizeAngle(angle))
+    angle = math.Round(math.NormalizeAngle(angle) / 4) * 4
 
     local area = 0
     local ang = normal:Angle()
@@ -104,15 +102,15 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
             net.WriteUInt(inktype, ss.INK_TYPE_BITS)
             net.WriteUInt(radius, 8)
             net.WriteFloat(ratio)
-            net.WriteInt(math.NormalizeAngle(angle), 9)
-            net.WriteInt(pos.x * 2, 16)
-            net.WriteInt(pos.y * 2, 16)
-            net.WriteInt(pos.z * 2, 16)
-            net.WriteUInt(Order, 8) -- 119 to 128 bits
-            net.WriteFloat(OrderTick)
+            net.WriteInt(angle / 4, 7)
+            net.WriteInt(pos.x / 2, 15)
+            net.WriteInt(pos.y / 2, 15)
+            net.WriteInt(pos.z / 2, 15)
+            net.WriteUInt(Order, 9) -- 119 to 128 bits
+            net.WriteUInt(bit.band(OrderTick, 0x1F), 5)
             net.Send(ss.PlayersReady)
         else
-            ss.ReceiveInkQueue(s.Index, radius, angle, ratio, color, inktype, pos, Order - 256, OrderTick)
+            ss.ReceiveInkQueue(s.Index, radius, angle, ratio, color, inktype, pos, Order, bit.band(OrderTick, 0x1F))
         end
     end
 
@@ -140,7 +138,7 @@ function ss.GetSurfaceColor(pos, normal)
         local p2d = To2D(pos, s.Origin, s.Angles)
         local ink = s.InkColorGrid
         local x, y = floor(p2d.x * griddivision), floor(p2d.y * griddivision)
-        local colorid = ink[x] and ink[x][y]
+        local colorid = ink[x * 32768 + y]
         -- if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), i, s) end
         if colorid then return colorid end
     end

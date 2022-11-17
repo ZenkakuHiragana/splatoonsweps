@@ -62,9 +62,7 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if not ss.SurfaceArray then return end -- Workaround for changelevel
     for _, s in ipairs(ss.SurfaceArray) do
-        for _, v in pairs(s.InkColorGrid) do
-            table.Empty(v)
-        end
+        table.Empty(s.InkColorGrid)
     end
 
     collectgarbage "collect"

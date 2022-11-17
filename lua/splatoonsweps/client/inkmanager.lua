@@ -61,7 +61,7 @@ function ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, orde
     local vr = ss.vector_one * r
     if not ss.CollisionAABB2D(start, endpos, center - vr, center + vr) then return end
     local lightmapoffset = r / 2
-    ss.PaintQueue[tick * 512 + order + 256] = {
+    ss.PaintQueue[tick * 1024 + order * 512] = {
         angle = s.AnglesUV.roll + s.AnglesUV.yaw - ang,
         center = center,
         color = ss.GetColor(color),
@@ -179,9 +179,11 @@ function ss.ClearAllInk()
     render.PopRenderTarget()
 end
 
+local ErrorNoHalt = ErrorNoHalt
+local resume, status = coroutine.resume, coroutine.status
 hook.Add("Tick", "SplatoonSWEPs: Register ink clientside", function()
-    if coroutine.status(process) == "dead" then return end
-    local ok, msg = coroutine.resume(process)
+    if status(process) == "dead" then return end
+    local ok, msg = resume(process)
     if not ok then ErrorNoHalt(msg) end
 end)
 
