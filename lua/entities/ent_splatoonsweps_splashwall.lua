@@ -123,7 +123,7 @@ function ENT:Paint()
         if not (att.name:find "7" or att.name:find "6") then
             local a = self:GetAttachment(att.id)
             local t = util.QuickTrace(a.Pos, a.Ang:Forward() * dz, self)
-            if ss.GetSurfaceColor(t) ~= inkcolor then
+            if ss.GetSurfaceColor(t.HitPos, t.HitNormal) ~= inkcolor then
                 table.insert(paintPos, t)
             end
         end

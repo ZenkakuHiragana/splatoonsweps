@@ -10,6 +10,7 @@ local ipairs = ipairs
 local wrap = coroutine.wrap
 local yield = coroutine.yield
 local vector_one = ss.vector_one
+local vector_tenth = vector_one * 0.1
 local vector_16384 = vector_one * 16384
 local GRID_SIZE = 128
 local MAX_COS_DIFF = ss.MAX_COS_DIFF
@@ -31,6 +32,9 @@ local function hashpairs(mins, maxs)
         for z = z0, z1 do
             for y = y0, y1 do
                 for x = x0, x1 do
+                    -- local gmin = Vector(x, y, z) * GRID_SIZE - vector_16384
+                    -- local gmax = gmin + vector_one * GRID_SIZE
+                    -- debugoverlay.Box(Vector(), gmin, gmax, FrameTime() * 20, Color(0, 255, 0, 16))
                     yield(gridToHash(x, y, z))
                 end
             end
@@ -52,7 +56,7 @@ end
 
 function ss.CollectSurfaces(mins, maxs, normal)
     return wrap(function()
-        for h in hashpairs(mins, maxs) do
+        for h in hashpairs(mins - vector_tenth, maxs + vector_tenth) do
             for _, i in ipairs(ss.SurfaceHash[h] or {}) do
                 local s = ss.SurfaceArray[i]
                 if dot(s.Normal, normal) > MAX_COS_DIFF then yield(s) end
@@ -62,7 +66,7 @@ function ss.CollectSurfaces(mins, maxs, normal)
 end
 
 function ss.GetGridBBox(pos)
-    local mins = Vector(posToGrid(pos)) * ss.GRID_SIZE - ss.vector_one * 16384
-    local maxs = mins + ss.vector_one * ss.GRID_SIZE
+    local mins = Vector(posToGrid(pos)) * GRID_SIZE - vector_16384
+    local maxs = mins + vector_one * GRID_SIZE
     return mins, maxs
 end

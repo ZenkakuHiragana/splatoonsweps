@@ -135,10 +135,8 @@ end
 --   number         | The ink color of the specified position.
 --   nil            | If there is no ink, this returns nil.
 local CollectSurfaces = ss.CollectSurfaces
-function ss.GetSurfaceColor(tr)
-    if not tr.Hit then return end
-    local pos = tr.HitPos
-    for s in CollectSurfaces(pos, pos, tr.HitNormal) do
+function ss.GetSurfaceColor(pos, normal)
+    for s in CollectSurfaces(pos, pos, normal) do
         local p2d = To2D(pos, s.Origin, s.Angles)
         local ink = s.InkColorGrid
         local x, y = floor(p2d.x * griddivision), floor(p2d.y * griddivision)
@@ -166,7 +164,6 @@ end
 --   Vector max       | Maximum size (only X and Y components are used).
 --   Vector min       | Minimum size (only X and Y components are used).
 --   number num       | Number of traces per axis.
---   number tracez    | Depth of the traces.
 --   number tolerance | Should be from 0 to 1.
 --     The returning color should be the one that covers more than this ratio of the area.
 -- Returning:
@@ -174,17 +171,14 @@ end
 --   nil              | If there is no ink or it's too mixed, this returns nil.
 local GetSurfaceColor = ss.GetSurfaceColor
 local GetWinningKey = table.GetWinningKey
-local TraceLine = util.TraceLine
 local Vector = Vector
-function ss.GetSurfaceColorArea(org, mins, maxs, num, tracez, tolerance, filter)
-    local ink_t = {filter = filter, mask = MASK_SHOT}
+function ss.GetSurfaceColorArea(org, mins, maxs, num, tolerance)
     local gcoloravailable = 0 -- number of points whose color is not -1
     local gcolorlist = {} -- Ground color list
     for dx = -num, num do
         for dy = -num, num do
-            ink_t.start = org + Vector(maxs.x * dx, maxs.y * dy) / num
-            ink_t.endpos = ink_t.start - vector_up * tracez
-            local color = GetSurfaceColor(TraceLine(ink_t)) or -1
+            local pos = org + Vector(maxs.x * dx, maxs.y * dy) / num
+            local color = GetSurfaceColor(pos, vector_up) or -1
             if color >= 0 then
                 gcoloravailable = gcoloravailable + 1
                 gcolorlist[color] = (gcolorlist[color] or 0) + 1
