@@ -484,7 +484,7 @@ function ss.KeyRelease(self, ply, key)
 end
 
 function ss.OnPlayerHitGround(self, ply, inWater, onFloater, speed)
-    if not self:GetInInk() then return end
+    if not self:GetInInk() or self:GetInWallInk() then return end
     if not self:IsFirstTimePredicted() then return end
     local e = EffectData()
     local f = (speed - 100) / 600
