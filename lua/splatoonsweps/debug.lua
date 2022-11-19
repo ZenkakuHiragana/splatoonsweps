@@ -73,7 +73,8 @@ function sd.ShowInkStateMesh(pos, id, surf)
     ShowInkStateSurf = surf
     if SERVER ~= player.GetByID(1):KeyDown(IN_ATTACK2) then return end
     local ink = surf.InkColorGrid
-    local colorid = ink[pos.x] and ink[pos.x][pos.y]
+    if not ink then return end
+    local colorid = ink[pos.x * 32768 + pos.y]
     local c = ss.GetColor(colorid) or color_white
     local p = ss.To3D(pos * gridsize, surf.Origin, surf.Angles)
     d.DTick()
@@ -209,8 +210,8 @@ if ShowInkSurface then
         d.DShort()
         d.DColor()
         local p = ply:GetPos()
-        local AABB = {mins = p - ss.vector_one, maxs = p + ss.vector_one}
-        for _, s in ss.SearchAABB(AABB, vector_up) do
+        local mins, maxs = p - ss.vector_one, p + ss.vector_one
+        for s in ss.CollectSurfaces(mins, maxs, vector_up) do
             local v = {}
             for i, w in ipairs(s.Vertices3D) do v[i] = w end
             d.DPoint(s.Origin)
@@ -230,7 +231,8 @@ if ShowInkStateMesh then
         local id = ShowInkStateID
         local surf = ShowInkStateSurf
         local ink = surf.InkColorGrid
-        local colorid = ink[pos.x] and ink[pos.x][pos.y]
+        if not ink then return end
+        local colorid = ink[pos.x * 32768 + pos.y]
         local color = ss.GetColor(colorid) or color_white
         local sw, sh = surf.Boundary2D.x, surf.Boundary2D.y
         local gw, gh = math.floor(sw / gridsize), math.floor(sh / gridsize)
@@ -242,7 +244,7 @@ if ShowInkStateMesh then
             for y = 0, gh do
                 local p = Vector(x, y) * gridsize
                 local org = ss.To3D(p, surf.Origin, surf.Angles)
-                local cid = ink[x] and ink[x][y]
+                local cid = ink[x * 32768 + y]
                 local c = ss.GetColor(cid) or color_white
                 d.DColor(c.r, c.g, c.b, cid and 64 or 16)
                 d.DABox(org, vector_origin, Vector(0, gridsize - 1, gridsize - 1), surf.Angles)

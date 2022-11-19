@@ -4,42 +4,6 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
--- Finds AABB-tree nodes/leaves which includes the given AABB.
--- Use as an iterator function:
---   for nodes in SplatoonSWEPs:SearchAABB(AABB) do ... end
--- Arguments:
---   table AABB | {mins = Vector(), maxs = Vector()}
--- Returning:
---   table      | A sequential table.
-function ss.SearchAABB(AABB, normal)
-    local function recursive(aabb)
-        local t = {}
-        if aabb.SurfIndices then
-            for _, i in ipairs(aabb.SurfIndices) do
-                local surf = ss.SurfaceArray[i]
-                if surf.Angles:Forward():Dot(normal) > ss.MAX_COS_DIFF
-                and ss.CollisionAABB(surf.mins, surf.maxs, AABB.mins, AABB.maxs) then
-                    t[#t + 1] = surf
-                end
-            end
-        else
-            local l = ss.AABBTree[aabb.Children[1]]
-            local r = ss.AABBTree[aabb.Children[2]]
-            if l and ss.CollisionAABB(l.AABB.mins, l.AABB.maxs, AABB.mins, AABB.maxs) then
-                table.Add(t, recursive(l))
-            end
-
-            if r and ss.CollisionAABB(r.AABB.mins, r.AABB.maxs, AABB.mins, AABB.maxs) then
-                table.Add(t, recursive(r))
-            end
-        end
-
-        return t
-    end
-
-    return ipairs(recursive(ss.AABBTree[1]))
-end
-
 -- The function names of EffectData() don't make sense, renaming.
 do local e = EffectData()
     ss.GetEffectSplash         = e.GetAngles -- Angle(SplashColRadius, SplashDrawRadius, SplashLength)
@@ -94,9 +58,10 @@ include "explosion.lua"
 include "fixings.lua"
 include "text.lua"
 include "convars.lua"
-include "inkballistic.lua"
-include "inkpainting.lua"
+include "hash.lua"
+include "inkcolorgrid.lua"
 include "movement.lua"
+include "projectile.lua"
 include "sounds/common.lua"
 include "weapons.lua"
 include "weaponregistration.lua"

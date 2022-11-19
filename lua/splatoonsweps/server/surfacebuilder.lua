@@ -5,8 +5,9 @@ if not ss then return end
 ss.class "PaintableSurface" {
     Angles         = Angle(),
     Contents       = CONTENTS_EMPTY,
+    GridSize       = Vector(),
     Index          = 0,
-    InkColorGrid   = {}, -- number[][]
+    InkColorGrid   = {}, -- number[x * 32768 + y]
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
@@ -140,6 +141,9 @@ local function get2DComponents(surf)
 
     surf.Vertices2D = vertices2D
     surf.Boundary2D = maxs2D - mins2D
+
+    local gridsize = surf.Boundary2D / ss.InkGridSize
+    surf.GridSize = Vector(math.floor(gridsize.x), math.floor(gridsize.y))
 end
 
 local TextureFilterBits = bit.bor(

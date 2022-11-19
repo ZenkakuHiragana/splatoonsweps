@@ -39,7 +39,7 @@ function AddCVarPrefix(p, options)
 end
 
 function RemoveCVarPrefix(n)
-    for i = 1, n or 1 do cvarprefix[#cvarprefix] = nil end
+    for _ = 1, n or 1 do cvarprefix[#cvarprefix] = nil end
     return RemoveCVarPrefix
 end
 
@@ -127,12 +127,12 @@ end
 function IteratePreferences(root)
     local t = root and GetCVarTable(root) or cvarlist
     local function f(r)
-        for p, pt in pairs(r or t) do
-            if istable(pt) then
-                if pt.iscvarlayer then
-                    f(pt)
-                elseif pt.cl or pt.sv then
-                    coroutine.yield(p, pt)
+        for prefname, preftable in pairs(r or t) do
+            if istable(preftable) then
+                if preftable.iscvarlayer then
+                    f(preftable)
+                elseif preftable.cl or preftable.sv then
+                    coroutine.yield(prefname, preftable)
                 end
             end
         end
@@ -161,7 +161,7 @@ if SERVER then
     end)
 
     net.Receive("greatzenkakuman.cvartree.synchronizeconvars", function(_, ply)
-        for cvarname, cvartable in IteratePreferences() do
+        for _, cvartable in IteratePreferences() do
             if cvartable.options and cvartable.options.serverside then
                 local str = cvartable.sv:GetString() -- It's really hacky way
                 cvartable.sv:SetString(str .. "*") -- to synchronize CVars,

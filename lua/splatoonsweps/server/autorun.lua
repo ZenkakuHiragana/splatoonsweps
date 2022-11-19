@@ -26,7 +26,6 @@ SplatoonSWEPs = SplatoonSWEPs or {
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
 include "bsploader.lua"
-include "bvh.lua"
 include "network.lua"
 include "surfacebuilder.lua"
 
@@ -63,9 +62,7 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if not ss.SurfaceArray then return end -- Workaround for changelevel
     for _, s in ipairs(ss.SurfaceArray) do
-        for _, v in pairs(s.InkColorGrid) do
-            table.Empty(v)
-        end
+        table.Empty(s.InkColorGrid)
     end
 
     collectgarbage "collect"
@@ -186,10 +183,8 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         util.TimerCycle()
         ss.LoadBSP()
         ss.GenerateSurfaces()
-        ss.GenerateAABBTree()
         data.MapCRC = mapCRC
         data.Revision = ss.MAPCACHE_REVISION
-        data.AABBTree = ss.SanitizeJSONLimit(ss.AABBTree)
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
@@ -197,7 +192,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
 
         file.Write(path, util.Compress(util.TableToJSON(data)))
     else
-        ss.AABBTree = ss.DesanitizeJSONLimit(data.AABBTree)
         ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
         ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
@@ -209,6 +203,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     resource.AddSingleFile("data/" .. path)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
 
+    ss.GenerateHashTable()
     ss.ClearAllInk()
 end)
 

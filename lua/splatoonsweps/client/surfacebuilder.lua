@@ -132,11 +132,11 @@ end
 
 function ss.PrepareInkSurface(data)
     util.TimerCycle()
-    ss.AABBTree = ss.DesanitizeJSONLimit(data.AABBTree)
     ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
     ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
+    ss.GenerateHashTable()
     ss.BuildInkMesh()
     ss.BuildWaterMesh()
     ss.ClearAllInk()

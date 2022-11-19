@@ -158,42 +158,28 @@ function SWEP:ApplySkinAndBodygroups()
     end
 end
 
-local InkTraceLength = 15
-local InkTraceZSteps = 10
-local InkTraceXYSteps = 2
+local InkTraceLength = 30
+local InkTraceDepth = 15
 function SWEP:UpdateInkState() -- Set if player is in ink
     local ang = Angle(0, self:GetOwner():GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
     local org = self:GetOwner():GetPos()
     local fw, right = ang:Forward() * InkTraceLength, ang:Right() * InkTraceLength
-    local mins, maxs = self:GetOwner():GetCollisionBounds()
-    local ink_t = ss.SquidTrace
-    local gcolor = ss.GetSurfaceColorArea(org, mins, maxs, InkTraceXYSteps, InkTraceLength, 0.5, self:GetOwner())
+    local gtrace = util.QuickTrace(org, -vector_up * InkTraceDepth, self:GetOwner())
+    local gcolor = gtrace.Hit and ss.GetSurfaceColor(gtrace.HitPos, gtrace.HitNormal) or -1
     local onink = gcolor >= 0
     local onourink = gcolor == c
     local onenemyink = onink and not onourink
 
-    ink_t.filter = { self, self:GetOwner() }
-    ink_t.maxs = maxs
-    ink_t.mins = mins
-    ink_t.start = org
-    local dz = vector_up * maxs.z / InkTraceZSteps
+    local center = self:GetOwner():WorldSpaceCenter()
     local normal, onwallink = Vector(), false
-    for _, p in ipairs {org + fw, org - fw, org + right, org - right} do
-        if onwallink then break end
-        ink_t.endpos = p
-        local tr = util.TraceHull(ink_t)
-        if tr.HitNormal.z < ss.MAX_COS_DIFF then
-            tr.HitPos:Add(tr.HitNormal * ink_t.mins.x)
-            for i = 1, InkTraceZSteps + 1 do
-                if i > InkTraceZSteps / 3 and ss.GetSurfaceColor(tr) == c then
-                    normal = tr.HitNormal
-                    onwallink = true
-                    break
-                end
-
-                tr.HitPos:Add(dz)
-            end
+    for _, p in ipairs { fw, -fw, right, -right } do
+        local tr = util.QuickTrace(center, p, self:GetOwner())
+        if not tr.Hit or tr.HitNormal.z > ss.MAX_COS_DIFF then continue end
+        if ss.GetSurfaceColor(tr.HitPos, tr.HitNormal) == c then
+            normal = tr.HitNormal
+            onwallink = true
+            break
         end
     end
 
