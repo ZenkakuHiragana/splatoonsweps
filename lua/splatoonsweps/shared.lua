@@ -444,7 +444,8 @@ function ss.KeyPress(self, ply, key)
     end
 
     ss.ProtectedCall(self.KeyPress, self, ply, key)
-    if CLIENT and (ss.sp or IsFirstTimePredicted()) and key == IN_SPEED then
+    if CLIENT and (ss.sp or IsFirstTimePredicted())
+    and key == IN_SPEED and not ss.IsOpeningMinimap then
         ss.OpenMiniMap()
     end
 
