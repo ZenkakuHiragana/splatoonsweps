@@ -63,7 +63,7 @@ net.Receive("SplatoonSWEPs: Send player data", function()
 end)
 
 net.Receive("SplatoonSWEPs: Send turf inked", function()
-    local inked = net.ReadDouble()
+    local inked = net.ReadFloat()
     local classname = assert(ss.WeaponClassNames[net.ReadUInt(8)], "SplatoonSWEPs: Invalid classname!")
     ss.WeaponRecord[LocalPlayer()].Inked[classname] = inked
 end)

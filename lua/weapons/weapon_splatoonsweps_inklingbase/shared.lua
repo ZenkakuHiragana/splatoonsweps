@@ -159,7 +159,7 @@ function SWEP:ApplySkinAndBodygroups()
 end
 
 local InkTraceLength = 30
-local InkTraceDepth = 15
+local InkTraceDepth = 20
 function SWEP:UpdateInkState() -- Set if player is in ink
     local ang = Angle(0, self:GetOwner():GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
@@ -173,7 +173,7 @@ function SWEP:UpdateInkState() -- Set if player is in ink
 
     local center = self:GetOwner():WorldSpaceCenter()
     local normal, onwallink = Vector(), false
-    for _, p in ipairs { fw, -fw, right, -right } do
+    for _, p in ipairs { fw + right, fw - right, -fw + right, -fw - right } do
         local tr = util.QuickTrace(center, p, self:GetOwner())
         if not tr.Hit or tr.HitNormal.z > ss.MAX_COS_DIFF then continue end
         if ss.GetSurfaceColor(tr.HitPos, tr.HitNormal) == c then
