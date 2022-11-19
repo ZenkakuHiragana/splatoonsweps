@@ -444,7 +444,8 @@ function ss.KeyPress(self, ply, key)
     end
 
     ss.ProtectedCall(self.KeyPress, self, ply, key)
-    if CLIENT and (ss.sp or IsFirstTimePredicted()) and key == IN_SPEED then
+    if CLIENT and (ss.sp or IsFirstTimePredicted())
+    and key == IN_SPEED and not ss.IsOpeningMinimap then
         ss.OpenMiniMap()
     end
 
@@ -484,7 +485,7 @@ function ss.KeyRelease(self, ply, key)
 end
 
 function ss.OnPlayerHitGround(self, ply, inWater, onFloater, speed)
-    if not self:GetInInk() then return end
+    if not self:GetInInk() or self:GetInWallInk() then return end
     if not self:IsFirstTimePredicted() then return end
     local e = EffectData()
     local f = (speed - 100) / 600
@@ -596,10 +597,10 @@ function ss.SetSuperJumpBoneManipulation(ply, ang)
     if not w then return end
 
     local boneid = 0
-    local pm = w:GetNWInt "playermodel"
-    if pm == ss.PLAYER.GIRL or pm == ss.PLAYER.BOY then
-        boneid = 2
-    end
+    local mdl = ply:GetModel()
+    local girl = ss.Playermodel[ss.PLAYER.GIRL]
+    local boy = ss.Playermodel[ss.PLAYER.BOY]
+    if mdl == girl or mdl == boy then boneid = 2 end
 
     ply:ManipulateBoneAngles(boneid, ang)
 end
@@ -688,9 +689,9 @@ function ss.PerformSuperJump(w, ply, mv)
 
         if not w.SuperJumpVoicePlayed and t > ss.SuperJumpVoiceDelay then
             w.SuperJumpVoicePlayed = true
-            local pmtype = w:GetNWInt "playermodel"
-            if ss.SuperJumpVoice[pmtype] then
-                w:EmitSound(ss.SuperJumpVoice[pmtype])
+            local mdl = ply:GetModel()
+            if ss.SuperJumpVoice[mdl] then
+                w:EmitSound(ss.SuperJumpVoice[mdl])
             end
         end
 

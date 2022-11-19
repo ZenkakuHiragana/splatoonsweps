@@ -2,7 +2,6 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local toggle = false
 local cos, sin, rad = math.cos, math.sin, math.rad
 function ss.OpenMiniMap()
     local bb = ss.GetMinimapAreaBounds(LocalPlayer():WorldSpaceCenter())
@@ -15,16 +14,30 @@ function ss.OpenMiniMap()
     local inclinedAngle = Angle(90 - inclinedPitch, inclinedYaw, 0)
     local desiredAngle = Angle(inclinedAngle)
     local currentAngle = Angle(desiredAngle)
-    local mins, maxs = bb.mins, bb.maxs
-    local bbsize = maxs - mins
-    local org = Vector(mins.x, mins.y, maxs.z + 1)
-    local props = vgui.Create("DProperties")
+    local bbmins, bbmaxs, bbsize = bb.mins, bb.maxs, bb.maxs - bb.mins
+    local org = Vector(bbmins.x, bbmins.y, bbmaxs.z + 1)
+    local mul = bbsize:Length2D() / 1000
+    local mx,  my  = 0, 0 -- Mouse position stored on right click
+    local dx2, dy2 = 0, 0 -- Panning backup
+    local dx,  dy  = 0, 0 -- Panning
+    local zoom, zoommul = 0, mul * 10
+    local maxzoom = bbsize:Length() -- FIXME: Find the correct maximum zoom
+
+    -- Minimap window margin taken from spawnmenu.lua
+    local spawnmenu_border = GetConVar "spawnmenu_border"
+    local border = spawnmenu_border and spawnmenu_border:GetFloat() or 0.1
+    local windowMarginX = math.Clamp((ScrW() - 1024) * border, 25, 256 )
+    local windowMarginY = math.Clamp((ScrH() - 768) * border, 25, 256 )
+    if ScrW() < 1024 or ScrH() < 768 then
+        windowMarginX = 0
+        windowMarginY = 0
+    end
+
     local frame = vgui.Create("DFrame")
     local panel = vgui.Create("DButton", frame)
-    props:Dock(FILL)
     frame:SetSizable(true)
-    frame:SetSize(ScrH() * 0.6, ScrH() * 0.85)
-    frame:SetPos(10, 10)
+    frame:DockMargin(windowMarginX, windowMarginY, windowMarginX, windowMarginY)
+    frame:Dock(FILL)
     frame:MakePopup()
     frame:SetKeyboardInputEnabled(false)
     frame:SetMouseInputEnabled(true)
@@ -49,8 +62,8 @@ function ss.OpenMiniMap()
         local width  = right - left
         local height = bottom - top
         local aspectratio = w / h
-        -- bottom = bottom - height * 0.5 * cos(rad(currentAngle.pitch))
-        -- height = bottom - top
+        bottom = bottom - height * 0.5 * cos(rad(currentAngle.pitch))
+        height = bottom - top
         local addMarginAxisY = aspectratio < (width / height)
         if addMarginAxisY then
             local diff = width / aspectratio - height
@@ -64,22 +77,25 @@ function ss.OpenMiniMap()
             right = right + margin
         end
 
+        left, right = left - dx, right - dx
+        top, bottom = top + dy, bottom + dy
+
         return {
-            left   = left,
-            right  = right,
-            top    = top,
-            bottom = bottom,
+            left   = left   + zoom * zoommul * aspectratio,
+            right  = right  - zoom * zoommul * aspectratio,
+            top    = top    + zoom * zoommul,
+            bottom = bottom - zoom * zoommul,
         }
     end
 
     local function DrawMap(x, y, w, h, ortho)
         ss.IsDrawingMinimap = true
-        render.PushCustomClipPlane(Vector( 0,  0, -1), -maxs.z - 0.5)
-        render.PushCustomClipPlane(Vector( 0,  0,  1),  mins.z - 0.5)
-        render.PushCustomClipPlane(Vector(-1,  0,  0), -maxs.x - 0.5)
-        render.PushCustomClipPlane(Vector( 1,  0,  0),  mins.x - 0.5)
-        render.PushCustomClipPlane(Vector( 0, -1,  0), -maxs.y - 0.5)
-        render.PushCustomClipPlane(Vector( 0,  1,  0),  mins.y - 0.5)
+        render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
+        render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
+        render.PushCustomClipPlane(Vector(-1,  0,  0), -bbmaxs.x - 0.5)
+        render.PushCustomClipPlane(Vector( 1,  0,  0),  bbmins.x - 0.5)
+        render.PushCustomClipPlane(Vector( 0, -1,  0), -bbmaxs.y - 0.5)
+        render.PushCustomClipPlane(Vector( 0,  1,  0),  bbmins.y - 0.5)
         render.RenderView {
             drawviewmodel = false,
             origin = org,
@@ -128,11 +144,23 @@ function ss.OpenMiniMap()
         end
     end
 
-    local keydown = input.IsKeyDown(KEY_LSHIFT)
+    local keydown = input.IsShiftDown()
+    local mousedown = input.IsMouseDown(MOUSE_RIGHT)
     function panel:Think()
-        local k = input.IsKeyDown(KEY_LSHIFT)
-        if Either(toggle, not keydown and k, not k) then frame:Close() end
+        local k = input.IsShiftDown()
+        local m = input.IsMouseDown(MOUSE_RIGHT)
+        local x, y = input.GetCursorPos()
+        if not keydown and k then frame:Close() end
         keydown = k
+
+        if not mousedown and m then
+            mx,  my  = x, y
+            dx2, dy2 = dx, dy
+        elseif m then
+            dx = dx2 + (x - mx) * mul
+            dy = dy2 + (y - my) * mul
+        end
+        mousedown = m
     end
 
     function panel:DoDoubleClick()
@@ -158,8 +186,14 @@ function ss.OpenMiniMap()
                 net.Start "SplatoonSWEPs: Super jump"
                 net.WriteEntity(b)
                 net.SendToServer()
+                frame:Close()
+                return
             end
         end
+    end
+
+    function panel:OnMouseWheeled(scrollDelta)
+        zoom = math.min(zoom + scrollDelta, maxzoom)
     end
 
     function panel:Paint(w, h)
@@ -168,6 +202,13 @@ function ss.OpenMiniMap()
         UpdateCameraAngles()
         DrawMap(x, y, w, h, ortho)
         DrawBeakons(w, h, ortho)
+    end
+
+    ss.IsOpeningMinimap = true
+    function frame:OnClose()
+        timer.Simple(0, function()
+            ss.IsOpeningMinimap = nil
+        end)
     end
 end
 

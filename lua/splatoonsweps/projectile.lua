@@ -478,7 +478,7 @@ end
 function ss.AddInk(parameters, data)
     local w = data.Weapon
     if not IsValid(w) then return {} end
-    local ply = w.Owner
+    local ply = w:GetOwner()
     local t = ss.MakeInkQueueStructure()
     t.Data = table.Copy(data)
     t.IsCarriedByLocalPlayer = Either(SERVER, false, ss.ProtectedCall(w.IsCarriedByLocalPlayer, w))
