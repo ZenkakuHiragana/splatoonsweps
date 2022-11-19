@@ -28,14 +28,14 @@ SplatoonSWEPs = SplatoonSWEPs or {
 }
 
 include "splatoonsweps/const.lua"
-include "buildsurfaces.lua"
+include "splatoonsweps/shared.lua"
 include "drawui.lua"
-include "inkmanager.lua"
+include "inkrenderer.lua"
 include "minimap.lua"
 include "network.lua"
 include "packer.lua"
-include "splatoonsweps/shared.lua"
 include "structure.lua"
+include "surfacebuilder.lua"
 include "userinfo.lua"
 
 local ss = SplatoonSWEPs
