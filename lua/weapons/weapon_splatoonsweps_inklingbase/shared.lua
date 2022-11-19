@@ -122,6 +122,7 @@ local function RetrieveOption(self, name, pt)
 end
 
 function SWEP:GetOptions()
+    if ss.mp and CLIENT and not IsFirstTimePredicted() then return end
     if not self:IsMine() then return end
     for name, pt in greatzenkakuman.cvartree.IteratePreferences "splatoonsweps" do
         RetrieveOption(self, name, pt)
@@ -157,45 +158,33 @@ function SWEP:ApplySkinAndBodygroups()
     end
 end
 
-local InkTraceLength = 15
-local InkTraceZSteps = 10
-local InkTraceXYSteps = 2
+local InkTraceLength = 30
+local InkTraceDepth = 20
 function SWEP:UpdateInkState() -- Set if player is in ink
     local ang = Angle(0, self:GetOwner():GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
-    local filter = {self, self:GetOwner()}
     local org = self:GetOwner():GetPos()
     local fw, right = ang:Forward() * InkTraceLength, ang:Right() * InkTraceLength
-    local mins, maxs = self:GetOwner():GetCollisionBounds()
-    local ink_t = {filter = filter, mask = MASK_SHOT, maxs = maxs, mins = mins}
-    local gcolor = ss.GetSurfaceColorArea(org, mins, maxs, InkTraceXYSteps, InkTraceLength, 0.5, self:GetOwner())
+    local gtrace = util.QuickTrace(org, -vector_up * InkTraceDepth, self:GetOwner())
+    local gcolor = gtrace.Hit and ss.GetSurfaceColor(gtrace.HitPos, gtrace.HitNormal) or -1
     local onink = gcolor >= 0
     local onourink = gcolor == c
     local onenemyink = onink and not onourink
 
-    ink_t.start = org
-    local dz = vector_up * maxs.z / InkTraceZSteps
+    local center = self:GetOwner():WorldSpaceCenter()
     local normal, onwallink = Vector(), false
-    for _, p in ipairs {org + fw, org - fw, org + right, org - right} do
-        if onwallink then break end
-        ink_t.endpos = p
-        local tr = util.TraceHull(ink_t)
-        if tr.HitNormal.z < ss.MAX_COS_DIFF then
-            tr.HitPos:Add(tr.HitNormal * ink_t.mins.x)
-            for i = 1, InkTraceZSteps + 1 do
-                if i > InkTraceZSteps / 3 and ss.GetSurfaceColor(tr) == c then
-                    normal = tr.HitNormal
-                    onwallink = true
-                    break
-                end
-
-                tr.HitPos:Add(dz)
-            end
+    for _, p in ipairs { fw + right, fw - right, -fw + right, -fw - right } do
+        local tr = util.QuickTrace(center, p, self:GetOwner())
+        if not tr.Hit or tr.HitNormal.z > ss.MAX_COS_DIFF then continue end
+        if ss.GetSurfaceColor(tr.HitPos, tr.HitNormal) == c then
+            normal = tr.HitNormal
+            onwallink = true
+            break
         end
     end
 
     local inwallink = self:Crouching() and onwallink
-    local inink = self:Crouching() and (onink and onourink or self:GetInWallInk())
+    local inink = self:GetSuperJumpState() < 0 and self:Crouching() and (onink and onourink or self:GetInWallInk())
     if onenemyink and not self:GetOnEnemyInk() then
         self.LoopSounds.EnemyInkSound.SoundPatch:ChangeVolume(1, .5)
     end
@@ -215,6 +204,7 @@ function SWEP:UpdateInkState() -- Set if player is in ink
     self:SetWallNormal(normal)
 
     self:GetOptions()
+    if not self:GetInkColor() then return end
     self:SetInkColorProxy(self:GetInkColor():ToVector())
 end
 
@@ -222,7 +212,9 @@ function SWEP:GetHandPos()
     if not self:GetOwner():IsPlayer() then return self:GetShootPos() end
 
     local e = (SERVER or self:IsTPS()) and self:GetOwner() or self:GetViewModel()
-    return e:GetBoneMatrix(e:LookupBone "ValveBiped.Bip01_R_Hand"):GetTranslation()
+    local boneid = e:LookupBone "ValveBiped.Bip01_R_Hand"
+    or e:LookupBone "ValveBiped.Weapon_bone" or 0
+    return e:GetBoneMatrix(boneid):GetTranslation()
 end
 
 function SWEP:GetViewModel(index)
@@ -251,6 +243,7 @@ function SWEP:SetWeaponAnim(act, index)
 end
 
 function SWEP:ConsumeInk(amount)
+    if not isnumber(amount) then return end
     if self:GetIsDisrupted() then amount = amount * 2 end
     self:SetInk(math.max(self:GetInk() - amount, 0))
 end
@@ -294,6 +287,7 @@ function SWEP:SharedDeployBase()
     self:SetCooldown(CurTime())
     self:StartRecording()
     self:SetKey(0)
+    self:SetSuperJumpState(-1)
     self:MakeSquidModel()
     self.KeyPressedOrder = {}
     self.InklingSpeed = self:GetInklingSpeed()
@@ -324,11 +318,20 @@ function SWEP:SharedHolsterBase()
     return true
 end
 
+function SWEP:DisplayAmmo()
+    return ss.GetMaxInkAmount()
+end
+
 function SWEP:SharedThinkBase()
     local vm = self:GetViewModel()
     if IsValid(vm) and vm:IsSequenceFinished()
     and vm:GetSequenceActivity(vm:GetSequence()) == ACT_VM_DRAW then
         self:SetWeaponAnim(ACT_VM_IDLE)
+    end
+
+    if IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() then
+        self:SetClip1(math.Round(self:GetInk()))
+        self:GetOwner():SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
     end
 
     local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
@@ -346,6 +349,9 @@ end
 function SWEP:CheckCanStandup()
     if not IsValid(self:GetOwner()) then return end
     if not self:GetOwner():IsPlayer() then return true end
+    if self:GetSuperJumpState() == 0 then return false end
+    if self:GetSuperJumpState() == 1 then return false end
+    if self:GetSuperJumpState() == 2 then return false end
     local plmins, plmaxs = self:GetOwner():GetHull()
     return not (self:Crouching() and util.TraceHull {
         start = self:GetOwner():GetPos(),
@@ -382,6 +388,7 @@ function SWEP:SecondaryAttack() -- Use sub weapon
     if self:GetHolstering() then return end
     if self:GetKey() ~= IN_ATTACK2 then self:SetThrowing(false) return end
     if self:GetThrowing() then return end
+    if self:GetSuperJumpState() >= 0 then return end
     if CurTime() < self:GetCooldown() then return end
     if not self:CheckCanStandup() then return end
     if self:GetOwner():IsPlayer() then
@@ -447,17 +454,22 @@ function SWEP:SetupDataTables()
     self:AddNetworkVar("Bool", "Holstering") -- The weapon is being holstered.
     self:AddNetworkVar("Bool", "Throwing") -- Is about to use sub weapon.
     self:AddNetworkVar("Entity", "NPCTarget") -- Target entity for NPC.
+    self:AddNetworkVar("Entity", "SuperJumpEntity") -- Target entity to perform super jump onto.
     self:AddNetworkVar("Float", "Cooldown") -- Cannot crouch, fire, or use sub weapon.
     self:AddNetworkVar("Float", "EnemyInkTouchTime") -- Delay timer to force to stand up.
     self:AddNetworkVar("Float", "DisruptorEndTime") -- The time when Disruptor is worn off
     self:AddNetworkVar("Float", "Ink") -- Ink remainig. 0 to ss.GetMaxInkAmount()
     self:AddNetworkVar("Float", "OldSpeed") -- Old Z-velocity of the player.
+    self:AddNetworkVar("Float", "SuperJumpStartTime")
     self:AddNetworkVar("Float", "ThrowAnimTime") -- Time to adjust throw anim. speed.
     self:AddNetworkVar("Int", "GroundColor") -- Surface ink color.
     self:AddNetworkVar("Int", "Key") -- A valid key input.
+    self:AddNetworkVar("Int", "SuperJumpState") -- Super jump animation progress (< 0 for normal state)
     self:AddNetworkVar("Vector", "InkColorProxy") -- For material proxy.
     self:AddNetworkVar("Vector", "AimVector") -- NPC:GetAimVector() doesn't exist in clientside.
     self:AddNetworkVar("Vector", "ShootPos") -- NPC:GetShootPos() doesn't, either.
+    self:AddNetworkVar("Vector", "SuperJumpFrom") -- The location where player starts super jump.
+    self:AddNetworkVar("Vector", "SuperJumpTo") -- Destination of super jump in case of having invalid target entity.
     self:AddNetworkVar("Vector", "WallNormal") -- The normal vector of a wall when climbing.
     local getaimvector = self.GetAimVector
     local getshootpos = self.GetShootPos

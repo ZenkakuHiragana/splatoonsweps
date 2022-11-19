@@ -68,7 +68,7 @@ ss.ConvertUnits(ss.inkmine.Parameters, ss.inkmine.Units)
 local module = ss.inkmine.Merge
 local p = ss.inkmine.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()
@@ -78,11 +78,14 @@ end
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
     if not self:GetOwner():OnGround() then return end
-    if self.NumInkmines >= p.MaxInkmines then return end
+    if self.NumInkmines >= p.MaxInkmines then return end -- Reset is available after v2.7.0
     local start = self:GetOwner():GetPos()
     local tracedz = -vector_up * p.CrossPaintRayLength
-    local tr = util.QuickTrace(start, tracedz, self:GetOwner())
+    local tr = ss.SquidTrace
+    tr.start, tr.endpos = start, start + tracedz
+    tr = util.TraceLine(tr)
     if not tr.Hit then return end
+    if not ss.IsPaintable(tr.HitPos, tr.HitNormal) then return end
 
     local inkcolor = self:GetNWInt "inkcolor"
     local e = ents.Create "ent_splatoonsweps_inkmine"

@@ -1,7 +1,10 @@
-"UnlitGeneric"
+"VertexLitGeneric"
 {
     "$basetexture" "splatoonsweps/effects/inkring"
     "$bumpmap" "splatoonsweps/effects/inkringn"
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[.5 .5 .5]"
+    "$halflambert" "1"
     "$model" "1"
     "$nocull" "1"
     "$translucent" "1"

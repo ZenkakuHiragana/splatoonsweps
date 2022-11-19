@@ -85,8 +85,13 @@ function ss.SanitizeJSONLimit(source)
         local t = {}
         for i = 1, 15000 do
             local index = (chunk - 1) * 15000 + i
+            local value = source[index]
             if index > #source then break end
-            t[#t + 1] = source[index]
+            if istable(value) and getmetatable(value) and getmetatable(value).__class then
+                value = -value
+            end
+
+            t[#t + 1] = value
         end
 
         s[chunk] = t
@@ -127,19 +132,7 @@ function ss.MaxVector(a, b)
     return Vector(math.max(a.x, b.x), math.max(a.y, b.y), math.max(a.z, b.z))
 end
 
--- Takes two AABBs and returns if they are colliding each other.
--- Arguments:
---   Vector mins1, maxs1 | The first AABB.
---   Vector mins2, maxs2 | The second AABB.
--- Returning:
---   bool                | Whether or not the two AABBs intersect each other.
-function ss.CollisionAABB(mins1, maxs1, mins2, maxs2)
-    return mins1.x < maxs2.x and maxs1.x > mins2.x and
-            mins1.y < maxs2.y and maxs1.y > mins2.y and
-            mins1.z < maxs2.z and maxs1.z > mins2.z
-end
-
--- Basically same as SplatoonSWEPs:CollisionAABB(), but ignores Z-component.
+-- Takes two AABBs and returns if they are colliding each other, but ignores Z-component.
 -- Arguments:
 --   Vector mins1, maxs1 | The first AABB.
 --   Vector mins2, maxs2 | The second AABB.
@@ -172,6 +165,15 @@ end
 function ss.To3D(source, orgpos, organg)
     local localpos = Vector(0, source.x, source.y)
     return LocalToWorld(localpos, angle_zero, orgpos, organg)
+end
+
+-- Returns true if two numbers are close to equal.
+-- Arguments:
+--   number a, b | Numbers to compare.
+-- Returning:
+--   bool        | Mostly like a == b.
+function ss.IsClose(a, b)
+    return math.abs(a - b) <= ss.eps * math.max(1, math.abs(a), math.abs(b))
 end
 
 -- util.IsInWorld() only exists in serverside.
@@ -253,11 +255,16 @@ end
 
 -- Get player timescale.
 -- Argument:
---   Entity ply    | Optional.
+--   Entity ply    | If given, it returns player's local timescale instead.
 -- Returning:
 --   number scale  | The game timescale.
+local HostTimeScale = GetConVar "host_timescale"
 function ss.GetTimeScale(ply)
-    return IsValid(ply) and ply:IsPlayer() and ply:GetLaggedMovementValue() or 1
+    if IsValid(ply) and ply:IsPlayer() then
+        return ply:GetLaggedMovementValue()
+    else
+        return game.GetTimeScale() * HostTimeScale:GetFloat()
+    end
 end
 
 -- Checks if the given entity is a valid inkling (if it has a SplatoonSWEPs weapon).
@@ -337,15 +344,93 @@ function ss.GetGravityDirection()
     return g:GetNormalized()
 end
 
-function ss.MakeAllyFilter(Owner)
-    local t = {Owner}
-    local w = ss.IsValidInkling(Owner)
-    if not w then return t end
-    for _, e in ipairs(ents.GetAll()) do
-        if e.UseSubWeaponFilter and ss.IsAlly(w, e) then
-            table.insert(t, e)
+function ss.RegisterEntity(ent, color)
+    color = color or ent:GetNWInt("inkcolor", -1)
+    if color < 0 then return end
+    ss.EntityFilters[color] = ss.EntityFilters[color] or {}
+    ss.EntityFilters[color][ent] = true
+end
+
+function ss.MakeAllyFilter(weapon, ...)
+    local owner = weapon:GetOwner()
+    local color = weapon:GetNWInt "inkcolor"
+    local entities = { weapon, owner }
+    for ent in pairs(ss.EntityFilters[color] or {}) do
+        if IsValid(ent) then
+            entities[#entities + 1] = ent
+        else
+            ss.EntityFilters[color][ent] = nil
         end
     end
 
-    return t
+    return entities
+end
+
+function ss.deepcopy(t, lookup)
+    if t == nil then return nil end
+
+    local copy = setmetatable({}, ss.deepcopy(getmetatable(t)))
+    for k, v in pairs(t) do
+        if istable(v) then
+            lookup = lookup or {}
+            lookup[t] = copy
+            if lookup[v] then
+                copy[k] = lookup[v]
+            else
+                copy[k] = ss.deepcopy(v, lookup)
+            end
+        elseif isvector(v) then
+            copy[k] = Vector(v)
+        elseif isangle(v) then
+            copy[k] = Angle(v)
+        elseif ismatrix(v) then
+            copy[k] = Matrix(v)
+        else
+            copy[k] = v
+        end
+    end
+
+    return copy
+end
+
+function ss.class(name)
+    local def = ss.ClassDefinitions
+    if not def[name] then
+        return function(t) def[name] = t end
+    else
+        local instance = ss.deepcopy(def[name])
+        local function read(self, key)
+            assert(rawget(-self, key) ~= nil, "no matching field '" .. key .. "'")
+            return rawget(-self, key)
+        end
+
+        local function write(self, key, value)
+            local v = rawget(-self, key)
+            local t = type(v)
+            local u = type(value)
+            if t == "table" then t = (getmetatable(v) or {}).__class or t end
+            if u == "table" then u = (getmetatable(value) or {}).__class or u end
+            assert(v ~= nil, "no matching field '" .. key .. "'")
+            assert(t == u, "type mismatch, expected: '" .. t .. "', given: '" .. u .. "'")
+            rawset(-self, key, value)
+        end
+
+        local function str(self)
+            return "[instanceof " .. getmetatable(self).__class .. "]"
+        end
+
+        local function raw(self)
+            return getmetatable(self).instance
+        end
+
+        return setmetatable({}, {
+            instance = instance,
+            __call = function() end,
+            __class = name,
+            __index = read,
+            __newindex = write,
+            __tostring = str,
+            __unm = raw,
+        })
+    end
 end

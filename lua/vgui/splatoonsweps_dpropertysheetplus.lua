@@ -175,7 +175,7 @@ function PANEL:PerformLayout()
     local TabHeight = self:GetTabHeight()
     self.tabScroller:SetTall(TabHeight)
 
-    for k, v in pairs(self.Items) do
+    for _, v in pairs(self.Items) do
         local y = TabHeight - v.Tab:GetTabHeight(true)
         if v.Tab:GetPanel() == ActivePanel then
             if IsValid(v.Tab:GetPanel()) then v.Tab:GetPanel():SetVisible(true) end

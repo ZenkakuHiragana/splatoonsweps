@@ -15,6 +15,7 @@ util.AddNetworkString "SplatoonSWEPs: Send ink cleanup"
 util.AddNetworkString "SplatoonSWEPs: Send player data"
 util.AddNetworkString "SplatoonSWEPs: Send turf inked"
 util.AddNetworkString "SplatoonSWEPs: Strip weapon"
+util.AddNetworkString "SplatoonSWEPs: Super jump"
 net.Receive("SplatoonSWEPs: Ready to splat", function(_, ply)
     ss.PlayersReady[#ss.PlayersReady + 1] = ply
     ss.InitializeMoveEmulation(ply)
@@ -68,4 +69,11 @@ net.Receive("SplatoonSWEPs: Strip weapon", function(_, ply)
     local weapon = ply:GetWeapon(weaponClass)
     if not IsValid(weapon) then return end
     ply:StripWeapon(weaponClass)
+end)
+
+net.Receive("SplatoonSWEPs: Super jump", function(len, ply)
+    local ent = net.ReadEntity()
+    if not IsValid(ent) then return end
+    if not ent.IsSquidBeakon then return end
+    ss.EnterSuperJumpState(ply, ent)
 end)

@@ -23,17 +23,14 @@ The aim of this rework is the following:
 ***
 **I don't intend to let you enjoy the new SWEPs.  Actually I want you to test it to help me fix bugs.**  
 **So, I think something like "The addon isn't working for me" isn't worth reading.**  
-**If you're going to tell me you're in trouble, write at least the following:**  
+**If you're going to tell me you're in trouble, go to Issues page and follow the template.**  
 
 * [ ] What happened to you? Write the detail.
 * [ ] How to get the same problem? The "step to reproduce" section.
 * [ ] Any errors?  If so, the message in the console.
 * [ ] Your environment (OS, Graphics card, and so on).
 * [ ] Addons in your game - Some of them may conflict. Please specify the one.  
-**Something like "I have 300+ addons" isn't helpful, either.**
-* [ ] Try removing cache files! Some updates conflict with your old cache files.  
-They're located in *garrysmod/data/splatoonsweps/mapname.txt* for singleplayer and listen server host,  
-and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
+      **Something like "I have 300+ addons" isn't helpful.**
 
 ## Known issues
 
@@ -41,6 +38,9 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
     You can still load them in 64-bit build so I recommend to switch to it.
 * You may experience major frame drops if your VRAM amount is not enough.
     Make sure to set the ink resolution option (found in where you change playermodel for the SWEPs) correctly.
+* If you see errors on map load and can't paint at all, try removing cache files.
+    * They are located in `garrysmod/data/splatoonsweps/<mapname>.txt` for singleplayer and listen server host.
+    * They are located in `garrysmod/download/data/splatoonsweps/<mapname>.txt` for multiplayer games.
 
 ***
 
@@ -52,24 +52,21 @@ and *garrysmod/download/data/splatoonsweps/mapname.txt* for multiplayer.
 * Basic GUI to change playermodel, ink color, and other settings.
     GUI menu is in the weapon tab and Utility -> Splatoon SWEPs.
 * All main weapons in Splatoon (Wii U).
+* All sub weapons in Splatoon (Wii U).
 
 ## Currently working on
 
-* Sub weapons!
-  * [x] Explosive effect for bombs
-  * [x] Guide marker
-  * [x] Explosive sub weapons
-    * [x] Burst Bomb
-    * [x] Ink Mine
-    * [x] Seeker
-    * [x] Splat Bomb
-    * [x] Suction Bomb
-  * [ ] Non-explosive sub weapons
-    * [x] Disruptor
-    * [x] Point Sensor
-    * [x] Sprinkler
-    * [x] Splash Wall
-    * [ ] Squid Beakon
+* Super Jump System
+  * [x] Minimap
+  * [x] Jump effect
+  * [x] Minor fixes
+  * [ ] Jump to other players
+  * [ ] Jump to the respawn
+  * [ ] Arrival indicator
+* Optimization
+  * [x] Map loader
+  * [ ] Capability to handle more ink paint queue
+  * [ ] Better prediction for multiplayer
 
 ## I want to make the following, too
 
@@ -105,7 +102,7 @@ Playermodels are optional, but I recommend to install them, too.
 
 Using an external addon for third person view is also recommended.
 
-* [View Extension [ Thirdperson & Firstperson ]][9]
+* [Enhanced ThirdPerson [Reupload]][10]  
 
 [1]:https://steamcommunity.com/sharedfiles/filedetails/?id=746789974
 [2]:https://steamcommunity.com/workshop/filedetails/?id=688236142
@@ -116,3 +113,4 @@ Using an external addon for third person view is also recommended.
 [7]:https://steamcommunity.com/sharedfiles/filedetails/?id=476149543
 [8]:https://steamcommunity.com/sharedfiles/filedetails/?id=1544841933
 [9]:https://steamcommunity.com/sharedfiles/filedetails/?id=2589006389
+[10]:https://steamcommunity.com/sharedfiles/filedetails/?id=2593095865

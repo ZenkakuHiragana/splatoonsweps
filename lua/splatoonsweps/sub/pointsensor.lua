@@ -43,7 +43,7 @@ ss.ConvertUnits(ss.pointsensor.Parameters, ss.pointsensor.Units)
 local module = ss.pointsensor.Merge
 local p = ss.pointsensor.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()

@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Type = "anim"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Type = "anim"
 
 function ENT:GetInkColorProxy()
     if IsValid(self:GetNWEntity "Weapon") then
@@ -21,7 +21,14 @@ function ENT:Update()
     if not IsValid(owner) then return end
     if not IsValid(weapon) then return end
     if not owner:IsPlayer() then return end
+    for k, v in pairs(ss.SQUID) do
+        if k == "KRAKEN" then continue end
+        if ss.SquidmodelIndex[weapon:GetNWInt "playermodel"] ~= v then continue end
+        if self:GetModel() == ss.Squidmodel[v] then continue end
+        self:SetModel(ss.Squidmodel[v])
+    end
 
+    if weapon:GetSuperJumpState() >= 0 then return end
     local seq = self:GetSequence()
     local WasOnGround = self.WasOnGround
     local SquidLoopSequences = {
@@ -44,13 +51,6 @@ function ENT:Update()
             self:SetSequence "jump"
         end
     end
-
-    for k, v in pairs(ss.SQUID) do
-        if k == "KRAKEN" then continue end
-        if ss.SquidmodelIndex[weapon:GetNWInt "playermodel"] ~= v then continue end
-        if self:GetModel() == ss.Squidmodel[v] then continue end
-        self:SetModel(ss.Squidmodel[v])
-    end
 end
 
 function ENT:CalcAbsolutePosition(_pos, _ang)
@@ -60,23 +60,49 @@ function ENT:CalcAbsolutePosition(_pos, _ang)
     if not IsValid(owner) then return _pos, _ang end
     if not IsValid(weapon) then return _pos, _ang end
 
+    local pos = owner:GetPos()
     local f = owner:GetForward() * 100
     local v = owner:GetVelocity() + Vector(f.x, f.y)
     local a = v:Angle()
-    local yaw = weapon:GetAimVector():Angle().yaw
-    local pos = owner:GetPos()
-    if v:LengthSqr() < 16 then -- Speed limit
-        a.p = 0
-    elseif a.p > 45 and a.p <= 90 then -- Angle limit: up and down
-        a.p = 45
-    elseif a.p >= 270 and a.p < 300 then
-        a.p = 300
+    local sjs = weapon:GetSuperJumpState()
+    local start = weapon:GetSuperJumpFrom()
+    local targetentity = weapon:GetSuperJumpEntity()
+    local endpos = weapon:GetSuperJumpTo()
+    if IsValid(targetentity) then
+        endpos = targetentity:GetNetworkOrigin()
+    end
+
+    if sjs < 0 then
+        if v:LengthSqr() < 16 then -- Speed limit
+            a.p = 0
+        elseif a.p > 45 and a.p <= 90 then -- Angle limit: up and down
+            a.p = 45
+        elseif a.p >= 270 and a.p < 300 then
+            a.p = 300
+        end
+
+        a.y, a.r = weapon:GetAimVector():Angle().yaw, 180
+    elseif sjs == 0 then
+        if weapon:GetInWallInk() then
+            local dir = ss.GetSuperJumpApex(owner, start, endpos) - start
+            local normal = weapon:GetWallNormal()
+            dir = (dir - normal * normal:Dot(dir)):GetNormalized()
+            local x, y = dir.z, vector_up:Cross(dir):Dot(normal)
+            local roll = math.deg(math.atan2(y, x))
+            a = Angle(90, normal:Angle().yaw, roll)
+            pos:Sub(normal * 11)
+        else
+            local dir = endpos - self:GetPos()
+            a.p, a.y, a.r = 0, dir:Angle().yaw, 180
+        end
+    else
+        local t = CurTime() - weapon:GetSuperJumpStartTime()
+        v = ss.GetSuperJumpVelocity(owner, start, endpos, t)
+        a = v:Angle()
+        a.r = 180
     end
 
     a.p = a.p - 90
-    a.y = yaw
-    a.r = 180
-
     if owner:OnGround() then
         local t = util.QuickTrace(
             owner:WorldSpaceCenter(),

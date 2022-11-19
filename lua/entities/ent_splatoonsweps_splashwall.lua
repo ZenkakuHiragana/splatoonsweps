@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_throwable"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Base = "ent_splatoonsweps_throwable"
 ENT.CollisionGroup = COLLISION_GROUP_NONE
 ENT.Model = Model "models/splatoonsweps/subs/splashwall/splashwall.mdl"
 ENT.SubWeaponName = "splashwall"
@@ -118,12 +118,12 @@ function ENT:Paint()
     local atts = self:GetAttachments()
     local dz = self:OBBMaxs().z
     local paintPos = {}
-    for i, att in ipairs(atts) do
+    for _, att in ipairs(atts) do
         -- get rid of leftmost/rightmost nozzle
         if not (att.name:find "7" or att.name:find "6") then
             local a = self:GetAttachment(att.id)
             local t = util.QuickTrace(a.Pos, a.Ang:Forward() * dz, self)
-            if ss.GetSurfaceColor(t) ~= inkcolor then
+            if ss.GetSurfaceColor(t.HitPos, t.HitNormal) ~= inkcolor then
                 table.insert(paintPos, t)
             end
         end
@@ -136,8 +136,11 @@ function ENT:Paint()
 end
 
 function ENT:OnTakeDamage(d)
+    local health = self:Health()
     self:SetHealth(math.max(0, self:Health() - d:GetDamage()))
-    if self:Health() == 0 then self.DestroyWaitStartTime = CurTime() end
+    if health > 0 and self:Health() == 0 then
+        self.DestroyWaitStartTime = CurTime()
+    end
 
     return d:GetDamage()
 end
@@ -172,6 +175,7 @@ function ENT:Think()
         local ph = self:GetPhysicsObject()
         if IsValid(ph) then
             ph:EnableMotion(not self.ContactEntity:IsWorld())
+            ph:EnableGravity(true)
         end
     end
 
@@ -223,6 +227,7 @@ function ENT:PhysicsCollide(data, collider)
     end
 
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
     collider:SetPos(data.HitPos)
     collider:SetAngles(Angle(0, collider:GetAngles().yaw, 0))
 

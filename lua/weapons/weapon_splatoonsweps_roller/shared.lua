@@ -41,7 +41,7 @@ local TraceDown = 70
 local TraceUp = 8
 local function GetRollerTrace(self)
     local forward = self:GetForward()
-    local pos = self:GetPos()
+    local pos = self:GetOwner():WorldSpaceCenter()
     return util.TraceLine {
         start = pos + forward * TraceLookStart + vector_up * TraceUp,
         endpos = pos + forward * TraceLookAhead - vector_up * TraceDown,
@@ -82,10 +82,14 @@ local function DoRunover(self, t, mv)
         if self.RunoverExclusion[v] then return end
         if v:Health() == 0 then return end
         if CLIENT and v:GetClass():lower():find "clientside" then return end
+        if ss.IsAlly(self, v) then return end
+        if ss.IsAlly(self, ss.IsValidInkling(v)) then return end
 
         local effectpos = center + dir * dir:Dot(v:GetPos() - center)
-        if self:IsMine() then
+        if self:IsMine() and (ss.sp or IsFirstTimePredicted()) then
+            ss.SuppressHostEventsMP(self:GetOwner())
             ss.CreateHitEffect(color, 0, effectpos, -forward)
+            ss.EndSuppressHostEventsMP()
         end
 
         if SERVER then
@@ -280,7 +284,7 @@ function SWEP:CreateInk(createnum)
         ss.SetEffectFlags(e, self)
         ss.SetEffectInitPos(e, proj.InitPos)
         ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mDropSplashDrawRadius, proj.SplashLength))
+        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mDropSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
         ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
         ss.SetEffectSplashNum(e, proj.SplashNum)
         ss.SetEffectStraightFrame(e, proj.StraightFrame)
@@ -572,7 +576,9 @@ function SWEP:UpdateAnimation(ply, velocity, maxseqspeed)
 
     local f = math.TimeFraction(start, start + duration, ct)
     local cycle = Lerp(math.EaseInOut(math.Clamp(f, 0, 1), 0, 1), c1, c2)
-    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD, ply:SelectWeightedSequence(ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2), cycle, true)
+    local seq = ply:LookupSequence "range_melee2_b"
+    if seq < 0 then seq = ply:SelectWeightedSequenceSeeded(ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2, 0) end
+    ply:AddVCDSequenceToGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD, seq, cycle, true)
 end
 
 function SWEP:CustomMoveSpeed()

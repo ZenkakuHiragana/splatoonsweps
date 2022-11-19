@@ -88,11 +88,11 @@ function SWEP:GetMuzzlePosition()
 end
 
 function SWEP:GetCrosshairTrace(t)
-    local colradius = self.Parameters.mColRadius
+    local colradius = self:GetColRadius()
     local range = self:GetRange(true) - colradius
     local tr = ss.MakeInkQueueTraceStructure()
     tr.start, tr.endpos = t.pos, t.pos + t.dir * range
-    tr.filter = ss.MakeAllyFilter(self:GetOwner())
+    tr.filter = ss.MakeAllyFilter(self)
     tr.maxs = ss.vector_one * colradius
     tr.mins = -tr.maxs
 

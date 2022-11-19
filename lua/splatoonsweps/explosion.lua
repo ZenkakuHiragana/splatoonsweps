@@ -271,7 +271,7 @@ function ss.MakeBombExplosion(org, normal, ent, color, subweapon)
 end
 
 function ss.MakeDeathExplosion(org, attacker, color)
-    sound.Play("SplatoonSWEPs.PlayerDeathExplosion", org)
+    sound.Play("SplatoonSWEPs_Player.DeathExplosion", org)
     ss.MakeExplosion(table.Merge(ss.MakeExplosionStructure(), {
         ClassName = ss.IsValidInkling(attacker).ClassName,
         DoGroundPaint = true,

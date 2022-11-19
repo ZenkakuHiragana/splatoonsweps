@@ -25,22 +25,24 @@ function EFFECT:Render()
     if not (self.Weapon:IsTPS() or drawviewmodel:GetBool()) then return end
     self:SetPos(GetViewEntity():GetPos())
 
-    local self = self.Weapon
-    local prog = self:GetChargeProgress(true)
+    local w = self.Weapon
+    local prog = w:GetChargeProgress(true)
     if prog == 0 then return end
-    local scprog =  self:GetScopedProgress(true) * 255
-    if self:GetNWBool "usertscope" and self:IsMine() and self:IsTPS() then
+    local scprog =  w:GetScopedProgress(true) * 255
+    if w:GetNWBool "usertscope" and w:IsMine() and w:IsTPS() then
         scprog = 0
     end
 
-    local color = ColorAlpha(ss.GetColor(self:GetNWInt "inkcolor"), 255 - scprog)
-    local shootpos, dir = self:GetFirePosition(true)
-    local pos, ang = self:GetMuzzlePosition()
-    local col = ss.vector_one * self:GetColRadius(true)
-    local range = self:GetRange(true)
+    local c = ss.GetColor(w:GetNWInt "inkcolor")
+    if not c then return end
+    local color = ColorAlpha(c, 255 - scprog)
+    local shootpos, dir = w:GetFirePosition(true)
+    local pos, ang = w:GetMuzzlePosition()
+    local col = ss.vector_one * w:GetColRadius(true)
+    local range = w:GetRange(true)
     local tb = ss.SquidTrace
-    if self:GetOwner():IsNPC() then
-        local target = self:GetNPCTarget()
+    if w:GetOwner():IsNPC() then
+        local target = w:GetNPCTarget()
         if IsValid(target) then dir = (target:WorldSpaceCenter() - shootpos):GetNormalized() end
     end
 
@@ -48,13 +50,13 @@ function EFFECT:Render()
     tb.endpos = shootpos + dir * range
     tb.mins = -col
     tb.maxs = col
-    tb.filter = {self, self:GetOwner()}
+    tb.filter = ss.MakeAllyFilter(w)
     local tr = util.TraceHull(tb)
     if tr.StartSolid then return end
 
     tb.start = shootpos
     tr = util.TraceHull(tb)
-    local trlp = self:GetOwner() ~= LocalPlayer() and ss.TraceLocalPlayer(tb.start, tb.endpos - tb.start)
+    local trlp = w:GetOwner() ~= LocalPlayer() and ss.TraceLocalPlayer(tb.start, tb.endpos - tb.start)
     local texpos, dp = prog * tr.Fraction * 2 / interp, CurTime() / 5
     tr.HitPos = trlp or tr.HitPos
     local length = tr.HitPos:Distance(pos)

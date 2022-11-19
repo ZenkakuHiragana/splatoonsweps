@@ -45,7 +45,7 @@ ss.ConvertUnits(ss.disruptor.Parameters, ss.disruptor.Units)
 local module = ss.disruptor.Merge
 local p = ss.disruptor.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()

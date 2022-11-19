@@ -159,7 +159,7 @@ function module:SharedSecondaryAttack(throwable)
 end
 
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()

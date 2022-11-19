@@ -919,7 +919,7 @@ local function TryPlayerMove(pFirstDest, pFirstTrace)
     local endpos = Vector()
     local time_left, allFraction = FT(), 0 -- Total time for this movement operation.
     local blocked = 0 -- Assume not blocked
-    for bumpcount = 1, numbumps do
+    for _ = 1, numbumps do
         if me.m_vecVelocity[ply]:LengthSqr() == 0.0 then break end
 
         -- Assume we can move all the way from the current origin to the end point.

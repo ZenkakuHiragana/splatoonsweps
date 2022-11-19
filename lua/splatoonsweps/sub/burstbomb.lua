@@ -98,7 +98,7 @@ ss.ConvertUnits(ss.burstbomb.Parameters, ss.burstbomb.Units)
 local module = ss.burstbomb.Merge
 local p = ss.burstbomb.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()

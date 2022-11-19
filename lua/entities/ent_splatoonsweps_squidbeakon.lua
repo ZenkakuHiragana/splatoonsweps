@@ -1,14 +1,15 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_throwable"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Base = "ent_splatoonsweps_throwable"
 ENT.Model = Model "models/splatoonsweps/subs/squidbeakon/squidbeakon.mdl"
 ENT.SubWeaponName = "squidbeakon"
 ENT.WeaponClassName = ""
 ENT.IsSplatoonBomb = true
+ENT.IsSquidBeakon = true
 
 function ENT:SetupDataTables()
     self:NetworkVar("Vector", 0, "InkColorProxy")
@@ -39,6 +40,13 @@ function ENT:Initialize()
     self:SetSkin(1)
     self:SetLightEmitState(1)
     self:SetLightEmitTime(CurTime() + p.LightEmitInitialDelay)
+
+    self.MinimapEffectTime = CurTime() + p.LightEmitInitialDelay
+    self.MinimapEffectDuration = 0
+    for _, t in ipairs(self.LightEmitTimeTable) do
+        self.MinimapEffectDuration = self.MinimapEffectDuration + t
+    end
+    self.MinimapEffectInterval = self.MinimapEffectDuration * 2
     timer.Simple(p.DeploySoundDelay, function()
         if not IsValid(self) then return end
         self:EmitSound "SplatoonSWEPs.BeakonDeploy"
@@ -65,14 +73,25 @@ function ENT:UpdateLightEmission()
     if t < self.LightEmitTimeTable[state] then return end
     self:SetLightEmitTime(CurTime())
     self:SetLightEmitState(state + 1)
-    if state > 3 then self:SetLightEmitState(1) end
-    if SERVER and state == 1 then self:EmitSound "SplatoonSWEPs.BeakonIdle" end
+    if state > 3 then
+        self:SetLightEmitState(1)
+    elseif SERVER and state == 1 then
+        self:EmitSound "SplatoonSWEPs.BeakonIdle"
+    end
+end
+
+function ENT:UpdateMinimapEffect()
+    local t = CurTime() - self.MinimapEffectTime
+    if t > self.MinimapEffectInterval then
+        self.MinimapEffectTime = CurTime()
+    end
 end
 
 if CLIENT then
     function ENT:Think()
         self:SetNextClientThink(CurTime())
         self:UpdateLightEmission()
+        self:UpdateMinimapEffect()
 
         local td = self:GetNWFloat "DeployFinishedTime"
         if td <= 0 then return true end
@@ -85,6 +104,10 @@ if CLIENT then
         self:ManipulateBoneAngles(bone, Angle(pitch, 0, 0))
 
         return true
+    end
+
+    function ENT:Draw()
+        self:DrawModel()
     end
 
     return
@@ -128,7 +151,7 @@ function ENT:Think()
     self:UpdateLightEmission()
     self:UpdateRadio()
 
-    if IsValid(self.Weapon) then
+    if IsValid(self.Weapon) and IsValid(self.Weapon:GetOwner()) and self.Weapon:GetOwner():Health() > 0 then
         self:SetNWInt("inkcolor", self.Weapon:GetNWInt "inkcolor")
         local color = ss.GetColor(self:GetNWInt "inkcolor")
         if color then self:SetInkColorProxy(color:ToVector()) end
@@ -146,6 +169,7 @@ function ENT:PhysicsCollide(data, collider)
     if self:IsStuck() then return end
     self.BaseClass.PhysicsCollide(self, data, collider)
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
 
     self.HitNormal = -data.HitNormal
     self.ContactEntity = data.HitEntity

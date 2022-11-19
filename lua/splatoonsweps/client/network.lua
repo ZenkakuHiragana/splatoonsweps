@@ -63,24 +63,24 @@ net.Receive("SplatoonSWEPs: Send player data", function()
 end)
 
 net.Receive("SplatoonSWEPs: Send turf inked", function()
-    local inked = net.ReadDouble()
+    local inked = net.ReadFloat()
     local classname = assert(ss.WeaponClassNames[net.ReadUInt(8)], "SplatoonSWEPs: Invalid classname!")
     ss.WeaponRecord[LocalPlayer()].Inked[classname] = inked
 end)
 
 net.Receive("SplatoonSWEPs: Send an ink queue", function(len)
-    local index = net.ReadUInt(ss.SURFACE_ID_BITS)
     local color = net.ReadUInt(ss.COLOR_BITS)
     local inktype = net.ReadUInt(ss.INK_TYPE_BITS)
     local radius = net.ReadUInt(8)
-    local ratio = net.ReadVector().x
-    local ang = net.ReadInt(9)
-    local x = net.ReadInt(16)
-    local y = net.ReadInt(16)
-    local z = net.ReadInt(16)
-    local order = net.ReadUInt(8)
-    local time = net.ReadFloat()
-    local pos = Vector(x, y, z) / 2
+    local ratio = net.ReadFloat()
+    local normal = net.ReadNormal()
+    local ang = net.ReadInt(7) * 4
+    local x = net.ReadInt(15)
+    local y = net.ReadInt(15)
+    local z = net.ReadInt(15)
+    local order = net.ReadUInt(9)
+    local time = net.ReadUInt(5)
+    local pos = Vector(x, y, z) * 2
     if color == 0 or inktype == 0 then return end
-    ss.ReceiveInkQueue(index, radius, ang, ratio, color, inktype, pos, order, time)
+    ss.ReceiveInkQueue(radius, ang, normal, ratio, color, inktype, pos, order, time)
 end)

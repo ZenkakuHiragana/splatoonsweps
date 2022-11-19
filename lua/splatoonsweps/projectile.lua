@@ -209,7 +209,7 @@ local function HitEntity(ink, t)
 
     local te = util.TraceLine {start = t.HitPos, endpos = e:WorldSpaceCenter()}
     local flags = (data.IsCritical and 1 or 0) + (ink.IsCarriedByLocalPlayer and 128 or 0)
-    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, ink.SprinklerHitEffect and o)
+    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, o)
     if ss.mp and CLIENT then return end
 
     local dt = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL)
@@ -234,7 +234,7 @@ local function ProcessInkQueue(ink, ply)
     or not IsValid(weapon:GetOwner())
 
     if not removal and (not ink.Owner:IsPlayer() or ink.Owner == ply) then
-        tr.filter = ss.MakeAllyFilter(ink.Owner)
+        tr.filter = ss.MakeAllyFilter(weapon)
         Simulate(ink)
         if tr.start:DistToSqr(tr.endpos) > 0 then
             tr.maxs = ss.vector_one * data.ColRadiusWorld
@@ -268,10 +268,16 @@ local function ProcessInkQueue(ink, ply)
     return removal
 end
 
+local CurTime = CurTime
+local IsFirstTimePredicted = IsFirstTimePredicted
+local SortedPairs = SortedPairs
+local SysTime = SysTime
+local pairs = pairs
+local yield = coroutine.yield
 local function ProcessInkQueueAll(ply)
     local Benchmark = SysTime()
     while true do
-        repeat coroutine.yield() until IsFirstTimePredicted()
+        repeat yield() until IsFirstTimePredicted()
         Benchmark = SysTime()
         for inittime, inkgroup in SortedPairs(ss.InkQueue) do
             local k = 1
@@ -289,7 +295,7 @@ local function ProcessInkQueueAll(ply)
                 end
 
                 if SysTime() - Benchmark > ss.FrameToSec then
-                    coroutine.yield()
+                    yield()
                     Benchmark = SysTime()
                 end
             end
@@ -302,7 +308,7 @@ local function ProcessInkQueueAll(ply)
                 ss.PaintSchedule[ink] = nil
 
                 if SysTime() - Benchmark > ss.FrameToSec then
-                    coroutine.yield()
+                    yield()
                     Benchmark = SysTime()
                 end
             end
@@ -322,10 +328,12 @@ function ss.CreateHitEffect(color, flags, pos, normal, owner)
     end
 
     local e = EffectData()
-    e:SetColor(color)
-    e:SetFlags(flags)
-    e:SetOrigin(pos)
-    util.Effect("SplatoonSWEPsOnHit", e, true, filter)
+    if ss.mp or owner:IsPlayer() then
+        e:SetColor(color)
+        e:SetFlags(flags)
+        e:SetOrigin(pos)
+        util.Effect("SplatoonSWEPsOnHit", e, true, filter)
+    end
 
     e:SetAngles(normal:Angle())
     e:SetAttachment(6)
@@ -377,7 +385,7 @@ function ss.CreateDropEffect(data, drawradius, owner)
     ss.SetEffectColRadius(e, data.ColRadiusWorld)
     ss.SetEffectDrawRadius(e, drawradius)
     ss.SetEffectEntity(e, data.Weapon)
-    ss.SetEffectFlags(e, data.Weapon, 8)
+    ss.SetEffectFlags(e, data.Weapon, 8 + 4)
     ss.SetEffectInitPos(e, data.InitPos)
     ss.SetEffectInitVel(e, data.InitVel)
     ss.SetEffectSplash(e, Angle(data.AirResist * 180, data.Gravity / ss.InkDropGravity * 180))
@@ -440,11 +448,15 @@ function ss.DoDropSplashes(ink, iseffect)
             ss.SetEffectEntity(e, data.Weapon)
             ss.SetEffectFlags(e, 1)
             ss.SetEffectInitPos(e, droppos + ss.GetGravityDirection() * data.SplashDrawRadius)
-            ss.SetEffectInitVel(e, data.Weapon.IsSloshingMachine and Vector() or data.InitVel)
-            ss.SetEffectSplash(e, Angle(0, 0, data.SplashLength))
+            ss.SetEffectInitVel(e, Vector())
+            ss.SetEffectSplash(e, Angle(0, 0, data.SplashLength / ss.ToHammerUnits))
             ss.SetEffectSplashInitRate(e, Vector(0))
             ss.SetEffectSplashNum(e, 0)
             ss.SetEffectStraightFrame(e, 0)
+            if IsCharger then
+                ss.SetEffectInitVel(e, tr.endpos - tr.start)
+            end
+
             ss.UtilEffectPredicted(ink.Owner, "SplatoonSWEPsShooterInk", e)
         else
             hull.start = droppos
@@ -485,16 +497,21 @@ function ss.AddInk(parameters, data)
 end
 
 local processes = {}
+local ErrorNoHalt = ErrorNoHalt
+local create = coroutine.create
+local status = coroutine.status
+local resume = coroutine.resume
+local Empty = table.Empty
 hook.Add("Move", "SplatoonSWEPs: Simulate ink", function(ply, mv)
     local p = processes[ply]
-    if not p or coroutine.status(p) == "dead" then
-        processes[ply] = coroutine.create(ProcessInkQueueAll)
+    if not p or status(p) == "dead" then
+        processes[ply] = create(ProcessInkQueueAll)
         p = processes[ply]
-        table.Empty(ss.InkQueue)
+        Empty(ss.InkQueue)
     end
 
     ply:LagCompensation(true)
-    local ok, msg = coroutine.resume(p, ply)
+    local ok, msg = resume(p, ply)
     ply:LagCompensation(false)
 
     if ok then return end

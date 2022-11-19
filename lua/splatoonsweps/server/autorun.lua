@@ -2,11 +2,9 @@
 -- Serverside SplatoonSWEPs structure
 
 SplatoonSWEPs = SplatoonSWEPs or {
-    AreaBound = 0,
-    AspectSum = 0,
-    AspectSumX = 0,
-    AspectSumY = 0,
+    ClassDefinitions = {},
     CrosshairColors = {},
+    EntityFilters = {},
     LastHitID = {},
     MinimapAreaBounds = {},
     NoCollide = {},
@@ -19,6 +17,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     PlayerID = {},
     PlayerShouldResetCamera = {},
     PlayersReady = {},
+    SurfaceArray = {},
     RenderTarget = {},
     WeaponRecord = {},
     WaterSurfaces = {},
@@ -26,7 +25,9 @@ SplatoonSWEPs = SplatoonSWEPs or {
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
+include "bsploader.lua"
 include "network.lua"
+include "surfacebuilder.lua"
 
 local ss = SplatoonSWEPs
 if not ss.GetOption "enabled" then
@@ -61,9 +62,7 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if not ss.SurfaceArray then return end -- Workaround for changelevel
     for _, s in ipairs(ss.SurfaceArray) do
-        for _, v in pairs(s.InkSurfaces) do
-            table.Empty(v)
-        end
+        table.Empty(s.InkColorGrid)
     end
 
     collectgarbage "collect"
@@ -180,23 +179,19 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     local data = util.JSONToTable(util.Decompress(file.Read(path) or "") or "") or {}
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
-    if data.MapCRC ~= mapCRC then
-        include "splatoonsweps/server/buildsurfaces.lua"
+    if data.MapCRC ~= mapCRC or not data.Revision or data.Revision < ss.MAPCACHE_REVISION then
+        util.TimerCycle()
+        ss.LoadBSP()
+        ss.GenerateSurfaces()
         data.MapCRC = mapCRC
-        data.AABBTree = ss.SanitizeJSONLimit(ss.AABBTree)
+        data.Revision = ss.MAPCACHE_REVISION
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
-        data.UVInfo = {
-            AreaBound = ss.AreaBound,
-            AspectSum = ss.AspectSum,
-            AspectSumX = ss.AspectSumX,
-            AspectSumY = ss.AspectSumY,
-        }
+        print("MAKE", util.TimerCycle())
 
         file.Write(path, util.Compress(util.TableToJSON(data)))
     else
-        ss.AABBTree = ss.DesanitizeJSONLimit(data.AABBTree)
         ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
         ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
@@ -208,6 +203,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     resource.AddSingleFile("data/" .. path)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
 
+    ss.GenerateHashTable()
     ss.ClearAllInk()
 end)
 
@@ -264,16 +260,21 @@ hook.Add("EntityTakeDamage", "SplatoonSWEPs: Ink damage manager", function(ent, 
     net.Send(ent)
 end)
 
-local function DeathExplosion(ply, attacker)
-    local w = ss.IsValidInkling(attacker)
-    if not w then return end
-    if ss.GetOption "explodeonlysquids" and not ss.IsValidInkling(ply) then return end
-    ss.MakeDeathExplosion(ply:WorldSpaceCenter(), attacker, w:GetNWInt "inkcolor")
-    for _, e in ipairs(ents.FindByClass "env_entity_dissolver") do print(e) end
+local function OnPlayerDeath(ply, attacker)
+    local w = ss.IsValidInkling(ply)
+    local inflictor = ss.IsValidInkling(attacker)
+    if inflictor and (not ss.GetOption "explodeonlysquids" or w) then
+        ss.MakeDeathExplosion(ply:WorldSpaceCenter(), attacker, inflictor:GetNWInt "inkcolor")
+    end
+
+    if w and w:GetSuperJumpState() >= 0 then
+        w:SetSuperJumpState(-1)
+        ss.SetSuperJumpBoneManipulation(ply, angle_zero)
+    end
 end
 
-hook.Add("DoPlayerDeath", "SplatoonSWEPs: Make a death explosion", DeathExplosion)
-hook.Add("OnNPCKilled", "SplatoonSWEPs: Make a death explosion", DeathExplosion)
+hook.Add("DoPlayerDeath", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
+hook.Add("OnNPCKilled", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
 hook.Add("OnDamagedByExplosion", "SplatoonSWEPs: No sound effect needed", function(_, dmg)
     local inflictor = dmg:GetInflictor()
     return IsValid(inflictor) and (inflictor.IsSplatoonWeapon or inflictor.IsSplatoonBomb) or nil

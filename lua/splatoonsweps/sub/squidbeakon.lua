@@ -77,7 +77,7 @@ ss.ConvertUnits(ss.squidbeakon.Parameters, ss.squidbeakon.Units)
 local module = ss.squidbeakon.Merge
 local p = ss.squidbeakon.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()
@@ -103,6 +103,10 @@ function module:ServerSecondaryAttack(throwable)
     local tr = util.QuickTrace(start, tracedz, self:GetOwner())
     if not tr.Hit then return end
 
+    for _, e in ipairs(ents.FindInSphere(tr.HitPos, 10)) do
+        if e.IsSquidBeakon then return end
+    end
+
     local inkcolor = self:GetNWInt "inkcolor"
     local e = ents.Create "ent_splatoonsweps_squidbeakon"
     local ang = Angle()
@@ -127,6 +131,7 @@ function module:ServerSecondaryAttack(throwable)
     local ph = e:GetPhysicsObject()
     if not IsValid(ph) then return end
     ph:EnableMotion(not tr.Entity:IsWorld())
+    ph:EnableGravity(true)
 
     e.HitNormal = tr.HitNormal
     e.ContactEntity = tr.Entity

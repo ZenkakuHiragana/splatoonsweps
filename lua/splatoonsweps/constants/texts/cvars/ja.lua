@@ -57,6 +57,7 @@ return {CVars = {
 5: 16384x16384、2GB。]],
     TakeFallDamage = "ブキを持っている時、落下ダメージを受けるかどうか。 (1: 受ける, 0: 受けない)",
     ToggleADS = "アイアンサイト切り替え(1)/ホールド(0)",
+    TranslucentNearbyLocalPlayer = "プレイヤーがカメラに近い時に透明化するかどうか。 (1: する, 0: しない)",
     weapon_splatoonsweps_charger = {
         UseRTScope = "スコープ付きチャージャーで、リアルなスコープを使う。 (1: 有効, 0: 無効)",
         weapon_splatoonsweps_herocharger = {

@@ -9,6 +9,7 @@ local FirePosition = 10
 local randsplash = "SplatoonSWEPs: SplashNum"
 function SWEP:GetRange() return self.Range end
 function SWEP:GetInitVelocity() return self.Parameters.mInitVel end
+function SWEP:GetColRadius() return self.Parameters.mColRadius end
 function SWEP:GetSplashInitRate()
     return self.SplashInitTable[self:GetSplashInitMul()] / self.Parameters.mSplashSplitNum
 end
@@ -18,13 +19,13 @@ function SWEP:GetFirePosition(ping)
     local aim = self:GetAimVector() * self:GetRange(ping)
     local ang = aim:Angle()
     local shootpos = self:GetShootPos()
-    local col = ss.vector_one * self.Parameters.mColRadius
+    local col = ss.vector_one * self:GetColRadius()
     local dy = FirePosition * (self:GetNWBool "lefthand" and -1 or 1)
     local dp = -Vector(0, dy, FirePosition) dp:Rotate(ang)
     local t = {}
     t.start, t.endpos = shootpos, shootpos + aim
     t.mins, t.maxs = -col, col
-    t.filter = ss.MakeAllyFilter(self:GetOwner())
+    t.filter = ss.MakeAllyFilter(self)
     t.mask = ss.SquidSolidMask
     t.collisiongroup = COLLISION_GROUP_NONE
 
@@ -189,7 +190,7 @@ function SWEP:CreateInk()
         ss.SetEffectFlags(e, self)
         ss.SetEffectInitPos(e, proj.InitPos)
         ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mSplashDrawRadius, proj.SplashLength))
+        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
         ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
         ss.SetEffectSplashNum(e, proj.SplashNum)
         ss.SetEffectStraightFrame(e, proj.StraightFrame)
@@ -307,7 +308,9 @@ function SWEP:Move(ply)
 end
 
 function SWEP:KeyPress(ply, key)
-    if key == IN_JUMP then self:SetJump(CurTime()) end
+    if key == IN_JUMP and ply:OnGround() then
+        self:SetJump(CurTime())
+    end
 end
 
 function SWEP:GetAnimWeight()

@@ -1,9 +1,9 @@
 
+AddCSLuaFile()
+ENT.Type = "anim"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
-ENT.Type = "anim"
 ENT.Model = Model "models/splatoonsweps/subs/inkmine/inkmine.mdl"
 ENT.WeaponClassName = ""
 ENT.AlertSoundPlayed = false
@@ -92,7 +92,7 @@ function ENT:ShouldExplode()
     local p = ss.inkmine.Parameters
     local maxs = ss.vector_one * 16
     local mins = -maxs
-    local gcolor = ss.GetSurfaceColorArea(self:GetPos(), mins, maxs, 1, p.CrossPaintRayLength, 0.5, self)
+    local gcolor = ss.GetSurfaceColorArea(self:GetPos(), mins, maxs, 1, 0.5)
     if gcolor ~= self:GetNWInt "inkcolor" then return true end
     return false
 end

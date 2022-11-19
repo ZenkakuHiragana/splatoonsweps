@@ -1,10 +1,10 @@
 
+AddCSLuaFile()
+ENT.Base = "ent_splatoonsweps_splatbomb"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.AutomaticFrameAdvance = true
-ENT.Base = "ent_splatoonsweps_splatbomb"
 ENT.HitSound = "SplatoonSWEPs.SubWeaponPut"
 ENT.Model = Model "models/splatoonsweps/subs/sprinkler/sprinkler.mdl"
 ENT.RunningSound = nil
@@ -95,18 +95,18 @@ function ENT:Spout()
         localang.yaw = localang.yaw + ss.GetBiasedRandom(DegBias) * DegRand
         local _, ang = LocalToWorld(Vector(), localang, Vector(), self:GetAngles())
         local dir = ang:Forward()
-        ink.InitPos = a.Pos
-        ink.InitVel = dir * math.Rand(VelL, VelH)
-        ink.Yaw     = ang.yaw
-        local t = ss.AddInk({}, ink)
-        t.SprinklerHitEffect = true
+        ss.AddInk({}, table.Merge(ink, {
+            InitPos = a.Pos,
+            InitVel = dir * math.Rand(VelL, VelH),
+            Yaw     = ang.yaw,
+        }))
 
         local e = EffectData()
         ss.SetEffectColor(e, ink.Color)
         ss.SetEffectColRadius(e, ink.ColRadiusWorld)
         ss.SetEffectDrawRadius(e, p.Spout_SplashDrawR_First)
         ss.SetEffectEntity(e, ink.Weapon)
-        ss.SetEffectFlags(e, ink.Weapon, 8)
+        ss.SetEffectFlags(e, ink.Weapon, 8 + 4 + 1)
         ss.SetEffectInitPos(e, ink.InitPos)
         ss.SetEffectInitVel(e, ink.InitVel)
         ss.SetEffectSplash(e, Angle(ink.AirResist * 180, ink.Gravity / ss.InkDropGravity * 180))
@@ -152,6 +152,7 @@ function ENT:PhysicsCollide(data, collider)
     ang:RotateAroundAxis(ang:Forward(), deg)
     ang:RotateAroundAxis(ang:Right(), -90)
     collider:EnableMotion(not data.HitEntity:IsWorld())
+    collider:EnableGravity(true)
     collider:SetPos(data.HitPos)
     collider:SetAngles(ang)
 

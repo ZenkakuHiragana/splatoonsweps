@@ -19,6 +19,7 @@ end
 hook.Add("ShutDown", "SplatoonSWEPs: Save player stats", function()
     if not file.Exists("splatoonsweps/record", "DATA") then file.CreateDir "splatoonsweps/record" end
     file.Write(PathFavorites, util.Compress(util.TableToJSON(Favorites)))
+    if not ss.WeaponRecord[LocalPlayer()] then return end
     file.Write(PathStats, util.Compress(util.TableToJSON(ss.WeaponRecord[LocalPlayer()])))
 end)
 

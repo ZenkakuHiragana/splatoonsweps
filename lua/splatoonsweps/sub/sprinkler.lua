@@ -174,7 +174,7 @@ ss.ConvertUnits(ss.sprinkler.Parameters, ss.sprinkler.Units)
 local module = ss.sprinkler.Merge
 local p = ss.sprinkler.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()

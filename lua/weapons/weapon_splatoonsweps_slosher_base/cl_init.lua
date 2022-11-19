@@ -63,27 +63,6 @@ function SWEP:GetMuzzlePosition()
     return a.Pos, a.Ang
 end
 
-function SWEP:GetCrosshairTrace(t)
-    local range = self.Range
-    local tr = ss.SquidTrace
-    tr.start, tr.endpos = t.pos, t.pos + t.dir * range
-    tr.filter = ss.MakeAllyFilter(self:GetOwner())
-    tr.maxs = ss.vector_one * self.Parameters.mFirstGroupBulletFirstCollisionRadiusForField
-    tr.mins = -tr.maxs
-
-    t.Trace = util.TraceHull(tr)
-    t.EndPosScreen = (self:GetShootPos() + self:GetAimVector() * range):ToScreen()
-    t.HitPosScreen = t.Trace.HitPos:ToScreen()
-    t.HitEntity = IsValid(t.Trace.Entity) and t.Trace.Entity:Health() > 0
-    t.Distance = t.Trace.HitPos:Distance(t.pos)
-    if t.HitEntity then
-        local w = ss.IsValidInkling(t.Trace.Entity)
-        if w and ss.IsAlly(w, self) then
-            t.HitEntity = false
-        end
-    end
-end
-
 function SWEP:DrawFourLines(t)
     local bgcolor = t.IsSplatoon2 and t.Trace.Hit and ss.CrosshairBaseColor or color_white
     local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor")

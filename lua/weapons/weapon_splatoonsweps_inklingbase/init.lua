@@ -160,7 +160,7 @@ function SWEP:BackupInfo()
         ViewOffsetDucked = self:GetOwner():GetViewOffsetDucked()
     }
     self.BackupPlayerInfo.HullMins, self.BackupPlayerInfo.HullMaxs = self:GetOwner():GetHullDuck()
-    for k, v in pairs(self.BackupPlayerInfo.Playermodel.BodyGroups) do
+    for _, v in pairs(self.BackupPlayerInfo.Playermodel.BodyGroups) do
         v.num = self:GetOwner():GetBodygroup(v.id)
     end
 
@@ -310,6 +310,7 @@ end
 
 function SWEP:Holster()
     if self:GetInFence() then return false end
+    if self:GetSuperJumpState() >= 0 then return false end
     if not IsValid(self:GetOwner()) then return true end
     if InvalidPlayer(self:GetOwner()) then return true end
     self.PMTable = nil
@@ -364,7 +365,7 @@ function SWEP:Think()
 
     local PMPath = ss.Playermodel[self:GetNWInt "playermodel"]
     if PMPath then
-        if file.Exists(PMPath, "GAME") then
+        if (not self.PMTable or PMPath ~= self:GetOwner():GetModel()) and file.Exists(PMPath, "GAME") then
             self.PMTable = {
                 Model = PMPath,
                 Skin = 0,
@@ -372,9 +373,6 @@ function SWEP:Think()
                 SetOffsets = true,
                 PlayerColor = self:GetInkColorProxy(),
             }
-        end
-
-        if self.PMTable and self.PMTable.Model ~= self:GetOwner():GetModel() then
             self:ChangePlayermodel(self.PMTable)
         end
     else

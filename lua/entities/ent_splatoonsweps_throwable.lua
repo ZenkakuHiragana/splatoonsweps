@@ -1,11 +1,11 @@
 
+AddCSLuaFile()
+ENT.Type = "anim"
+
 local ss = SplatoonSWEPs
 if not ss then return end
-AddCSLuaFile()
-
 ENT.CollisionGroup = COLLISION_GROUP_PASSABLE_DOOR
 ENT.Model = Model "models/splatoonsweps/subs/splatbomb/splatbomb.mdl"
-ENT.Type = "anim"
 ENT.UseSubWeaponFilter = true
 ENT.WeaponClassName = ""
 
@@ -14,8 +14,7 @@ local function SplashWallFilter(e1, e2)
     local w = ss.IsValidInkling(e2)
     if w and ss.IsAlly(e1, w) then return false end
     if not isstring(e2.SubWeaponName) then return end
-    if ss.IsAlly(e1, e2) then return false end
-    return true
+    return not ss.IsAlly(e1, e2)
 end
 
 hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter", function(e1, e2)
@@ -43,13 +42,21 @@ function ENT:Initialize()
     self:SetCollisionGroup(self.CollisionGroup)
     self:SetCustomCollisionCheck(true)
     self.DragCoeffChangeTime = CurTime() + self.StraightFrame
-    if CLIENT then return end
-    self:PhysicsInit(SOLID_VPHYSICS)
-    self:PhysWake()
-    local p = self:GetPhysicsObject()
-    if not IsValid(p) then return end
-    p:EnableDrag(false)
-    p:EnableGravity(false)
+    if SERVER then
+        self:PhysicsInit(SOLID_VPHYSICS)
+        self:PhysWake()
+        local p = self:GetPhysicsObject()
+        if IsValid(p) then
+            p:EnableDrag(false)
+            p:EnableGravity(false)
+            p:AddGameFlag(FVPHYSICS_NO_IMPACT_DMG)
+        end
+    end
+
+    ss.RegisterEntity(self)
+    self:SetNWVarProxy("inkcolor", function(ent, name, old, new)
+        ss.RegisterEntity(ent, new)
+    end)
 end
 
 function ENT:SetupDataTables()
@@ -96,6 +103,6 @@ function ENT:PhysicsUpdate(p)
     if CurTime() < self.DragCoeffChangeTime then return end
 
     -- Gravity
-    local g_dir = ss.GetGravityDirection()
+    local g_dir = self.GravityDirection or ss.GetGravityDirection()
     p:AddVelocity(g_dir * self.Gravity * FrameTime() * fix)
 end

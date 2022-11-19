@@ -75,7 +75,7 @@ ss.ConvertUnits(ss.seeker.Parameters, ss.seeker.Units)
 local module = ss.seeker.Merge
 local p = ss.seeker.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() > p.InkConsume
+    return self:GetInk() >= p.InkConsume
 end
 
 function module:GetSubWeaponInkConsume()
