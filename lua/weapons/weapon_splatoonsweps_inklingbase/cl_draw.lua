@@ -213,7 +213,6 @@ function SWEP:DrawWorldModelTranslucent()
         ss.ProtectedCall(self.DrawOnSubTriggerDown, self)
     end
 
-
     for _, name in pairs(self.wRenderOrder) do
         local v = self.WElements[name]
         if not v then self.wRenderOrder = nil break end

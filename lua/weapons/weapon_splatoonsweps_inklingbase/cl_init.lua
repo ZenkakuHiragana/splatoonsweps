@@ -99,8 +99,8 @@ function SWEP:Initialize()
     self.EnoughSubWeapon = true
     self.PreviousInk = true
     self.Cursor = {x = ScrW() / 2, y = ScrH() / 2}
-    self:MakeSquidModel()
     self.JustUsableTime = CurTime() - 1 -- For animation of ink tank light
+    self:MakeSquidModel()
     self:SharedInitBase()
     ss.ProtectedCall(self.ClientInit, self)
     self:Deploy()
