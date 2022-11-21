@@ -2,26 +2,39 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local cos, sin, rad = math.cos, math.sin, math.rad
+local abs, cos, sin, rad = math.abs, math.cos, math.sin, math.rad
 function ss.OpenMiniMap()
     local bb = ss.GetMinimapAreaBounds(LocalPlayer():WorldSpaceCenter())
     if not bb then return end
-    local inclined = true
-    local inclinedYaw = 30
-    local inclinedPitch = 30
-    local angleRate = 90
-    local upAngle = Angle(90, 0, 0)
-    local inclinedAngle = Angle(90 - inclinedPitch, inclinedYaw, 0)
-    local desiredAngle = Angle(inclinedAngle)
-    local currentAngle = Angle(desiredAngle)
     local bbmins, bbmaxs, bbsize = bb.mins, bb.maxs, bb.maxs - bb.mins
-    local org = Vector(bbmins.x, bbmins.y, bbmaxs.z + 1)
-    local mul = bbsize:Length2D() / 1000
-    local mx,  my  = 0, 0 -- Mouse position stored on right click
-    local dx2, dy2 = 0, 0 -- Panning backup
-    local dx,  dy  = 0, 0 -- Panning
-    local zoom, zoommul = 0, mul * 10
-    local maxzoom = bbsize:Length() -- FIXME: Find the correct maximum zoom
+    local orgccw   = Vector(bbmins.x, bbmaxs.y, bbmaxs.z + 1) -- Origin when rotating counter-clockwise
+    local orgcw    = Vector(bbmins.x, bbmins.y, bbmaxs.z + 1) -- Origin when rotating clockwise
+    local vertical = bbsize.x > bbsize.y -- Indicates if the map is vertically long
+    local angleRate     = 90
+    local inclined      = true
+    local inclinedYaw   = vertical and 60 or -30
+    local inclinedPitch = 30
+    local upPitch       = 90
+    local upYaw         = vertical and 90 or 0
+    local upAngle       = Angle(upPitch, upYaw, 0)
+    local inclinedAngle = Angle(90 - inclinedPitch, inclinedYaw, 0)
+    local desiredAngle  = Angle(inclinedAngle)
+    local currentAngle  = Angle(desiredAngle)
+    local mul           = bbsize:Length2D() / 1000
+    local zoommul       = mul * 10
+    local maxzoom       = bbsize:Length() -- FIXME: Find the correct maximum zoom
+    local cameraInfo = {
+        mousePos       = Vector(), -- Mouse position stored on right click
+        panOnMouseDown = Vector(), -- X/Y offset backup
+        pan            = Vector(), -- X/Y offset
+        zoom           = 0,        -- Wheel delta value
+    }
+    local cameraInfoUp = { -- Camera info for looking straight down
+        mousePos       = Vector(),
+        panOnMouseDown = Vector(),
+        pan            = Vector(),
+        zoom           = 0,
+    }
 
     -- Minimap window margin taken from spawnmenu.lua
     local spawnmenu_border = GetConVar "spawnmenu_border"
@@ -53,17 +66,22 @@ function ss.OpenMiniMap()
     end
 
     local function GetOrthoPos(w, h)
-        local left   = -bbsize.y * cos(rad(currentAngle.yaw))
-        local right  =  bbsize.x * sin(rad(currentAngle.yaw))
-        local top    = -bbsize.z * cos(rad(currentAngle.pitch))
-        local bottom =  bbsize.x * cos(rad(currentAngle.yaw))
-                     +  bbsize.y * sin(rad(currentAngle.yaw))
-                     +  bbsize.z * cos(rad(currentAngle.pitch))
+        local pitch  = rad(currentAngle.pitch)
+        local yaw    = rad(currentAngle.yaw)
+        local left   = bbsize.x *  sin(yaw)
+        local right  = bbsize.y *  cos(yaw)
+        local top    = bbsize.z * -cos(pitch)
+        local bottom = bbsize.x *  cos(yaw)
+                     + bbsize.y *  abs(sin(yaw))
+                     + bbsize.z *  cos(pitch)
+
+        if vertical then left, right = -right, left end
         local width  = right - left
         local height = bottom - top
         local aspectratio = w / h
-        bottom = bottom - height * 0.5 * cos(rad(currentAngle.pitch))
+        bottom = bottom - height * 0.5 * cos(pitch)
         height = bottom - top
+
         local addMarginAxisY = aspectratio < (width / height)
         if addMarginAxisY then
             local diff = width / aspectratio - height
@@ -77,14 +95,18 @@ function ss.OpenMiniMap()
             right = right + margin
         end
 
-        left, right = left - dx, right - dx
-        top, bottom = top + dy, bottom + dy
+        local frac = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
+        local dx = Lerp(frac, cameraInfo.pan.x, cameraInfoUp.pan.x)
+        local dy = Lerp(frac, cameraInfo.pan.y, cameraInfoUp.pan.y)
+        local z  = Lerp(frac, cameraInfo.zoom,  cameraInfoUp.zoom)
+        left, right  = left - dx, right  - dx
+        top,  bottom = top  + dy, bottom + dy
 
         return {
-            left   = left   + zoom * zoommul * aspectratio,
-            right  = right  - zoom * zoommul * aspectratio,
-            top    = top    + zoom * zoommul,
-            bottom = bottom - zoom * zoommul,
+            left   = left   + z * zoommul * aspectratio,
+            right  = right  - z * zoommul * aspectratio,
+            top    = top    + z * zoommul,
+            bottom = bottom - z * zoommul,
         }
     end
 
@@ -98,7 +120,7 @@ function ss.OpenMiniMap()
         render.PushCustomClipPlane(Vector( 0,  1,  0),  bbmins.y - 0.5)
         render.RenderView {
             drawviewmodel = false,
-            origin = org,
+            origin = vertical and orgcw or orgccw,
             angles = currentAngle,
             x = x, y = y,
             w = w, h = h,
@@ -153,14 +175,20 @@ function ss.OpenMiniMap()
         if not keydown and k then frame:Close() end
         keydown = k
 
+        local t = inclined and cameraInfo or cameraInfoUp
         if not mousedown and m then
-            mx,  my  = x, y
-            dx2, dy2 = dx, dy
+            t.mousePos.x, t.mousePos.y = x, y
+            t.panOnMouseDown.x, t.panOnMouseDown.y = t.pan.x, t.pan.y
         elseif m then
-            dx = dx2 + (x - mx) * mul
-            dy = dy2 + (y - my) * mul
+            t.pan.x = t.panOnMouseDown.x + (x - t.mousePos.x) * mul
+            t.pan.y = t.panOnMouseDown.y + (y - t.mousePos.y) * mul
         end
         mousedown = m
+
+        if input.IsKeyDown(input.GetKeyCode(input.LookupBinding "reload")) then
+            t.pan.x, t.pan.y = 0, 0
+            t.zoom = 0
+        end
     end
 
     function panel:DoDoubleClick()
@@ -193,7 +221,8 @@ function ss.OpenMiniMap()
     end
 
     function panel:OnMouseWheeled(scrollDelta)
-        zoom = math.min(zoom + scrollDelta, maxzoom)
+        local t = inclined and cameraInfo or cameraInfoUp
+        t.zoom = math.min(t.zoom + scrollDelta, maxzoom)
     end
 
     function panel:Paint(w, h)
