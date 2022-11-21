@@ -54,6 +54,17 @@ ss.Playermodel = {
     [ss.PLAYER.PEARL]    = Pearl,
     [ss.PLAYER.MARINA]   = Marina,
 }
+ss.PlayermodelInv = {
+    [InkGirl]  = ss.PLAYER.GIRL,
+    [InkBoy]   = ss.PLAYER.BOY,
+    [Marie]    = ss.PLAYER.MARIE,
+    [Callie]   = ss.PLAYER.CALLIE,
+    [Octo]     = ss.PLAYER.OCTO,
+    [OctoGirl] = ss.PLAYER.OCTOGIRL,
+    [OctoBoy]  = ss.PLAYER.OCTOBOY,
+    [Pearl]    = ss.PLAYER.PEARL,
+    [Marina]   = ss.PLAYER.MARINA,
+}
 ss.Squidmodel = {
     [ss.SQUID.INKLING] = Model "models/splatoonsweps/squids/squid.mdl",
     [ss.SQUID.KRAKEN]  = Model "models/props_splatoon/squids/kraken_beta.mdl",
@@ -61,7 +72,7 @@ ss.Squidmodel = {
     [ss.SQUID.OCTO2]   = Model "models/splatoonsweps/squids/octopus2.mdl",
 }
 ss.SquidmodelIndex = {
-    [ss.PLAYER.NOCHANGE] = ss.SQUID.INKLING,
+    [ss.PLAYER.NOCHANGE] = nil,
     [ss.PLAYER.GIRL]     = ss.SQUID.INKLING,
     [ss.PLAYER.BOY]      = ss.SQUID.INKLING,
     [ss.PLAYER.MARIE]    = ss.SQUID.INKLING,

@@ -21,11 +21,12 @@ function ENT:Update()
     if not IsValid(owner) then return end
     if not IsValid(weapon) then return end
     if not owner:IsPlayer() then return end
-    for k, v in pairs(ss.SQUID) do
-        if k == "KRAKEN" then continue end
-        if ss.SquidmodelIndex[weapon:GetNWInt "playermodel"] ~= v then continue end
-        if self:GetModel() == ss.Squidmodel[v] then continue end
-        self:SetModel(ss.Squidmodel[v])
+    local pm = weapon:GetNWInt "playermodel"
+    if pm == ss.PLAYER.NOCHANGE then pm = ss.PlayermodelInv[owner:GetModel()] end
+    if pm then
+        local id = ss.SquidmodelIndex[pm]
+        local mdl = ss.Squidmodel[id]
+        if self:GetModel() ~= mdl then self:SetModel(mdl) end
     end
 
     if weapon:GetSuperJumpState() >= 0 then return end
