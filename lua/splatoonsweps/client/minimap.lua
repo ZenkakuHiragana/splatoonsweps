@@ -2,7 +2,6 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local GLOBAL_SCREEN_SPLITS = 1 -- How many the minimap is divided by to avoid clipping surfaces
 local GLOBAL_DELTA_Z = 32768 -- How far the orthogonal camera will be placed above
 local abs, cos, sin, rad = math.abs, math.cos, math.sin, math.rad
 function ss.OpenMiniMap()
@@ -11,8 +10,8 @@ function ss.OpenMiniMap()
     local inclined       = true
     local bbmins, bbmaxs = bb.mins, bb.maxs
     local bbsize         = bbmaxs - bbmins
-    local vertical       = bbsize.x > bbsize.y        -- Indicates if the map is vertically long
-    local renderOrigin   = Vector(bbmins.x, vertical and bbmins.y or bbmaxs.y, bbmaxs.z + GLOBAL_DELTA_Z) -- Origin for horizontal map
+    local vertical       = bbsize.x > bbsize.y -- Indicates if the map is vertically long
+    local renderOrigin   = Vector(bbmins.x, vertical and bbmins.y or bbmaxs.y, bbmaxs.z + GLOBAL_DELTA_Z)
     local transitionTime = 0.5
     local inclinedPitch  = 60
     local upPitch        = 90
@@ -71,15 +70,17 @@ function ss.OpenMiniMap()
             angularRate.yaw * RealFrameTime())
     end
 
-    local function GetMargin(windowWidth, windowHeight, ortho)
+    local function AddMargin(windowWidth, windowHeight, ortho)
         local width  = ortho.right - ortho.left
         local height = ortho.bottom - ortho.top
         if windowWidth / windowHeight < width / height then -- Add margin vertically
-            local diff = windowHeight - windowWidth * height / width
-            return 0, diff / 2
+            local diff = width * windowHeight / windowWidth - height
+            local margin = diff / 2
+            ortho.top, ortho.bottom = ortho.top - margin, ortho.bottom + margin
         else
-            local diff = windowWidth - windowHeight * width / height
-            return diff / 2, 0
+            local diff = height * windowWidth / windowHeight - width
+            local margin = diff / 2
+            ortho.left, ortho.right = ortho.left - margin, ortho.right + margin
         end
     end
 
@@ -88,23 +89,6 @@ function ss.OpenMiniMap()
         local dx = Lerp(frac, cameraInfo.pan.x, cameraInfoUp.pan.x)
         local dy = Lerp(frac, cameraInfo.pan.y, cameraInfoUp.pan.y)
         return dx, dy
-    end
-
-    local function SplitOrtho(ortho, ix, iy)
-        local width      = ortho.right - ortho.left
-        local height     = ortho.bottom - ortho.top
-        local cellwidth  = width / GLOBAL_SCREEN_SPLITS
-        local cellheight = height / GLOBAL_SCREEN_SPLITS
-        local left   = ortho.left + cellwidth * ix
-        local right  = left + cellwidth
-        local bottom = ortho.bottom - cellheight * iy
-        local top    = bottom - cellheight
-        return {
-            left   = left,
-            right  = right,
-            bottom = bottom,
-            top    = top,
-        }
     end
 
     local function GetOrthoTable(origin)
@@ -135,40 +119,35 @@ function ss.OpenMiniMap()
         local right  =   y0 * cos(yaw) + math.max(-x0 * sin(yaw),  x1 * sin(yaw))
         local top    = -(x0 * cos(yaw) + math.max( y0 * sin(yaw), -y1 * sin(yaw))) * sin(pitch) - bbsize.z * cos(pitch)
         local bottom =  (x1 * cos(yaw) + math.max(-y0 * sin(yaw),  y1 * sin(yaw))) * sin(pitch)
-        local deltaz = (origin.z - renderOrigin.z + GLOBAL_DELTA_Z) * cos(pitch)
+        local deltaz =  (origin.z - renderOrigin.z + GLOBAL_DELTA_Z) * cos(pitch)
 
         local width  = right - left
         local height = bottom - top
         local aspect = width / height
         local frac   = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
         local zoom   = Lerp(frac, cameraInfo.zoom,  cameraInfoUp.zoom)
-        left   = left   + zoom * zoomMultiplier * aspect
-        right  = right  - zoom * zoomMultiplier * aspect
-        top    = top    + zoom * zoomMultiplier
-        bottom = bottom - zoom * zoomMultiplier
+        left   = left   + zoom * zoomMultiplier * aspect - px
+        right  = right  - zoom * zoomMultiplier * aspect - px
+        top    = top    + zoom * zoomMultiplier - deltaz + py
+        bottom = bottom - zoom * zoomMultiplier - deltaz + py
 
-        return {
-            left   = left   - px,
-            right  = right  - px,
-            top    = top    + py - deltaz,
-            bottom = bottom + py - deltaz,
+        local Lx  = (right - left) / 2
+        local Ly  = (bottom - top) / 2
+        local dx  = (right + left) / 2
+        local dy  = (top + bottom) / 2
+        local org = renderOrigin + currentAngle:Right() * dx + currentAngle:Up() * dy
+        return org, {
+            left   = -Lx,
+            right  =  Lx,
+            top    = -Ly,
+            bottom =  Ly,
         }
     end
 
-    local function GetOriginOffset(ortho, ix, iy)
-        local cellwidth = (ortho.right - ortho.left) / GLOBAL_SCREEN_SPLITS
-        local cellheight = (ortho.bottom - ortho.top) / GLOBAL_SCREEN_SPLITS
-        local dx = ortho.left + cellwidth * (ix + 0.5)
-        local dy = ortho.bottom - cellheight * (iy + 0.5)
-        local org = renderOrigin + currentAngle:Right() * dx + currentAngle:Up() * dy
-        return util.IntersectRayWithPlane(org, currentAngle:Forward(), renderOrigin, vector_up) or org
-    end
-
     local function DrawMap(x, y, w, h)
-        local ortho = GetOrthoTable(renderOrigin)
-        local x0, y0 = GetMargin(w, h, ortho)
-        local cellwidth  = math.Round((w - x0 * 2) / GLOBAL_SCREEN_SPLITS)
-        local cellheight = math.Round((h - y0 * 2) / GLOBAL_SCREEN_SPLITS)
+        local origin, ortho = GetOrthoTable(renderOrigin)
+        AddMargin(w, h, ortho)
+
         ss.IsDrawingMinimap = true
         render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
         render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
@@ -176,24 +155,16 @@ function ss.OpenMiniMap()
         render.PushCustomClipPlane(Vector( 1,  0,  0),  bbmins.x - 0.5)
         render.PushCustomClipPlane(Vector( 0, -1,  0), -bbmaxs.y - 0.5)
         render.PushCustomClipPlane(Vector( 0,  1,  0),  bbmins.y - 0.5)
-        for iy = 0, GLOBAL_SCREEN_SPLITS - 1 do
-            for ix = 0, GLOBAL_SCREEN_SPLITS - 1 do
-                local org = GetOriginOffset(ortho, ix, iy)
-                local split = SplitOrtho(GetOrthoTable(org), ix, iy)
-                render.RenderView {
-                    drawviewmodel = false,
-                    origin = org,
-                    angles = currentAngle,
-                    x = x + x0 + cellwidth * ix,
-                    y = y + y0 + cellheight * iy,
-                    w = cellwidth - 1,
-                    h = cellheight - 1,
-                    ortho = split,
-                    znear = 1,
-                    zfar  = 56756 + GLOBAL_DELTA_Z,
-                }
-            end
-        end
+        render.RenderView {
+            drawviewmodel = false,
+            origin = origin,
+            angles = currentAngle,
+            x = x, y = y,
+            w = w, h = h,
+            ortho = ortho,
+            znear = 1,
+            zfar  = 56756 + GLOBAL_DELTA_Z,
+        }
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
@@ -292,8 +263,6 @@ function ss.OpenMiniMap()
     end
 
     function panel:Paint(w, h)
-        -- surface.SetDrawColor(color_white)
-        -- surface.DrawRect(0, 0, w, h)
         local x, y = self:LocalToScreen(0, 0)
         UpdateCameraAngles()
         DrawMap(x, y, w, h)
