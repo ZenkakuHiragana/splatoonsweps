@@ -17,7 +17,6 @@ function ss.OpenMiniMap()
     local upPitch        = 90
     local inclinedYaw    = vertical and 60 or -30
     local upYaw          = vertical and 90 or 0
-    local currentOrigin  = Vector(desiredOrigin)
     local inclinedAngle  = Angle(inclinedPitch, inclinedYaw, 0)
     local upAngle        = Angle(upPitch, upYaw, 0)
     local desiredAngle   = Angle(inclinedAngle)
@@ -70,20 +69,6 @@ function ss.OpenMiniMap()
             angularRate.yaw * RealFrameTime())
     end
 
-    local function AddMargin(windowWidth, windowHeight, ortho)
-        local width  = ortho.right - ortho.left
-        local height = ortho.bottom - ortho.top
-        if windowWidth / windowHeight < width / height then -- Add margin vertically
-            local diff = width * windowHeight / windowWidth - height
-            local margin = diff / 2
-            ortho.top, ortho.bottom = ortho.top - margin, ortho.bottom + margin
-        else
-            local diff = height * windowWidth / windowHeight - width
-            local margin = diff / 2
-            ortho.left, ortho.right = ortho.left - margin, ortho.right + margin
-        end
-    end
-
     local function GetPanOffset()
         local frac = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
         local dx = Lerp(frac, cameraInfo.pan.x, cameraInfoUp.pan.x)
@@ -91,7 +76,7 @@ function ss.OpenMiniMap()
         return dx, dy
     end
 
-    local function GetOrthoTable(origin)
+    local function GetOrthoTable(windowWidth, windowHeight)
         -- +--------------=====------------------------------+
         -- |             /     ^^^^^-----_____  H = bbsize.y |
         -- |            /                     ^^^^^-----_____|
@@ -102,7 +87,7 @@ function ss.OpenMiniMap()
         -- |       / W = bbsize.x                       /    |
         -- |      /                                    /     |
         -- |     /                                    /      |
-        -- |    /               origin               /       |
+        -- |    /            renderOrigin            /       |
         -- |   /                  (X)^^^^^-----_____/        |
         -- |  /                   /                /         |
         -- | /                   /                /          |
@@ -113,13 +98,13 @@ function ss.OpenMiniMap()
         local px, py = GetPanOffset()
         local pitch  = rad(currentAngle.pitch)
         local yaw    = rad(currentAngle.yaw)
-        local x0, y0 = origin.x - bbmins.x, origin.y - bbmins.y
-        local x1, y1 = bbmaxs.x - origin.x, bbmaxs.y - origin.y
+        local x0, y0 = renderOrigin.x - bbmins.x, renderOrigin.y - bbmins.y
+        local x1, y1 = bbmaxs.x - renderOrigin.x, bbmaxs.y - renderOrigin.y
         local left   =  -y1 * cos(yaw) - math.max( x0 * sin(yaw), -x1 * sin(yaw))
         local right  =   y0 * cos(yaw) + math.max(-x0 * sin(yaw),  x1 * sin(yaw))
         local top    = -(x0 * cos(yaw) + math.max( y0 * sin(yaw), -y1 * sin(yaw))) * sin(pitch) - bbsize.z * cos(pitch)
         local bottom =  (x1 * cos(yaw) + math.max(-y0 * sin(yaw),  y1 * sin(yaw))) * sin(pitch)
-        local deltaz =  (origin.z - renderOrigin.z + GLOBAL_DELTA_Z) * cos(pitch)
+        local deltaz =  GLOBAL_DELTA_Z * cos(pitch)
 
         local width  = right - left
         local height = bottom - top
@@ -136,18 +121,24 @@ function ss.OpenMiniMap()
         local dx  = (right + left) / 2
         local dy  = (top + bottom) / 2
         local org = renderOrigin + currentAngle:Right() * dx + currentAngle:Up() * dy
+
+        local marginx, marginy = 0, 0
+        if windowWidth / windowHeight < Lx / Ly then -- Add margin vertically
+            marginy = Lx * windowHeight / windowWidth - Ly
+        else
+            marginx = Ly * windowWidth / windowHeight - Lx
+        end
+
         return org, {
-            left   = -Lx,
-            right  =  Lx,
-            top    = -Ly,
-            bottom =  Ly,
+            left   = -Lx - marginx,
+            right  =  Lx + marginx,
+            top    = -Ly - marginy,
+            bottom =  Ly + marginy,
         }
     end
 
     local function DrawMap(x, y, w, h)
-        local origin, ortho = GetOrthoTable(renderOrigin)
-        AddMargin(w, h, ortho)
-
+        local origin, ortho = GetOrthoTable(w, h)
         ss.IsDrawingMinimap = true
         render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
         render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
@@ -174,22 +165,22 @@ function ss.OpenMiniMap()
         ss.IsDrawingMinimap = false
     end
 
-    local function TransformPosition(pos, w, h, ortho)
-        local localpos = WorldToLocal(pos, angle_zero, currentOrigin, currentAngle)
-        local x = math.Remap(localpos.y, -ortho.right, -ortho.left,   w, 0)
-        local y = math.Remap(localpos.z,  ortho.top,    ortho.bottom, h, 0)
+    local function TransformPosition(pos, w, h, ortho, origin)
+        local localpos = WorldToLocal(pos, angle_zero, origin, currentAngle)
+        local x = math.Remap(localpos.y, ortho.left, ortho.right,  w, 0)
+        local y = math.Remap(localpos.z, ortho.top,  ortho.bottom, h, 0)
         return x, y
     end
 
     local rgbmin = 64
     local beakonmat = Material("splatoonsweps/icons/beakon.png", "alphatest")
     local function DrawBeakons(w, h)
-        local ortho = GetOrthoTable(renderOrigin)
+        local origin, ortho = GetOrthoTable(w, h)
         local s = math.min(w, h) * 0.025 -- beakon icon size
         surface.SetMaterial(beakonmat)
         for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
             local pos = b:GetPos()
-            local x, y = TransformPosition(pos, w, h, ortho)
+            local x, y = TransformPosition(pos, w, h, ortho, origin)
             local c = b:GetInkColorProxy():ToColor()
             c.r = math.max(c.r, rgbmin)
             c.g = math.max(c.g, rgbmin)
@@ -238,14 +229,14 @@ function ss.OpenMiniMap()
         if not weapon then return end
         local x, y = self:ScreenToLocal(input.GetCursorPos())
         local w, h = panel:GetSize()
-        local ortho = GetOrthoTable(currentOrigin)
+        local origin, ortho = GetOrthoTable(w, h)
         local pc = weapon:GetNWInt "inkcolor"
         local s = math.min(w, h) * 0.025 -- beakon icon size
         for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
             local c = b:GetNWInt "inkcolor"
             if c ~= pc then continue end
             local pos = b:WorldSpaceCenter()
-            local bx, by = TransformPosition(pos, w, h, ortho)
+            local bx, by = TransformPosition(pos, w, h, ortho, origin)
             if math.Distance(x, y, bx, by) < s then
                 ss.EnterSuperJumpState(LocalPlayer(), b)
                 net.Start "SplatoonSWEPs: Super jump"
