@@ -2,32 +2,47 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local cos, sin, rad = math.cos, math.sin, math.rad
+local GLOBAL_DELTA_Z = 32768 -- How far the orthogonal camera will be placed above
+local abs, cos, sin, rad = math.abs, math.cos, math.sin, math.rad
 function ss.OpenMiniMap()
     local bb = ss.GetMinimapAreaBounds(LocalPlayer():WorldSpaceCenter())
     if not bb then return end
-    local inclined = true
-    local inclinedYaw = 30
-    local inclinedPitch = 30
-    local angleRate = 90
-    local upAngle = Angle(90, 0, 0)
-    local inclinedAngle = Angle(90 - inclinedPitch, inclinedYaw, 0)
-    local desiredAngle = Angle(inclinedAngle)
-    local currentAngle = Angle(desiredAngle)
-    local bbmins, bbmaxs, bbsize = bb.mins, bb.maxs, bb.maxs - bb.mins
-    local org = Vector(bbmins.x, bbmins.y, bbmaxs.z + 1)
-    local mul = bbsize:Length2D() / 1000
-    local mx,  my  = 0, 0 -- Mouse position stored on right click
-    local dx2, dy2 = 0, 0 -- Panning backup
-    local dx,  dy  = 0, 0 -- Panning
-    local zoom, zoommul = 0, mul * 10
-    local maxzoom = bbsize:Length() -- FIXME: Find the correct maximum zoom
+    local inclined       = true
+    local bbmins, bbmaxs = bb.mins, bb.maxs
+    local bbsize         = bbmaxs - bbmins
+    local vertical       = bbsize.x > bbsize.y -- Indicates if the map is vertically long
+    local renderOrigin   = Vector(bbmins.x, vertical and bbmins.y or bbmaxs.y, bbmaxs.z + GLOBAL_DELTA_Z)
+    local transitionTime = 0.5
+    local inclinedPitch  = 60
+    local upPitch        = 90
+    local inclinedYaw    = vertical and 60 or -30
+    local upYaw          = vertical and 90 or 0
+    local inclinedAngle  = Angle(inclinedPitch, inclinedYaw, 0)
+    local upAngle        = Angle(upPitch, upYaw, 0)
+    local desiredAngle   = Angle(inclinedAngle)
+    local currentAngle   = Angle(desiredAngle)
+    local angularRate    = Angle(abs(inclinedPitch - upPitch), abs(inclinedYaw - upYaw), 0) / transitionTime
+    local panMultiplier  = bbsize:Length2D() / 1000
+    local zoomMultiplier = panMultiplier * 10
+    local maxzoom        = bbsize:Length() -- FIXME: Find the correct maximum zoom
+    local cameraInfo = {
+        mousePos       = Vector(), -- Mouse position stored on right click
+        panOnMouseDown = Vector(), -- X/Y offset backup
+        pan            = Vector(), -- X/Y offset
+        zoom           = 0,        -- Wheel delta value
+    }
+    local cameraInfoUp = { -- Camera info for looking straight down
+        mousePos       = Vector(),
+        panOnMouseDown = Vector(),
+        pan            = Vector(),
+        zoom           = 0,
+    }
 
     -- Minimap window margin taken from spawnmenu.lua
     local spawnmenu_border = GetConVar "spawnmenu_border"
     local border = spawnmenu_border and spawnmenu_border:GetFloat() or 0.1
     local windowMarginX = math.Clamp((ScrW() - 1024) * border, 25, 256 )
-    local windowMarginY = math.Clamp((ScrH() - 768) * border, 25, 256 )
+    local windowMarginY = math.Clamp((ScrH() - 768)  * border, 25, 256 )
     if ScrW() < 1024 or ScrH() < 768 then
         windowMarginX = 0
         windowMarginY = 0
@@ -36,8 +51,8 @@ function ss.OpenMiniMap()
     local frame = vgui.Create("DFrame")
     local panel = vgui.Create("DButton", frame)
     frame:SetSizable(true)
-    frame:DockMargin(windowMarginX, windowMarginY, windowMarginX, windowMarginY)
-    frame:Dock(FILL)
+    frame:SetPos(windowMarginX, windowMarginY)
+    frame:SetSize(ScrW() - windowMarginX * 2, ScrH() - windowMarginY * 2)
     frame:MakePopup()
     frame:SetKeyboardInputEnabled(false)
     frame:SetMouseInputEnabled(true)
@@ -46,49 +61,84 @@ function ss.OpenMiniMap()
     panel:SetText("")
 
     local function UpdateCameraAngles()
-        currentAngle.yaw = math.ApproachAngle(
-            currentAngle.yaw, desiredAngle.yaw, angleRate * RealFrameTime())
         currentAngle.pitch = math.ApproachAngle(
-            currentAngle.pitch, desiredAngle.pitch, angleRate * RealFrameTime())
+            currentAngle.pitch, desiredAngle.pitch,
+            angularRate.pitch * RealFrameTime())
+        currentAngle.yaw = math.ApproachAngle(
+            currentAngle.yaw, desiredAngle.yaw,
+            angularRate.yaw * RealFrameTime())
     end
 
-    local function GetOrthoPos(w, h)
-        local left   = -bbsize.y * cos(rad(currentAngle.yaw))
-        local right  =  bbsize.x * sin(rad(currentAngle.yaw))
-        local top    = -bbsize.z * cos(rad(currentAngle.pitch))
-        local bottom =  bbsize.x * cos(rad(currentAngle.yaw))
-                     +  bbsize.y * sin(rad(currentAngle.yaw))
-                     +  bbsize.z * cos(rad(currentAngle.pitch))
+    local function GetPanOffset()
+        local frac = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
+        local dx = Lerp(frac, cameraInfo.pan.x, cameraInfoUp.pan.x)
+        local dy = Lerp(frac, cameraInfo.pan.y, cameraInfoUp.pan.y)
+        return dx, dy
+    end
+
+    local function GetOrthoTable(windowWidth, windowHeight)
+        -- +--------------=====------------------------------+
+        -- |             /     ^^^^^-----_____  H = bbsize.y |
+        -- |            /                     ^^^^^-----_____|
+        -- |           /                                    /|
+        -- |          /                                    / |
+        -- |         /                                    /  |
+        -- |        /                         x1 = W - x /   |
+        -- |       / W = bbsize.x                       /    |
+        -- |      /                                    /     |
+        -- |     /                                    /      |
+        -- |    /            renderOrigin            /       |
+        -- |   /                  (X)^^^^^-----_____/        |
+        -- |  /                   /                /         |
+        -- | /                   /                /          |
+        -- |/    x1 = H - y     /             x0 /           |
+        -- |^^^^^-----_____    /      y0        /            |
+        -- |       yaw (   ^^^^^-----_____     /             |
+        -- +------------`-----------------====---------------+
+        local px, py = GetPanOffset()
+        local pitch  = rad(currentAngle.pitch)
+        local yaw    = rad(currentAngle.yaw)
+        local x0, y0 = renderOrigin.x - bbmins.x, renderOrigin.y - bbmins.y
+        local x1, y1 = bbmaxs.x - renderOrigin.x, bbmaxs.y - renderOrigin.y
+        local left   =  -y1 * cos(yaw) - math.max( x0 * sin(yaw), -x1 * sin(yaw))
+        local right  =   y0 * cos(yaw) + math.max(-x0 * sin(yaw),  x1 * sin(yaw))
+        local top    = -(x0 * cos(yaw) + math.max( y0 * sin(yaw), -y1 * sin(yaw))) * sin(pitch) - bbsize.z * cos(pitch)
+        local bottom =  (x1 * cos(yaw) + math.max(-y0 * sin(yaw),  y1 * sin(yaw))) * sin(pitch)
+        local deltaz =  GLOBAL_DELTA_Z * cos(pitch)
+
         local width  = right - left
         local height = bottom - top
-        local aspectratio = w / h
-        bottom = bottom - height * 0.5 * cos(rad(currentAngle.pitch))
-        height = bottom - top
-        local addMarginAxisY = aspectratio < (width / height)
-        if addMarginAxisY then
-            local diff = width / aspectratio - height
-            local margin = diff / 2
-            top = top - margin
-            bottom = bottom + margin
+        local aspect = width / height
+        local frac   = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
+        local zoom   = Lerp(frac, cameraInfo.zoom,  cameraInfoUp.zoom)
+        left   = left   + zoom * zoomMultiplier * aspect - px
+        right  = right  - zoom * zoomMultiplier * aspect - px
+        top    = top    + zoom * zoomMultiplier - deltaz + py
+        bottom = bottom - zoom * zoomMultiplier - deltaz + py
+
+        local Lx  = (right - left) / 2
+        local Ly  = (bottom - top) / 2
+        local dx  = (right + left) / 2
+        local dy  = (top + bottom) / 2
+        local org = renderOrigin + currentAngle:Right() * dx + currentAngle:Up() * dy
+
+        local marginx, marginy = 0, 0
+        if windowWidth / windowHeight < Lx / Ly then -- Add margin vertically
+            marginy = Lx * windowHeight / windowWidth - Ly
         else
-            local diff = height * aspectratio - width
-            local margin = diff / 2
-            left = left - margin
-            right = right + margin
+            marginx = Ly * windowWidth / windowHeight - Lx
         end
 
-        left, right = left - dx, right - dx
-        top, bottom = top + dy, bottom + dy
-
-        return {
-            left   = left   + zoom * zoommul * aspectratio,
-            right  = right  - zoom * zoommul * aspectratio,
-            top    = top    + zoom * zoommul,
-            bottom = bottom - zoom * zoommul,
+        return org, {
+            left   = -Lx - marginx,
+            right  =  Lx + marginx,
+            top    = -Ly - marginy,
+            bottom =  Ly + marginy,
         }
     end
 
-    local function DrawMap(x, y, w, h, ortho)
+    local function DrawMap(x, y, w, h)
+        local origin, ortho = GetOrthoTable(w, h)
         ss.IsDrawingMinimap = true
         render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
         render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
@@ -98,13 +148,13 @@ function ss.OpenMiniMap()
         render.PushCustomClipPlane(Vector( 0,  1,  0),  bbmins.y - 0.5)
         render.RenderView {
             drawviewmodel = false,
-            origin = org,
+            origin = origin,
             angles = currentAngle,
             x = x, y = y,
             w = w, h = h,
             ortho = ortho,
             znear = 1,
-            zfar = 56756,
+            zfar  = 56756 + GLOBAL_DELTA_Z,
         }
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
@@ -115,21 +165,22 @@ function ss.OpenMiniMap()
         ss.IsDrawingMinimap = false
     end
 
-    local function TransformPosition(pos, w, h, ortho)
-        local localpos = WorldToLocal(pos, angle_zero, org, currentAngle)
-        local x = math.Remap(localpos.y, -ortho.right, -ortho.left,   w, 0)
-        local y = math.Remap(localpos.z,  ortho.top,    ortho.bottom, h, 0)
+    local function TransformPosition(pos, w, h, ortho, origin)
+        local localpos = WorldToLocal(pos, angle_zero, origin, currentAngle)
+        local x = math.Remap(localpos.y, ortho.left, ortho.right,  w, 0)
+        local y = math.Remap(localpos.z, ortho.top,  ortho.bottom, h, 0)
         return x, y
     end
 
     local rgbmin = 64
     local beakonmat = Material("splatoonsweps/icons/beakon.png", "alphatest")
-    local function DrawBeakons(w, h, ortho)
+    local function DrawBeakons(w, h)
+        local origin, ortho = GetOrthoTable(w, h)
         local s = math.min(w, h) * 0.025 -- beakon icon size
         surface.SetMaterial(beakonmat)
         for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
             local pos = b:GetPos()
-            local x, y = TransformPosition(pos, w, h, ortho)
+            local x, y = TransformPosition(pos, w, h, ortho, origin)
             local c = b:GetInkColorProxy():ToColor()
             c.r = math.max(c.r, rgbmin)
             c.g = math.max(c.g, rgbmin)
@@ -153,14 +204,19 @@ function ss.OpenMiniMap()
         if not keydown and k then frame:Close() end
         keydown = k
 
+        local t = inclined and cameraInfo or cameraInfoUp
         if not mousedown and m then
-            mx,  my  = x, y
-            dx2, dy2 = dx, dy
+            t.mousePos.x, t.mousePos.y = x, y
+            t.panOnMouseDown.x, t.panOnMouseDown.y = t.pan.x, t.pan.y
         elseif m then
-            dx = dx2 + (x - mx) * mul
-            dy = dy2 + (y - my) * mul
+            t.pan.x = t.panOnMouseDown.x + (x - t.mousePos.x) * panMultiplier
+            t.pan.y = t.panOnMouseDown.y + (y - t.mousePos.y) * panMultiplier
         end
         mousedown = m
+
+        if input.IsKeyDown(input.GetKeyCode(input.LookupBinding "reload")) then
+            t.pan.x, t.pan.y, t.zoom = 0, 0, 0
+        end
     end
 
     function panel:DoDoubleClick()
@@ -173,14 +229,14 @@ function ss.OpenMiniMap()
         if not weapon then return end
         local x, y = self:ScreenToLocal(input.GetCursorPos())
         local w, h = panel:GetSize()
-        local ortho = GetOrthoPos(w, h)
+        local origin, ortho = GetOrthoTable(w, h)
         local pc = weapon:GetNWInt "inkcolor"
         local s = math.min(w, h) * 0.025 -- beakon icon size
         for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
             local c = b:GetNWInt "inkcolor"
             if c ~= pc then continue end
             local pos = b:WorldSpaceCenter()
-            local bx, by = TransformPosition(pos, w, h, ortho)
+            local bx, by = TransformPosition(pos, w, h, ortho, origin)
             if math.Distance(x, y, bx, by) < s then
                 ss.EnterSuperJumpState(LocalPlayer(), b)
                 net.Start "SplatoonSWEPs: Super jump"
@@ -193,15 +249,15 @@ function ss.OpenMiniMap()
     end
 
     function panel:OnMouseWheeled(scrollDelta)
-        zoom = math.min(zoom + scrollDelta, maxzoom)
+        local t = inclined and cameraInfo or cameraInfoUp
+        t.zoom = math.min(t.zoom + scrollDelta, maxzoom)
     end
 
     function panel:Paint(w, h)
         local x, y = self:LocalToScreen(0, 0)
-        local ortho = GetOrthoPos(w, h)
         UpdateCameraAngles()
-        DrawMap(x, y, w, h, ortho)
-        DrawBeakons(w, h, ortho)
+        DrawMap(x, y, w, h)
+        DrawBeakons(w, h)
     end
 
     ss.IsOpeningMinimap = true
