@@ -184,6 +184,7 @@ function SWEP:ViewModelDrawn(vm)
 end
 
 function SWEP:DrawWorldModel()
+    if not IsValid(self:GetOwner()) then return self:DrawModel() end
     if self:GetHolstering() then return end
     if self:ShouldDrawSquid() then return end
     if self:GetInInk() then return end
