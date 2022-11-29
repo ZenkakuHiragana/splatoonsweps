@@ -94,42 +94,42 @@ end
 -- Returnings:
 --   number color | The ink color for the given NPC.
 local NPCFactions = {
-    [CLASS_NONE] = "others",
-    [CLASS_PLAYER] = "player",
-    [CLASS_PLAYER_ALLY] = "citizen",
+    [CLASS_NONE]              = "others",
+    [CLASS_PLAYER]            = "player",
+    [CLASS_PLAYER_ALLY]       = "citizen",
     [CLASS_PLAYER_ALLY_VITAL] = "citizen",
-    [CLASS_ANTLION] = "antlion",
-    [CLASS_BARNACLE] = "barnacle",
-    [CLASS_BULLSEYE] = "others",
-    [CLASS_CITIZEN_PASSIVE] = "citizen",
-    [CLASS_CITIZEN_REBEL] = "citizen",
-    [CLASS_COMBINE] = "combine",
-    [CLASS_COMBINE_GUNSHIP] = "combine",
-    [CLASS_CONSCRIPT] = "others",
-    [CLASS_HEADCRAB] = "zombie",
-    [CLASS_MANHACK] = "combine",
-    [CLASS_METROPOLICE] = "combine",
-    [CLASS_MILITARY] = "military",
-    [CLASS_SCANNER] = "combine",
-    [CLASS_STALKER] = "combine",
-    [CLASS_VORTIGAUNT] = "citizen",
-    [CLASS_ZOMBIE] = "zombie",
-    [CLASS_PROTOSNIPER] = "combine",
-    [CLASS_MISSILE] = "others",
-    [CLASS_FLARE] = "others",
-    [CLASS_EARTH_FAUNA] = "others",
+    [CLASS_ANTLION]           = "antlion",
+    [CLASS_BARNACLE]          = "barnacle",
+    [CLASS_BULLSEYE]          = "others",
+    [CLASS_CITIZEN_PASSIVE]   = "citizen",
+    [CLASS_CITIZEN_REBEL]     = "citizen",
+    [CLASS_COMBINE]           = "combine",
+    [CLASS_COMBINE_GUNSHIP]   = "combine",
+    [CLASS_CONSCRIPT]         = "others",
+    [CLASS_HEADCRAB]          = "zombie",
+    [CLASS_MANHACK]           = "combine",
+    [CLASS_METROPOLICE]       = "combine",
+    [CLASS_MILITARY]          = "military",
+    [CLASS_SCANNER]           = "combine",
+    [CLASS_STALKER]           = "combine",
+    [CLASS_VORTIGAUNT]        = "citizen",
+    [CLASS_ZOMBIE]            = "zombie",
+    [CLASS_PROTOSNIPER]       = "combine",
+    [CLASS_MISSILE]           = "others",
+    [CLASS_FLARE]             = "others",
+    [CLASS_EARTH_FAUNA]       = "others",
     [CLASS_HACKED_ROLLERMINE] = "citizen",
-    [CLASS_COMBINE_HUNTER] = "combine",
-    [CLASS_MACHINE] = "military",
-    [CLASS_HUMAN_PASSIVE] = "citizen",
-    [CLASS_HUMAN_MILITARY] = "military",
-    [CLASS_ALIEN_MILITARY] = "alien",
-    [CLASS_ALIEN_MONSTER] = "alien",
-    [CLASS_ALIEN_PREY] = "zombie",
-    [CLASS_ALIEN_PREDATOR] = "alien",
-    [CLASS_INSECT] = "others",
-    [CLASS_PLAYER_BIOWEAPON] = "player",
-    [CLASS_ALIEN_BIOWEAPON] = "alien",
+    [CLASS_COMBINE_HUNTER]    = "combine",
+    [CLASS_MACHINE]           = "military",
+    [CLASS_HUMAN_PASSIVE]     = "citizen",
+    [CLASS_HUMAN_MILITARY]    = "military",
+    [CLASS_ALIEN_MILITARY]    = "alien",
+    [CLASS_ALIEN_MONSTER]     = "alien",
+    [CLASS_ALIEN_PREY]        = "zombie",
+    [CLASS_ALIEN_PREDATOR]    = "alien",
+    [CLASS_INSECT]            = "others",
+    [CLASS_PLAYER_BIOWEAPON]  = "player",
+    [CLASS_ALIEN_BIOWEAPON]   = "alien",
 }
 function ss.GetNPCInkColor(n)
     if not IsValid(n) then return 1 end
@@ -140,15 +140,15 @@ function ss.GetNPCInkColor(n)
     local class = n:Classify()
     local cvar = ss.GetOption "npcinkcolor"
     local colors = {
-        citizen = cvar "citizen",
-        combine = cvar "combine",
+        citizen  = cvar "citizen",
+        combine  = cvar "combine",
         military = cvar "military",
-        zombie = cvar "zombie",
-        antlion = cvar "antlion",
-        alien = cvar "alien",
+        zombie   = cvar "zombie",
+        antlion  = cvar "antlion",
+        alien    = cvar "alien",
         barnacle = cvar "barnacle",
-        player = ss.GetOption "inkcolor",
-        others = cvar "others",
+        player   = ss.GetOption "inkcolor",
+        others   = cvar "others",
     }
     return colors[NPCFactions[class]] or colors.others or 1
 end
@@ -180,7 +180,8 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
     if data.MapCRC ~= mapCRC or not data.Revision or data.Revision < ss.MAPCACHE_REVISION then
-        util.TimerCycle()
+        local t0 = SysTime()
+        print("\n[Splatoon SWEPs] Building inkable surface structre...")
         ss.LoadBSP()
         ss.GenerateSurfaces()
         data.MapCRC = mapCRC
@@ -188,9 +189,10 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
-        print("MAKE", util.TimerCycle())
-
         file.Write(path, util.Compress(util.TableToJSON(data)))
+        local total = math.Round((SysTime() - t0) * 1000, 2)
+        print("Finished!  Total construction time: " .. total .. " ms.\n")
+
     else
         ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)

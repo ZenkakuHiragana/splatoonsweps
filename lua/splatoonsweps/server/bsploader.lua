@@ -69,17 +69,17 @@ local LUMP = { -- Lump names. most of these are unused in SplatoonSWEPs.
     [64] = "DISP_MULTIBLEND",
 }
 local BuiltinTypeSizes = {
-    Angle = 12,
-    Bool = 1,
-    Byte = 1,
-    Float = 4,
-    Long = 4,
-    SByte = 1,
-    Short = 2,
+    Angle       = 12,
+    Bool        = 1,
+    Byte        = 1,
+    Float       = 4,
+    Long        = 4,
+    SByte       = 1,
+    Short       = 2,
     ShortVector = 6,
-    ULong = 4,
-    UShort = 2,
-    Vector = 12,
+    ULong       = 4,
+    UShort      = 2,
+    Vector      = 12,
 }
 local StructureDefinitions = {
     BSPHeader = {
@@ -436,22 +436,27 @@ local function readLump(bsp, header, lumpname)
 end
 
 function ss.LoadBSP()
+    local t0 = SysTime()
     local bsp = file.Open(string.format("maps/%s.bsp", game.GetMap()), "rb", "GAME")
     if not bsp then return end
 
+    print "Loading BSP file..."
     ss.BSP = { Raw = { header = read(bsp, "BSPHeader"), TexDataStringTableToIndex = {} } }
     local t = ss.BSP.Raw
     for i = 1, #LUMP do
         local lumpname = LUMP[i]
         if StructureDefinitions[lumpname] then
+            print("        LUMP #" .. i .. "\t" .. lumpname)
             t[lumpname] = readLump(bsp, t.header.lumps[i], lumpname)
         end
     end
 
+    print "    Loading GameLump..."
     for _, header in ipairs(t.GAME_LUMP) do
         local idstr = getGameLumpStr(header.id)
         local gamelump = GameLumpContents[idstr]
         if gamelump then
+            print("        GameLump \"" .. idstr .. "\"...")
             bsp:Seek(header.fileOffset)
             local LZMAHeader = read(bsp, 4)
             if LZMAHeader == "LZMA" then
@@ -465,10 +470,12 @@ function ss.LoadBSP()
         end
     end
 
+    print "    Constructing texture name table..."
     for i, j in ipairs(t.TEXDATA_STRING_TABLE) do
         t.TexDataStringTableToIndex[j] = i
     end
 
+    print "    Obtaining playable area..."
     for _, leaf in ipairs(t.LEAFS) do
         local area = bit.band(leaf.areaAndFlags, 0x01FF)
         if area > 0 then
@@ -483,4 +490,7 @@ function ss.LoadBSP()
             ss.MinimapAreaBounds[area].maxs = ss.MaxVector(ss.MinimapAreaBounds[area].maxs, leaf.maxs)
         end
     end
+
+    local elapsed = math.Round((SysTime() - t0) * 1000, 2)
+    print("Done.  Elapsed time: " .. elapsed .. " ms.")
 end

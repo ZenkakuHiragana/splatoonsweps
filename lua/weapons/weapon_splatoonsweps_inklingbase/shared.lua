@@ -373,6 +373,7 @@ end
 function SWEP:PrimaryAttack(auto) -- Shoot ink.  bool auto | is a scheduled shot
     if self:GetHolstering() then return end
     if self:GetThrowing() then return end
+    if CurTime() < self:GetNextPrimaryFire() then return end
     if not self:CheckCanStandup() then return end
     if auto and ss.sp and CLIENT then return end
     if not auto and CurTime() < self:GetCooldown() then return end
