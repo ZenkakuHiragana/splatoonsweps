@@ -338,36 +338,6 @@ function ss.IsConvexExposed(verts, normal)
     end
 end
 
-local function buildStaticProp(prop)
-    local name = ss.BSP.Raw.sprp.name[prop.propType + 1]
-    if prop.solid ~= SOLID_VPHYSICS then return end
-    if not name then return end
-    if not file.Exists(name, "GAME") then return end
-    if not file.Exists(name:sub(1, -4) .. "phy", "GAME") then return end
-
-    local mdl = ents.Create "prop_physics"
-    if not IsValid(mdl) then return end
-    mdl:SetModel(name)
-    mdl:Spawn()
-    local ph = mdl:GetPhysicsObject()
-    local mat = IsValid(ph) and ph:GetMaterial()
-    mdl:Remove()
-
-    if not IsValid(ph) then return end
-    if mat:find "chain" or mat:find "grate" then return end
-
-    local surfaces = {}
-    for _, t in ipairs(ph:GetMeshConvexes()) do
-        for _, surf in pairs(ss.ProcessStaticPropConvex(
-            prop.origin, prop.angle, ph:GetContents(), t)) do
-            if #surf.Vertices3D < 3 then continue end
-            surfaces[#surfaces + 1] = surf
-        end
-    end
-
-    return surfaces
-end
-
 local MIN_NORMAL_LENGTH_SQR = 1
 local PROJECTION_NORMALS = {
     Vector( 1,  0,  0),
@@ -377,7 +347,7 @@ local PROJECTION_NORMALS = {
     Vector( 0, -1,  0),
     Vector( 0,  0, -1),
 }
-function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
+function processStaticPropConvex(origin, angle, contents, phys)
     local surfaces = {}
     local maxs_all = {}
     local mins_all = {}
@@ -388,7 +358,7 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
     end
 
     for i = 1, #phys, 3 do
-        local v1 = LocalToWorld(phys[i].pos, angle_zero, origin, angle)
+        local v1 = LocalToWorld(phys[i    ].pos, angle_zero, origin, angle)
         local v2 = LocalToWorld(phys[i + 1].pos, angle_zero, origin, angle)
         local v3 = LocalToWorld(phys[i + 2].pos, angle_zero, origin, angle)
         local v2v1 = v1 - v2
@@ -423,12 +393,12 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
         surf.Contents = contents
         surf.Normal = pn
         surf.Origin:Add(v1 + v2 + v3)
-        table.insert(surf.Triangles, {
-            #surf.Vertices3D + 1,
-            #surf.Vertices3D + 2,
-            #surf.Vertices3D + 3,
-        })
         table.Add(surf.Vertices3D, { v1, v2, v3 })
+        table.insert(surf.Triangles, {
+            #surf.Vertices3D - 2,
+            #surf.Vertices3D - 1,
+            #surf.Vertices3D,
+        })
     end
 
     for _, n in ipairs(PROJECTION_NORMALS) do
@@ -443,6 +413,45 @@ function ss.ProcessStaticPropConvex(origin, angle, contents, phys)
     return surfaces
 end
 
+local function buildFaceFromPhysObj(ph, org, ang)
+    if not IsValid(ph) then return end
+
+    local mat = ph:GetMaterial()
+    if mat:find "chain" or mat:find "grate" then return end
+
+    -- local meshes = util.GetModelMeshes(name)
+    local meshes = ph:GetMeshConvexes()
+    if not meshes or #meshes == 0 then return end
+
+    local surfaces = {}
+    for _, t in ipairs(meshes) do
+        for _, surf in pairs(processStaticPropConvex(
+            org or ph:GetPos(), ang or ph:GetAngles(), ph:GetContents(), t)) do
+            if #surf.Vertices3D < 3 then continue end
+            surfaces[#surfaces + 1] = surf
+        end
+    end
+
+    return surfaces
+end
+
+local function buildStaticProp(prop)
+    local name = ss.BSP.Raw.sprp.name[prop.propType + 1]
+    if prop.solid ~= SOLID_VPHYSICS then return end
+    if not name then return end
+    if not file.Exists(name, "GAME") then return end
+    if not file.Exists(name:sub(1, -4) .. "phy", "GAME") then return end
+
+    local mdl = ents.Create "prop_physics"
+    if not IsValid(mdl) then return end
+    mdl:SetModel(name)
+    mdl:Spawn()
+    local ph = mdl:GetPhysicsObject()
+    mdl:Remove()
+
+    return buildFaceFromPhysObj(ph, prop.origin, prop.angle)
+end
+
 local function addSurface(surf)
     if not surf then return end
     if surf.IsWaterSurface then
@@ -455,17 +464,32 @@ local function addSurface(surf)
 end
 
 function ss.GenerateSurfaces()
+    local t0 = SysTime()
+    print "Generating inkable surfaces..."
     ss.SurfaceArray = {}
     ss.WaterSurfaces = {}
     for i, face in ipairs(ss.BSP.Raw.FACES) do
         addSurface(buildFace(i, face))
     end
 
+    print("    Generated " .. #ss.BSP.Raw.FACES .. " surfaces.")
+    print "Generating static prop surfaces..."
     for _, prop in ipairs(ss.BSP.Raw.sprp.prop or {}) do
         for _, surf in ipairs(buildStaticProp(prop) or {}) do
             addSurface(surf)
         end
     end
 
+    local funclod = ents.FindByClass "func_lod"
+    for _, prop in ipairs(funclod) do
+        local ph = prop:GetPhysicsObject()
+        for _, surf in ipairs(buildFaceFromPhysObj(ph) or {}) do
+            addSurface(surf)
+        end
+    end
+
     ss.BSP.Polygons = t
+    local elapsed = math.Round((SysTime() - t0) * 1000, 2)
+    print("    Generated surfaces for " .. #ss.BSP.Raw.sprp.prop + #funclod .. " static props.")
+    print("Done!  Elapsed time: " .. elapsed .. " ms.")
 end
