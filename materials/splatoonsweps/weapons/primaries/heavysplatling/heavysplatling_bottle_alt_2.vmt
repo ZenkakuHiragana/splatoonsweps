@@ -1,35 +1,35 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_alt"
-	"$bumpmap" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_normal"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
-	"$nocull" "1"
-	"$phong" "1"
-	"$phongexponenttexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_exponent"
-	"$phongboost" "12"	
-	"$phongfresnelranges"	"[.3 1 2]"
-	"$halflambert" "1"
+    "$basetexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_alt"
+    "$bumpmap" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$nocull" "1"
+    "$phong" "1"
+    "$phongexponenttexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_exponent"
+    "$phongboost" "12"
+    "$phongfresnelranges" "[.3 1 2]"
+    "$halflambert" "1"
 
-	"$envmap" "env_cubemap"
-	"$normalmapalphaenvmapmask" "1"
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
 
-	"$blendtintbybasealpha"		"1"
-	"$blendtintcoloroverbase"		"0"
-	"$colortint_base"		"{ 45 147 20 }"
-	"$colortint_tmp"		"[0 0 0]"
-	"$color2"		"{ 45 147 20 }"
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "0"
+    "$colortint_base" "{ 45 147 20 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 45 147 20 }"
 
-	"proxies"
-	{
-		"ItemTintColor"
-		{
-			"resultVar"		"$colortint_tmp"
-		}
-		"SelectFirstIfNonZero"
-		{
-			"srcVar1"		"$colortint_tmp"
-			"srcVar2"		"$colortint_base"
-			"resultVar"		"$color2"
-		}
-	}
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
 }

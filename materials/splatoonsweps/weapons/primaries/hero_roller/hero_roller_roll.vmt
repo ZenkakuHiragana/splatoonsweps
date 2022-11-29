@@ -1,36 +1,36 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll"
-	"$bumpmap" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll_normal"
-	"$nocull" "1"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$basetexture" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll"
+    "$bumpmap" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll_normal"
+    "$nocull" "1"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
 
-	"$phong" "1"
-//	"$phongexponent" "100"
-	"$phongboost" "24"	
-	"$phongexponenttexture" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll_exponent"
-	"$phongfresnelranges"	"[.3 1 8]"
+    "$phong" "1"
+// "$phongexponent" "100"
+    "$phongboost" "24"
+    "$phongexponenttexture" "splatoonsweps/weapons/primaries/hero_roller/hero_roller_roll_exponent"
+    "$phongfresnelranges" "[.3 1 8]"
 
-	"$envmap" "env_cubemap"
-	"$normalmapalphaenvmapmask" "1"
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
 
-	"$blendtintbybasealpha"		"1"
-	"$blendtintcoloroverbase"		"1"
-	"$colortint_base"		"{ 45 147 20 }"
-	"$colortint_tmp"		"[0 0 0]"
-	"$color2"		"{ 45 147 20 }"
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "1"
+    "$colortint_base" "{ 45 147 20 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 45 147 20 }"
 
-	"proxies"
-	{
-		"ItemTintColor"
-		{
-			"resultVar"		"$colortint_tmp"
-		}
-		"SelectFirstIfNonZero"
-		{
-			"srcVar1"		"$colortint_tmp"
-			"srcVar2"		"$colortint_base"
-			"resultVar"		"$color2"
-		}
-	}
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
 }

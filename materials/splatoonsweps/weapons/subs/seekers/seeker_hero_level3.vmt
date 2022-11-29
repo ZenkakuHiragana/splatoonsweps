@@ -1,0 +1,10 @@
+"UnLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/seekers/seeker_hero_glow"
+
+    "$selfillium" "1"
+    "$selfillumtint" "[8 8 8]"
+    "$translucent"  "1"
+    "$additive" "1"
+    "$color2" "{43 236 0}"
+}

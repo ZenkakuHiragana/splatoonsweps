@@ -62,7 +62,7 @@ ss.SetPrimary(SWEP, {
     mFirstGroupBulletUnuseOneEmitterBulletNum = 1,
     mFirstGroupCenterLine = true,
     mFirstGroupSideLine = false,
-    
+
     mSecondGroupBulletNum = 3,
     mSecondGroupBulletFirstInitSpeedBase = 10,
     mSecondGroupBulletFirstInitSpeedJumpingBase = 8.6,
@@ -106,7 +106,7 @@ ss.SetPrimary(SWEP, {
     mSecondGroupBulletUnuseOneEmitterBulletNum = 0,
     mSecondGroupCenterLine = true,
     mSecondGroupSideLine = false,
-    
+
     mThirdGroupBulletNum = 1,
     mThirdGroupBulletFirstInitSpeedBase = 9.5,
     mThirdGroupBulletFirstInitSpeedJumpingBase = 8,
@@ -239,7 +239,7 @@ ss.SetPrimary(SWEP, {
     mHitWallSplashBetweenLength = 15,
     mHitWallSplashMinusYRate = 0.45,
     mHitWallSplashDistanceRate = 1.3333,
-    
+
     mHitPlayerDrapDrawRadius = 6,
     mHitPlayerDrapCollisionRadius = 4,
     mHitPlayerDrapPaintRadiusRate = 0,

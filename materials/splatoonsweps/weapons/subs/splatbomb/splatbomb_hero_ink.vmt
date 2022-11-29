@@ -1,0 +1,36 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/splatbomb/splatbomb_hero"
+    "$bumpmap" "splatoonsweps/weapons/subs/splatbomb/splatbomb_hero_normal"
+
+    "$lightwarptexture" "splatoonsweps/weapons/subs/inkling_lightwarp6"
+
+    "$phong" "1"
+// "$phongexponent" "100"
+    "$phongboost" "24"
+    "$phongexponenttexture" "splatoonsweps/weapons/subs/splatbomb/splatbomb_hero_exponent"
+    "$phongfresnelranges" "[.3 1 8]"
+
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[.1 .1 .1]"
+
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "1"
+    "$colortint_base" "{ 45 147 20 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 45 147 20 }"
+
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
+}

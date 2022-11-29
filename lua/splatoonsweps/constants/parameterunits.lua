@@ -123,7 +123,7 @@ local chargers = {
     mMaxHitSplashNumChargeRate = "ratio",
 
     mMaxDistanceScoped = "du",
-	mFullChargeDistanceScoped = "du",
+    mFullChargeDistanceScoped = "du",
 }
 local rollers = {
     mSwingLiftFrame = "f",
@@ -244,7 +244,7 @@ local sloshers = {
     mFirstGroupBulletUnuseOneEmitterBulletNum = "num",
     mFirstGroupCenterLine = "bool",
     mFirstGroupSideLine = "bool",
-    
+
     mSecondGroupBulletNum = "num",
     mSecondGroupBulletFirstInitSpeedBase = "du/f",
     mSecondGroupBulletFirstInitSpeedJumpingBase = "du/f",
@@ -288,7 +288,7 @@ local sloshers = {
     mSecondGroupBulletUnuseOneEmitterBulletNum = "num",
     mSecondGroupCenterLine = "bool",
     mSecondGroupSideLine = "bool",
-    
+
     mThirdGroupBulletNum = "num",
     mThirdGroupBulletFirstInitSpeedBase = "du/f",
     mThirdGroupBulletFirstInitSpeedJumpingBase = "du/f",
@@ -352,7 +352,7 @@ local sloshers = {
     mShotRandomDegreeExceptBulletForGuide = "deg",
     mShotRandomBiasExceptBulletForGuide = "ratio",
 
-    mFreeStateGravity = "du/f2", -- Added after update
+    mFreeStateGravity = "du/f^2", -- Added after update
     mFreeStateAirResist = "ratio", -- Added after update
 
     mDropSplashDrawRadius = "du",

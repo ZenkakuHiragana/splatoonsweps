@@ -1,7 +1,7 @@
 "UnlitGeneric"
 {
-	"$basetexture" "splatoonsweps/inkshot/4/normal"
-	"$alphatest" "1"
-	"$alphatestreference" "0.0625"
-	"$nolod" "1"
+    "$basetexture" "splatoonsweps/inkshot/4/normal"
+    "$alphatest" "1"
+    "$alphatestreference" "0.0625"
+    "$nolod" "1"
 }

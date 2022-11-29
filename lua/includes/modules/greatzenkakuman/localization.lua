@@ -26,15 +26,15 @@ end
 
 function IncludeTexts(folder)
     Workspace = folder .. "/"
-	local directories = select(2, file.Find(Workspace .. "*", "LUA"))
-	for _, d in ipairs(directories) do
-		if SERVER then -- We need to run AddCSLuaFile() for all languages.
-			local path = Workspace .. d .. "/"
-			local files = file.Find(path .. "*.lua", "LUA")
-			for _, f in ipairs(files) do
-				AddCSLuaFile(path .. f)
-			end
-		end
+    local directories = select(2, file.Find(Workspace .. "*", "LUA"))
+    for _, d in ipairs(directories) do
+        if SERVER then -- We need to run AddCSLuaFile() for all languages.
+            local path = Workspace .. d .. "/"
+            local files = file.Find(path .. "*.lua", "LUA")
+            for _, f in ipairs(files) do
+                AddCSLuaFile(path .. f)
+            end
+        end
 
         local path = Workspace .. d .. "/"
         FileList[#FileList + 1] = path

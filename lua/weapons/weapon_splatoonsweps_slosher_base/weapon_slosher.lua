@@ -9,20 +9,20 @@ SWEP.Skin = 0
 SWEP.Special = "inkstrike"
 SWEP.Sub = "burstbomb"
 SWEP.Variations = {
-	{
-		Customized = true,
-		Skin = 1,
-		Special = "kraken",
-		Sub = "splashwall",
-		Suffix = "deco",
-	},
-	{
-		SheldonsPicks = true,
-		Skin = 2,
-		Special = "inkzooka",
-		Sub = "splatbomb",
-		Suffix = "soda",
-	},
+    {
+        Customized = true,
+        Skin = 1,
+        Special = "kraken",
+        Sub = "splashwall",
+        Suffix = "deco",
+    },
+    {
+        SheldonsPicks = true,
+        Skin = 2,
+        Special = "inkzooka",
+        Sub = "splatbomb",
+        Suffix = "soda",
+    },
 }
 
 ss.SetPrimary(SWEP, {
@@ -71,7 +71,7 @@ ss.SetPrimary(SWEP, {
     mFirstGroupBulletUnuseOneEmitterBulletNum = 0,
     mFirstGroupCenterLine = true,
     mFirstGroupSideLine = false,
-    
+
     mSecondGroupBulletNum = 3,
     mSecondGroupBulletFirstInitSpeedBase = 18,
     mSecondGroupBulletFirstInitSpeedJumpingBase = 16,
@@ -115,7 +115,7 @@ ss.SetPrimary(SWEP, {
     mSecondGroupBulletUnuseOneEmitterBulletNum = 1,
     mSecondGroupCenterLine = true,
     mSecondGroupSideLine = false,
-    
+
     mThirdGroupBulletNum = 4,
     mThirdGroupBulletFirstInitSpeedBase = 9,
     mThirdGroupBulletFirstInitSpeedJumpingBase = 8.5,
@@ -248,7 +248,7 @@ ss.SetPrimary(SWEP, {
     mHitWallSplashBetweenLength = 13,
     mHitWallSplashMinusYRate = 0.45,
     mHitWallSplashDistanceRate = 1.3333,
-    
+
     mHitPlayerDrapDrawRadius = 6,
     mHitPlayerDrapCollisionRadius = 4,
     mHitPlayerDrapPaintRadiusRate = 0,

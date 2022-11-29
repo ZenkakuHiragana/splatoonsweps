@@ -1,0 +1,33 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/crosshair/landing_point"
+    "$basetexturetransform" "center .5 .5 scale 1 0.6 rotate 0 translate 0 0"
+    "$nolod" "1"
+    "$translucent" "1"
+    "$vertexcolor" "1"
+    "$vertexalpha" "1"
+    "$scale" "[1 0.6]"
+    "$translate" "0"
+    "Proxies"
+    {
+        "LinearRamp"
+        {
+            "rate" "0.625"
+            "initialValue" "0"
+            "resultVar" "$translate"
+        }
+        "WrapMinMax"
+        {
+            "srcVar1" "$translate"
+            "minVal" "0"
+            "maxVal" "1"
+            "resultVar" "$translate"
+        }
+        "TextureTransform"
+        {
+            "scaleVar" "$scale"
+            "translateVar" "$translate"
+            "resultVar" "$basetexturetransform"
+        }
+    }
+}

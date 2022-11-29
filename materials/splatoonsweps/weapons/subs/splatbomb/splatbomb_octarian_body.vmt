@@ -1,0 +1,19 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/splatbomb/splatbomb_octarian"
+    "$bumpmap" "splatoonsweps/weapons/subs/splatbomb/splatbomb_octarian_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+
+    "$selfillum" "1"
+    "$selfillumtint" "[4 4 4]"
+
+    "$phong" "1"
+    "$phongexponent" "50"
+    "$phongboost" "12"
+    "$phongfresnelranges" "[.3 1 8]"
+    "$halflambert" "1"
+
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
+
+}

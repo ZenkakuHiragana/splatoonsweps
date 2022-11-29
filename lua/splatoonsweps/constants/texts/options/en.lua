@@ -1,9 +1,11 @@
 AddCSLuaFile()
 return {Options = {
+    AllowSprint = "Allow sprint",
     AvoidWalls = "Avoid walls",
     AvoidWalls_help = "If checked, the weapons try not to waste ink by hitting walls.",
     BecomeSquid = "Become squid",
     BecomeSquid_help = "If checked, you will become squid on crouching.",
+    CanDrown = "Enable drowning",
     CanHealInk = "Heal in ink",
     CanHealInk_help = "If checked, you can heal yourself when you're in ink.",
     CanHealStand = "Heal when standing",
@@ -16,8 +18,11 @@ return {Options = {
     DoomStyle_help = "If checked, the view model will be placed at the center of the screen.",
     DrawCrosshair = "Draw crosshair",
     DrawInkOverlay = "Draw ink overlay",
-    DrawInkOverlay_help = "If checked, an water effect will be drawn when you're in ink and first person mode.",
+    DrawInkOverlay_help = "If checked, a water effect will be drawn when you're in ink and first person mode.",
     Enabled = "Enable Splatoon SWEPs",
+    ExplodeOnlySquids = "Only inklings explode",
+    ExplodeOnlySquids_help = [[If checked, victims splatted by the SWEPs will explode only if they also have the SWEPs.
+Otherwise, all victims splatted by the SWEPs will.]],
     FF = "Enable friendly fire",
     Gain = {
         __printname = "Parameters",
@@ -30,11 +35,12 @@ return {Options = {
     },
     HideInk = "Hide ink in map",
     HideInk_help = "If checked, the whole ink in the map becomes invisible.",
+    HurtOwner = "Explosion hurts its owner",
     InkColor = "Ink color",
     LeftHand = "Left hand mode",
     LeftHand_help = "If checked, the view model will be placed on the left.",
     MoveViewmodel = "Move viewmodel to avoid walls",
-    MoveViewmodel_help = 'When "Avoid Walls" is enabled, the view model will be animated.',
+    MoveViewmodel_help = "When \"Avoid Walls\" is enabled, the view model will be animated.",
     NewStyleCrosshair = "Use Splatoon 2 crosshair",
     NPCInkColor = {
         __printname = "NPC's ink color",
@@ -49,11 +55,12 @@ return {Options = {
     },
     TakeFallDamage = "Enable fall damage",
     ToggleADS = "Toggle ADS instead of holding",
-	weapon_splatoonsweps_blaster_base = {
-		HurtOwner = "Explosion hurts its owner",
-	},
+    ToggleADS_help = "Checked: Toggle ADS, Unchecked: Hold to ADS",
+    TranslucentNearbyLocalPlayer = "Make local player translucent when nearby",
+    TranslucentNearbyLocalPlayer_help = "If local player is too close to the camera, it will become translucent for clear vision.",
     weapon_splatoonsweps_charger = {
         UseRTScope = "Use realistic scope",
+        UseRTScope_help = "If checked, you will look into the scope in first person.  You won't look into the scope in third person.",
         weapon_splatoonsweps_herocharger = {
             Level = "Hero Charger Level",
         },
@@ -66,17 +73,19 @@ return {Options = {
         },
         weapon_splatoonsweps_octoshot = {
             Advanced = "Elite Octoshot",
+            Advanced_help = "Part of Octoshot Replica's color is slightly changed by this option."
         },
     },
     weapon_splatoonsweps_slosher_base = {
         Automatic = "Fully-automatic",
     },
-	weapon_splatoonsweps_roller = {
+    weapon_splatoonsweps_roller = {
         AutomaticBrush = "Brushes: Fully-automatic",
+        AutomaticBrush_help = "If checked, you will automatically swing your brush repeatedly.  You can't run by holding it as usual.",
         DropAtFeet = "Brushes: Paint where the player stands",
         DropAtFeet_help = "When repeatedly using swinging attacks, ink will also be painted where the player is standing.",
-		weapon_splatoonsweps_heroroller = {
+        weapon_splatoonsweps_heroroller = {
             Level = "Hero Roller Level",
         },
-	},
+    },
 }}

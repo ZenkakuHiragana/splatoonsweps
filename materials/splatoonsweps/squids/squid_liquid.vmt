@@ -1,0 +1,34 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/squids/squid_liquid"
+    "$bumpmap" "splatoonsweps/squids/squid_liquid_norm"
+
+// "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp6"
+
+    "$additive" "1"
+
+    "$phong" "1"
+    "$phongexponent" "100"
+    "$phongboost" "24"
+    "$phongfresnelranges" "[.3 1 8]"
+    "$halflambert" "1"
+
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[.3 .3 .3]"
+
+ // Rim lighting parameters
+    "$rimlight" "1" // To enable rim lighting (requires phong)
+    "$rimlightexponent" "4" // Exponent for phong component of rim lighting
+    "$rimlightboost" "2" // Boost for ambient cube component of rim lighting
+
+    "Proxies"
+    {
+        "TextureScroll"
+        {
+            "texturescrollvar" "$basetexturetransform"
+            "texturescrollrate" ".125"
+            "texturescrollangle" "270"
+        }
+    }
+}
+

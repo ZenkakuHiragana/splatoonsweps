@@ -16,8 +16,8 @@ function SWEP:SharedInit()
     local p = self.Parameters
     self:GetBase().SharedInit(self)
     table.Merge(self.Projectile, {
-        ColRadiusEntity = p.mCollisionRadiusNear,
-        ColRadiusWorld = p.mCollisionRadiusNear,
+        ColRadiusEntity = p.mColRadius,
+        ColRadiusWorld = p.mColRadius,
         IsCritical = true,
         PaintNearRatio = 1,
         PaintFarRatio = 1,
@@ -30,12 +30,12 @@ function SWEP:SharedDeploy()
 end
 
 function SWEP:SharedPrimaryAttack(able)
-	local p = self.Parameters
-	local ts = ss.GetTimeScale(self.Owner)
+    local p = self.Parameters
+    local ts = ss.GetTimeScale(self:GetOwner())
     local time = CurTime() + self:GetPreFireDelay() / ts
-	self:SetNextPrimaryFire(CurTime() + p.mRepeatFrame / ts)
-	self:SetAimTimer(time)
-	self:SetCooldown(math.max(self:GetCooldown(), time))
+    self:SetNextPrimaryFire(CurTime() + p.mRepeatFrame / ts)
+    self:SetAimTimer(time)
+    self:SetCooldown(math.max(self:GetCooldown(), time))
     self:SetFireDelay(time)
 end
 
@@ -56,7 +56,7 @@ function SWEP:Move(ply)
         self:SetAimTimer(math.max(self:GetAimTimer(true), CurTime() + d))
     else
         self:CreateInk()
-        self:SetInk(math.max(0, self:GetInk() - p.mInkConsume))
+        self:ConsumeInk(p.mInkConsume)
         self:SetCooldown(math.max(self:GetCooldown(), CurTime() + d))
         self:SetAimTimer(CurTime() + d)
     end

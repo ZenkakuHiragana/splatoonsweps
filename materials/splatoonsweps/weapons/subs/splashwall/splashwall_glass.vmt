@@ -1,0 +1,17 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/splashwall/splashwall_glass"
+    "$bumpmap" "splatoonsweps/weapons/subs/splashwall/splashwall_glass_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+
+    "$phong" "1"
+    "$phongexponent" "75"
+    "$phongboost" "15"
+    "$phongfresnelranges" "[.3 1 2]"
+    "$halflambert" "1"
+
+    "$additive" "1"
+
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
+}

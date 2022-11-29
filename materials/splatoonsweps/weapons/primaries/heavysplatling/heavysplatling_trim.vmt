@@ -1,44 +1,44 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_trim"
-	"$bumpmap" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_normal"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
-	"$additive" "1"
-	"$nocull" "1"
-	"$phong" "1"
-	"$phongexponent" "0"
-	"$phongboost" "0"	
-	"$phongfresnelranges"	"[0 0 0]"
-	"$halflambert" "0"
+    "$basetexture" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_trim"
+    "$bumpmap" "splatoonsweps/weapons/primaries/heavysplatling/heavysplatling_bottle_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$additive" "1"
+    "$nocull" "1"
+    "$phong" "1"
+    "$phongexponent" "0"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[0 0 0]"
+    "$halflambert" "0"
 
-	// Rim lighting parameters
-	"$selfillumfresnel" "3"
+ // Rim lighting parameters
+    "$selfillumfresnel" "3"
 
-	"$selfillumfresnelminmaxexp" "[0 0 1]"
-	"$selfillum" "1"
+    "$selfillumfresnelminmaxexp" "[0 0 1]"
+    "$selfillum" "1"
 
-	"$selfillumtint" "[-0.3 -0.3 -0.3]"
-	"$selfillumtint_base" "[0.3 0.3 0.3]"
+    "$selfillumtint" "[-0.3 -0.3 -0.3]"
+    "$selfillumtint_base" "[0.3 0.3 0.3]"
 
-	"$blendtintbybasealpha"		"0"
-	"$blendtintcoloroverbase"		"0"
-	"$colortint_base"		"{ 45 147 20 }"
-	"$colortint_tmp"		"[0 0 0]"
-	"$color2"		"{ 45 147 20 }"
+    "$blendtintbybasealpha" "0"
+    "$blendtintcoloroverbase" "0"
+    "$colortint_base" "{ 45 147 20 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 45 147 20 }"
 
-	"proxies"
-	{
-		"ItemTintColor"
-		{
-			"resultVar"		"$colortint_tmp"
-		}
-		"SelectFirstIfNonZero"
-		{
-			"srcVar1"		"$colortint_tmp"
-			"srcVar2"		"$colortint_base"
-			"resultVar"		"$color2"
-		}
-	}
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
 }
 
 

@@ -1,8 +1,8 @@
 "Patch"
 {
-	include materials/splatoonsweps/inkshot/10/1.vmt
-	insert
-	{
-		$alphatestreference	0.25
-	}
+    include materials/splatoonsweps/inkshot/10/1.vmt
+    insert
+    {
+        $alphatestreference 0.25
+    }
 }

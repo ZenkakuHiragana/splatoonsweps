@@ -1,19 +1,19 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/splash_sploosh_o_matic/splash_sploosh_o_matic"
-	"$bumpmap" "splatoonsweps/weapons/primaries/splash_sploosh_o_matic/splash_sploosh_o_matic_normal"
-	"$nocull" "1"
-	"$phong" "1"
-	"$phongexponent" "0"
-	"$phongboost" "0"	
-	"$phongfresnelranges"	"[0 0 0]"
+    "$basetexture" "splatoonsweps/weapons/primaries/splash_sploosh_o_matic/splash_sploosh_o_matic"
+    "$bumpmap" "splatoonsweps/weapons/primaries/splash_sploosh_o_matic/splash_sploosh_o_matic_normal"
+    "$nocull" "1"
+    "$phong" "1"
+    "$phongexponent" "0"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[0 0 0]"
 
-	"$additive" "1"
+    "$additive" "1"
 
-	"$selfillumfresnel" "1"
+    "$selfillumfresnel" "1"
 
-	"$selfillumfresnelminmaxexp" "[0.1 1 1.5]"
-	"$selfillum" "1"
+    "$selfillumfresnelminmaxexp" "[0.1 1 1.5]"
+    "$selfillum" "1"
 
-	"$selfillumtint" "[-1 -1 -1]"
+    "$selfillumtint" "[-1 -1 -1]"
 }

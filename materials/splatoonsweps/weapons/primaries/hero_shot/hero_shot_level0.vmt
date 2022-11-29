@@ -1,11 +1,11 @@
 "UnLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/hero_shot/hero_shot_glow"
-	"$nocull" "1"
-	"$selfillium" "1"
-	"$selfillumtint" "[8 8 8]"
-	"$translucent"  "1"
-	"$additive" "1"
-	"$color2"	"{ 0 175 255 }"
+    "$basetexture" "splatoonsweps/weapons/primaries/hero_shot/hero_shot_glow"
+    "$nocull" "1"
+    "$selfillium" "1"
+    "$selfillumtint" "[8 8 8]"
+    "$translucent"  "1"
+    "$additive" "1"
+    "$color2" "{ 0 175 255 }"
 }
 

@@ -1,19 +1,19 @@
 "UnlitGeneric"
 {
-	"$basetexture" "splatoonsweps/effects/flash"
-	"$nocull" "1"
-	"$nolod" "1"
-	"$translucent" "1"
-	"$vertexalpha" "1"
-	"$vertexcolor" "1"
-	"$additive" "1"
-	"Proxies"
-	{
-		"AnimatedTexture"
-		{
-			"animatedTextureVar" "$basetexture"
-			"animatedTextureFrameNumVar" "$frame"
-			"animatedTextureFrameRate" "5"
-		}
-	}
+    "$basetexture" "splatoonsweps/effects/flash"
+    "$nocull" "1"
+    "$nolod" "1"
+    "$translucent" "1"
+    "$vertexalpha" "1"
+    "$vertexcolor" "1"
+    "$additive" "1"
+    "Proxies"
+    {
+        "AnimatedTexture"
+        {
+            "animatedTextureVar" "$basetexture"
+            "animatedTextureFrameNumVar" "$frame"
+            "animatedTextureFrameRate" "5"
+        }
+    }
 }

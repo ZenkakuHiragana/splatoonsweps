@@ -1,0 +1,22 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/disruptor/disruptor_glass"
+    "$bumpmap" "splatoonsweps/weapons/subs/disruptor/disruptor_glass_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+
+    "$phong" "1"
+    "$phongexponent" "0"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[0 0 0]"
+    "$halflambert" "1"
+
+    "$additive" "1"
+
+    "$selfillumfresnel" "1"
+
+    "$selfillumfresnelminmaxexp" "[0.1 1 1.5]"
+    "$selfillum" "1"
+
+    "$selfillumtint" "[-1 -1 -1]"
+
+}

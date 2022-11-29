@@ -1,7 +1,7 @@
 "UnlitGeneric"
 {
-	"$basetexture" "entities/weapon_splatoonsweps_splattershot"
-	"$nolod" 1
-	"$vertexalpha" 1
-	"$vertexcolor" 1
+    "$basetexture" "entities/weapon_splatoonsweps_splattershot"
+    "$nolod" 1
+    "$vertexalpha" 1
+    "$vertexcolor" 1
 }

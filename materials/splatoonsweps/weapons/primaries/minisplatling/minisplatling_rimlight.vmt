@@ -1,24 +1,24 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/minisplatling/minisplatling_trim"
-	"$bumpmap" "splatoonsweps/weapons/primaries/minisplatling/minisplatling_normal"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
-	"$additive" "1"
-	"$nocull" "1"
-	"$phong" "1"
-	"$phongexponent" "0"
-	"$phongboost" "0"	
-	"$phongfresnelranges"	"[0 0 0]"
-	"$halflambert" "0"
+    "$basetexture" "splatoonsweps/weapons/primaries/minisplatling/minisplatling_trim"
+    "$bumpmap" "splatoonsweps/weapons/primaries/minisplatling/minisplatling_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$additive" "1"
+    "$nocull" "1"
+    "$phong" "1"
+    "$phongexponent" "0"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[0 0 0]"
+    "$halflambert" "0"
 
-	// Rim lighting parameters
-	"$selfillumfresnel" "3"
+ // Rim lighting parameters
+    "$selfillumfresnel" "3"
 
-	"$selfillumfresnelminmaxexp" "[0 0 1]"
-	"$selfillum" "1"
+    "$selfillumfresnelminmaxexp" "[0 0 1]"
+    "$selfillum" "1"
 
-	"$selfillumtint" "[-0.3 -0.3 -0.3]"
-	"$selfillumtint_base" "[0.3 0.3 0.3]"
+    "$selfillumtint" "[-0.3 -0.3 -0.3]"
+    "$selfillumtint_base" "[0.3 0.3 0.3]"
 }
 
 

@@ -1,0 +1,12 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/effects/ink"
+    "$bumpmap" "splatoonsweps/effects/inkn"
+    "$ssbump" "1"
+    "$color" "[1 1 1]"
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[.5 .5 .5]"
+    "$halflambert" "1"
+    "$nolod" "1"
+    "$vertexcolor" "1"
+}

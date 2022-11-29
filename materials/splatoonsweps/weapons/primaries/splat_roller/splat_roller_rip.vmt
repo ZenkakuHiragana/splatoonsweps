@@ -1,54 +1,54 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/splat_roller/splat_roller"
-	"$bumpmap" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_normal"
-//	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/shared/weapon_lightwarp"
-	"$nocull" "1"
-	"$detail" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_trim"
-	"$detailscale" "1"
-	"$detailblendmode" "3"
-//	"$detailblendfactor" ".25"
+    "$basetexture" "splatoonsweps/weapons/primaries/splat_roller/splat_roller"
+    "$bumpmap" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_normal"
+// "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/shared/weapon_lightwarp"
+    "$nocull" "1"
+    "$detail" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_trim"
+    "$detailscale" "1"
+    "$detailblendmode" "3"
+// "$detailblendfactor" ".25"
 
-	"$phong" "1"
-//	"$phongexponent" "150"
-	"$phongexponenttexture" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_exponent"
-	"$phongboost" "25"	
-	"$phongfresnelranges"	"[.3 1 2]"
-	"$halflambert" "1"
+    "$phong" "1"
+// "$phongexponent" "150"
+    "$phongexponenttexture" "splatoonsweps/weapons/primaries/splat_roller/splat_roller_exponent"
+    "$phongboost" "25"
+    "$phongfresnelranges" "[.3 1 2]"
+    "$halflambert" "1"
 
-	"$envmap" "env_cubemap"
-	"$normalmapalphaenvmapmask" "1"
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
 
-	"$selfillumfresnel" "1"
-	"$selfillummask" "effects/white"
-//	"$selfillummaskscale" "15"
+    "$selfillumfresnel" "1"
+    "$selfillummask" "effects/white"
+// "$selfillummaskscale" "15"
 
-	"$selfillumfresnelminmaxexp" "[0 0 1]"
-	"$selfillum" "1"
+    "$selfillumfresnelminmaxexp" "[0 0 1]"
+    "$selfillum" "1"
 
-//	"$selfillumtint" "[-0.3 -0.3 -0.3]"
-	"$selfillumtint" "[-1 -1 -1]"
-//	"$selfillumtint" "[1 1 1]"
+// "$selfillumtint" "[-0.3 -0.3 -0.3]"
+    "$selfillumtint" "[-1 -1 -1]"
+// "$selfillumtint" "[1 1 1]"
 
 
-	"$blendtintbybasealpha"		"1"
-	"$blendtintcoloroverbase"		"1"
-	"$colortint_base"		"{ 46 12 181 }"
-	"$colortint_tmp"		"[0 0 0]"
-//	"$color2"		"{ 46 12 181 }"
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "1"
+    "$colortint_base" "{ 46 12 181 }"
+    "$colortint_tmp" "[0 0 0]"
+// "$color2" "{ 46 12 181 }"
 
-	"proxies"
-	{
-		"ItemTintColor"
-		{
-			"resultVar"		"$colortint_tmp"
-		}
-		"SelectFirstIfNonZero"
-		{
-			"srcVar1"		"$colortint_tmp"
-			"srcVar2"		"$colortint_base"
-			"resultVar"		"$color2"
-		}
-	}
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
 }

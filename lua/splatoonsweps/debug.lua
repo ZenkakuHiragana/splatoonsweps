@@ -14,14 +14,12 @@ function d.DLoop() end
 if CLIENT then hook.Remove("CreateMove", "Test") end
 local ShowInkChecked     = false -- Draws ink boundary.
 local ShowInkDrawn       = false -- When ink hits, show ink surface painted by it.
-local MovedOnly          = false -- ShowInkDrawn but only for surfaces with "moved" tag.
 local ShowBlasterRadius  = false -- Shows where blaster explosion will be.
 local ChargeQuarter      = false -- Press Shift to fire any charger at 25% charge.
 local DrawInkUVMap       = false -- Press Shift to draw ink UV map.
 local DrawInkUVBounds    = false -- Also draws UV boundary.
 local ShowInkSurface     = false -- Press E for serverside, Shift for clientside, draws ink surface nearby player #1.
 local ShowInkStateMesh   = false -- Shows the mesh to determine ink color of surface.
-local ShowDisplacement   = false -- Shows a displacement mesh where player is looking at.
 local ShowInkChecked_ServerTime = CurTime()
 function sd.ShowInkChecked(r, s)
     if not ShowInkChecked then return end
@@ -37,10 +35,10 @@ function sd.ShowInkChecked(r, s)
     local c = ss.GetColor(r.color)
     d.DColor()
     d.DPoly {
-    	ss.To3D(debugv[1], s.Origin, s.Angles),
-    	ss.To3D(debugv[2], s.Origin, s.Angles),
-    	ss.To3D(debugv[3], s.Origin, s.Angles),
-    	ss.To3D(debugv[4], s.Origin, s.Angles),
+        ss.To3D(debugv[1], s.Origin, s.Angles),
+        ss.To3D(debugv[2], s.Origin, s.Angles),
+        ss.To3D(debugv[3], s.Origin, s.Angles),
+        ss.To3D(debugv[4], s.Origin, s.Angles),
     }
     d.DColor(c.r, c.g, c.b)
     for b in pairs(r.bounds) do
@@ -49,22 +47,19 @@ function sd.ShowInkChecked(r, s)
         local v2 = ss.To3D(Vector(b1, b4), s.Origin, s.Angles)
         local v3 = ss.To3D(Vector(b3, b4), s.Origin, s.Angles)
         local v4 = ss.To3D(Vector(b3, b2), s.Origin, s.Angles)
-        d.DText(v1, ("(%d, %d)"):format(b1, b2))
-        d.DText(v3, ("(%d, %d)"):format(b3, b4))
+        d.DText(v1, string.format("(%d, %d)", b1, b2))
+        d.DText(v3, string.format("(%d, %d)", b3, b4))
         d.DPoly {v1, v2, v3, v4}
     end
 end
 
-function sd.ShowInkDrawn(s, c, b, surf, q, moved)
+function sd.ShowInkDrawn(s, c, b, surf, q)
     if not ShowInkDrawn then return end
-    if MovedOnly and not moved then return end
     d.DShort()
     d.DColor()
-    -- d.DBox(s * ss.PixelsToUV * 500, b * ss.PixelsToUV * 500)
-    -- d.DPoint(c * ss.PixelsToUV * 500)
-    local v = {}
-    for i, w in ipairs(surf.Vertices) do v[i] = w.pos end
-    d.DPoly(v)
+    d.DBox(s * ss.PixelsToUV * 500, b * ss.PixelsToUV * 500)
+    d.DPoint(c * ss.PixelsToUV * 500)
+    d.DPoly(surf.Vertices3D)
 end
 
 local gridsize = 12 -- [Hammer Units]
@@ -77,8 +72,9 @@ function sd.ShowInkStateMesh(pos, id, surf)
     ShowInkStateID = id
     ShowInkStateSurf = surf
     if SERVER ~= player.GetByID(1):KeyDown(IN_ATTACK2) then return end
-    local ink = surf.InkSurfaces
-    local colorid = ink[pos.x] and ink[pos.x][pos.y]
+    local ink = surf.InkColorGrid
+    if not ink then return end
+    local colorid = ink[pos.x * 32768 + pos.y]
     local c = ss.GetColor(colorid) or color_white
     local p = ss.To3D(pos * gridsize, surf.Origin, surf.Angles)
     d.DTick()
@@ -93,15 +89,15 @@ if ShowBlasterRadius then
         local w = ss.IsValidInkling(ply)
         if not w then return end
         if not w.IsBlaster then return end
-        local pos, dir = w:GetFirePosition()
+        local firePos, fireDirection = w:GetFirePosition()
         local ink = {
-            DamageClose = w.Primary.DamageClose,
-            DamageMiddle = w.Primary.DamageMiddle,
-            DamageFar = w.Primary.DamageFar,
-            ColRadiusClose = w.Primary.ColRadiusClose,
-            ColRadiusMiddle = w.Primary.ColRadiusMiddle,
-            ColRadiusFar = w.Primary.ColRadiusFar,
-            endpos = pos + dir * w:GetRange(),
+            DamageClose = w.Parameters.mDamageNear,
+            DamageMiddle = w.Parameters.mDamageMiddle,
+            DamageFar = w.Parameters.mDamageFar,
+            ColRadiusClose = w.Parameters.mCollisionRadiusNear,
+            ColRadiusMiddle = w.Parameters.mCollisionRadiusMiddle,
+            ColRadiusFar = w.Parameters.mCollisionRadiusFar,
+            endpos = firePos + fireDirection * w:GetRange(),
         }
         d.DTick()
         d.DColor()
@@ -170,53 +166,35 @@ if CLIENT then
             if not ply:KeyPressed(IN_SPEED) then return end
             d.DShort()
             d.DColor(255, 255, 255)
-            d.DPoly {Vector(0, 0), Vector(0, c), Vector(-c, c), Vector(-c, 0)}
+            d.DPoly {Vector(0, 0), Vector(0, c), Vector(c, c), Vector(c, 0)}
             d.DColor(255, 0, 0)
-            d.DVector(Vector(-c, 0), Vector(-c, 0))
+            d.DVector(Vector(c, 0), Vector(c, 0))
             d.DColor(0, 255, 0)
             d.DVector(Vector(0, c), Vector(0, c))
             for _, s in ipairs(ss.SurfaceArray) do
                 local t = {}
-                for i, v in ipairs(s.Vertices) do
-                    t[i] = Vector(-v.u, v.v) * c
-                end
+                for i, v in ipairs(s.Vertices2D) do t[i] = v * c end
 
                 d.DColor()
-                d.DPoly(t)
+                for _, tri in ipairs(s.Triangles) do
+                    local v1 = t[tri[1]]
+                    local v2 = t[tri[2]]
+                    local v3 = t[tri[3]]
+                    d.DLine(v1, v2, true)
+                    d.DLine(v2, v3, true)
+                    d.DLine(v3, v1, true)
+                end
 
                 if DrawInkUVBounds then
                     d.DColor(255, 255, 255)
-                    local bu, bv = -s.Bound.x * ss.UnitsToUV, s.Bound.y * ss.UnitsToUV
-                    for i, ti in ipairs(t) do
-                        d.DVector(ti, vector_up * c / 500)
-                        d.DPoly {
-                            t[i],
-                            t[i] + Vector(bu, 0) * c,
-                            t[i] + Vector(bu, bv) * c,
-                            t[i] + Vector(0, bv) * c,
-                        }
-                    end
-                end
-            end
-        end
-    end
-    
-    if ShowDisplacement then
-        function d.DLoop()
-            local ply = LocalPlayer()
-            if not ply:KeyPressed(IN_SPEED) then return end
-            local t = ply:GetEyeTrace()
-            local n = t.HitNormal
-            local p = t.HitPos
-            local aabb = {mins = p, maxs = p}
-            for _, s in ss.SearchAABB(aabb, n) do
-                if s.Displacement then
-                    local verts = s.Displacement.Vertices
-                    for i, v in ipairs(s.Displacement.Triangles) do
-                        local t = {verts[v[1]].pos, verts[v[2]].pos, verts[v[3]].pos}
-                        local n = (t[1] - t[2]):Cross(t[3] - t[2]):GetNormalized() * .8
-                        d.DPoly({t[1] + n, t[2] + n, t[3] + n}, false)
-                    end
+                    local org = Vector(s.OffsetUV.x, s.OffsetUV.y) * c + vector_up
+                    local u, v = s.BoundaryUV.x, s.BoundaryUV.y
+                    d.DPoly {
+                        org,
+                        org + Vector(u, 0) * c,
+                        org + Vector(u, v) * c,
+                        org + Vector(0, v) * c,
+                    }
                 end
             end
         end
@@ -232,10 +210,10 @@ if ShowInkSurface then
         d.DShort()
         d.DColor()
         local p = ply:GetPos()
-        local AABB = {mins = p - ss.vector_one, maxs = p + ss.vector_one}
-        for _, s in ss.SearchAABB(AABB, vector_up) do
+        local mins, maxs = p - ss.vector_one, p + ss.vector_one
+        for s in ss.CollectSurfaces(mins, maxs, vector_up) do
             local v = {}
-            for i, w in ipairs(s.Vertices) do v[i] = SERVER and w or w.pos end
+            for i, w in ipairs(s.Vertices3D) do v[i] = w end
             d.DPoint(s.Origin)
             d.DPoly(v)
         end
@@ -252,22 +230,23 @@ if ShowInkStateMesh then
         local pos = ShowInkStatePos
         local id = ShowInkStateID
         local surf = ShowInkStateSurf
-        local ink = surf.InkSurfaces
-        local colorid = ink[pos.x] and ink[pos.x][pos.y]
-        local c = ss.GetColor(colorid) or color_white
-        local p = ss.To3D(pos * gridsize, surf.Origin, surf.Angles)
-        local sw, sh = surf.Bound.x, surf.Bound.y
+        local ink = surf.InkColorGrid
+        if not ink then return end
+        local colorid = ink[pos.x * 32768 + pos.y]
+        local color = ss.GetColor(colorid) or color_white
+        local sw, sh = surf.Boundary2D.x, surf.Boundary2D.y
         local gw, gh = math.floor(sw / gridsize), math.floor(sh / gridsize)
         d.DShort()
-        d.DColor(c.r, c.g, c.b, colorid and 64 or 16)
+        d.DColor(color.r, color.g, color.b, colorid and 64 or 16)
         d.DPoint(surf.Origin)
+        d.DText(surf.Origin, tostring(id))
         for x = 0, gw do
             for y = 0, gh do
                 local p = Vector(x, y) * gridsize
                 local org = ss.To3D(p, surf.Origin, surf.Angles)
-                local colorid = ink[x] and ink[x][y]
-                local c = ss.GetColor(colorid) or color_white
-                d.DColor(c.r, c.g, c.b, colorid and 64 or 16)
+                local cid = ink[x * 32768 + y]
+                local c = ss.GetColor(cid) or color_white
+                d.DColor(c.r, c.g, c.b, cid and 64 or 16)
                 d.DABox(org, vector_origin, Vector(0, gridsize - 1, gridsize - 1), surf.Angles)
             end
         end

@@ -41,18 +41,18 @@ return {
     [LIGHT_INDIGO]      = {270, 1, 1,   BLUE},
     [MAGENTA]           = {300, 1, 1,   DEEP_PINK},
     [DEEP_PINK]         = {330, 1, 1,   MAGENTA},
-    
+
     [MAROON]            = {0, 1, .5,    RED},
     [OLIVE]             = {60, 1, .5,   GREEN},
     [GREEN]             = {120, 1, .5,  LIGHT_GREEN},
     [DARK_CYAN]         = {180, 1, .5,  LIGHT_INDIGO},
     [NAVY]              = {240, 1, .5,  LIGHT_INDIGO},
     [PURPLE]            = {300, 1, .5,  AZURE_BLUE},
-    
+
     [LIGHT_GREEN]       = {105, .5, 1,  GREEN},
     [LIGHT_BLUE]        = {210, .5, 1,  DARK_CYAN},
     [PINK]              = {315, .5, 1,  MAGENTA},
-    
+
     [BLACK]             = {0, 0, .03,   BLACK},
     [GRAY]              = {0, 0, .5,    GRAY},
     [LIGHT_GRAY]        = {0, 0, .75,   LIGHT_GRAY},

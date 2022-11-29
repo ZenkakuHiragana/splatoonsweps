@@ -1,0 +1,37 @@
+"VertexlitGeneric"
+{
+    "$basetexture" "splatoonsweps/octopus2/M_Body"
+    "$bumpmap" "splatoonsweps/octopus2/M_Body_Nrm"
+
+    "$lightwarptexture" "splatoonsweps/octopus2/lightwarp"
+
+    "$phong" "1"
+    "$phongexponent" "100"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[.3 1 2]"
+    "$halflambert" "1"
+
+    "$envmap" "env_cubemap"
+    "$envmaptint" "[1 1 1]"
+    "$normalmapalphaenvmapmask" "1"
+
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "1"
+    "$colortint_base" "{ 254 31 137 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 254 31 137 }"
+
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
+}

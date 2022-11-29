@@ -5,13 +5,13 @@ require "greatzenkakuman/localization"
 local ss = SplatoonSWEPs
 local gl = greatzenkakuman.localization
 local function TableToString(t)
-	local str = ""
-	for i, v in ipairs(t) do
-		if i > 1 then str = str .. "\n" end
-		str = str .. tostring(i) .. ":\t" .. tostring(v)
-	end
-	
-	return str
+    local str = ""
+    for i, v in ipairs(t) do
+        if i > 1 then str = str .. "\n" end
+        str = str .. tostring(i) .. ":\t" .. tostring(v)
+    end
+
+    return str
 end
 
 if not ss then return end

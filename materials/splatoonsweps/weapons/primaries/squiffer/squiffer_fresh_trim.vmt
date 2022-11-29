@@ -1,40 +1,40 @@
 "VertexLitGeneric"
 {
-	"$basetexture" "splatoonsweps/weapons/primaries/squiffer/squiffer_fresh"
-	"$bumpmap" "splatoonsweps/weapons/primaries/squiffer/squiffer_normal"
-	"$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
-	"$nocull" "1"
-	"$detail" "splatoonsweps/weapons/primaries/squiffer/squiffer_fresh_trim"
-	"$detailscale" "1"
-	"$detailblendmode" "2"
-	"$detailblendfactor" ".5"
+    "$basetexture" "splatoonsweps/weapons/primaries/squiffer/squiffer_fresh"
+    "$bumpmap" "splatoonsweps/weapons/primaries/squiffer/squiffer_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+    "$nocull" "1"
+    "$detail" "splatoonsweps/weapons/primaries/squiffer/squiffer_fresh_trim"
+    "$detailscale" "1"
+    "$detailblendmode" "2"
+    "$detailblendfactor" ".5"
 
-	"$phong" "1"
-	"$phongexponent" "50"
-	"$phongboost" "12"	
-	"$phongfresnelranges"	"[.3 1 2]"
-	"$halflambert" "1"
+    "$phong" "1"
+    "$phongexponent" "50"
+    "$phongboost" "12"
+    "$phongfresnelranges" "[.3 1 2]"
+    "$halflambert" "1"
 
-	"$envmap" "env_cubemap"
-	"$normalmapalphaenvmapmask" "1"
+    "$envmap" "env_cubemap"
+    "$normalmapalphaenvmapmask" "1"
 
-	"$blendtintbybasealpha"		"1"
-	"$blendtintcoloroverbase"		"1"
-	"$colortint_base"		"{ 0 255 140 }"
-	"$colortint_tmp"		"[0 0 0]"
-	"$color2"		"{ 0 255 140 }"
+    "$blendtintbybasealpha" "1"
+    "$blendtintcoloroverbase" "1"
+    "$colortint_base" "{ 0 255 140 }"
+    "$colortint_tmp" "[0 0 0]"
+    "$color2" "{ 0 255 140 }"
 
-	"proxies"
-	{
-		"ItemTintColor"
-		{
-			"resultVar"		"$colortint_tmp"
-		}
-		"SelectFirstIfNonZero"
-		{
-			"srcVar1"		"$colortint_tmp"
-			"srcVar2"		"$colortint_base"
-			"resultVar"		"$color2"
-		}
-	}
+    "proxies"
+    {
+        "ItemTintColor"
+        {
+            "resultVar" "$colortint_tmp"
+        }
+        "SelectFirstIfNonZero"
+        {
+            "srcVar1" "$colortint_tmp"
+            "srcVar2" "$colortint_base"
+            "resultVar" "$color2"
+        }
+    }
 }

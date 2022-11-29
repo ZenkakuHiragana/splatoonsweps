@@ -1,0 +1,11 @@
+"UnLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/subs/splatbomb/splatbomb_plastic_glow"
+
+    "$selfillium" "1"
+    "$selfillumtint" "[8 8 8]"
+    "$translucent"  "1"
+    "$additive" "1"
+    "$color2" "[.9 .9 .9 ]"
+}
+
