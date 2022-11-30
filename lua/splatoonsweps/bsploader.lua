@@ -257,7 +257,7 @@ local StructureDefinitions = {
         "Float  alpha",
     },
     DISP_TRIS = "UShort",
-    -- LIGHTING = "Long",
+    LIGHTING = "Long",
     GAME_LUMP = {
         size = -1, -- Negative size means this is a single lump
         "Long        lumpCount",
@@ -397,7 +397,8 @@ local function closeDecompressed(tmp)
     file.Delete "splatoonsweps/temp.txt"
 end
 
-local function readLump(bsp, header, lumpname)
+function ss.ReadHeader(bsp) return read(bsp, "BSPHeader") end
+function ss.ReadLump(bsp, header, lumpname)
     local t = {}
     local offset = header.fileOffset
     local length = header.fileLength
@@ -441,13 +442,13 @@ function ss.LoadBSP()
     if not bsp then return end
 
     print "Loading BSP file..."
-    ss.BSP = { Raw = { header = read(bsp, "BSPHeader"), TexDataStringTableToIndex = {} } }
+    ss.BSP = { Raw = { header = ss.ReadHeader(bsp), TexDataStringTableToIndex = {} } }
     local t = ss.BSP.Raw
     for i = 1, #LUMP do
         local lumpname = LUMP[i]
-        if StructureDefinitions[lumpname] then
+        if lumpname ~= "LIGHTING" and StructureDefinitions[lumpname] then
             print("        LUMP #" .. i .. "\t" .. lumpname)
-            t[lumpname] = readLump(bsp, t.header.lumps[i], lumpname)
+            t[lumpname] = ss.ReadLump(bsp, t.header.lumps[i], lumpname)
         end
     end
 

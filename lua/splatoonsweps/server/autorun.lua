@@ -25,7 +25,6 @@ SplatoonSWEPs = SplatoonSWEPs or {
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
-include "bsploader.lua"
 include "network.lua"
 include "surfacebuilder.lua"
 
