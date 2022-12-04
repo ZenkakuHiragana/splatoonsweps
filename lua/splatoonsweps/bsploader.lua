@@ -397,9 +397,13 @@ local function closeDecompressed(tmp)
     file.Delete "splatoonsweps/temp.txt"
 end
 
+local LUMP_INV = {}
+for i, v in ipairs(LUMP) do LUMP_INV[v] = i end
+function ss.LookupLump(name) return LUMP_INV[name] end
 function ss.ReadHeader(bsp) return read(bsp, "BSPHeader") end
-function ss.ReadLump(bsp, header, lumpname)
+function ss.ReadLump(bsp, headers, lumpname)
     local t = {}
+    local header = headers[ss.LookupLump(lumpname)]
     local offset = header.fileOffset
     local length = header.fileLength
     local struct = StructureDefinitions[lumpname]
@@ -448,7 +452,7 @@ function ss.LoadBSP()
         local lumpname = LUMP[i]
         if lumpname ~= "LIGHTING" and StructureDefinitions[lumpname] then
             print("        LUMP #" .. i .. "\t" .. lumpname)
-            t[lumpname] = ss.ReadLump(bsp, t.header.lumps[i], lumpname)
+            t[lumpname] = ss.ReadLump(bsp, t.header.lumps, lumpname)
         end
     end
 

@@ -18,6 +18,16 @@ ss.class "PaintableSurface" {
     maxs           = -ss.vector_one * math.huge,
     mins           =  ss.vector_one * math.huge,
     Boundary2D     =  ss.vector_one * math.huge,
+    LightmapInfo   = {
+        Available    = false,
+        Styles       = {},
+        SampleOffset = 0,
+        MinsInLuxels = Vector(),
+        SizeInLuxels = Vector(),
+        Offset       = Vector(),
+        BasisS       = Vector(),
+        BasisT       = Vector(),
+    }
 }
 
 -- Index to SURFEDGES array -> actual vertex
@@ -215,6 +225,18 @@ local function buildFace(faceindex, rawFace)
     surf.Normal         = normal
     surf.Origin         = center
     surf.Vertices3D     = filteredVertices
+
+    -- Register lightmap info
+    local li = surf.LightmapInfo
+    li.Available    = true
+    li.Styles       = rawFace.styles
+    li.SampleOffset = rawFace.lightOffset
+    li.MinsInLuxels = Vector(rawFace.lightmapTextureMinsInLuxels[1], rawFace.lightmapTextureMinsInLuxels[2])
+    li.SizeInLuxels = Vector(rawFace.lightmapTextureSizeInLuxels[1], rawFace.lightmapTextureSizeInLuxels[2])
+    li.Offset       = Vector(texInfo.lightmapOffsetS, texInfo.lightmapOffsetT)
+    li.BasisS       = texInfo.lightmapVecS
+    li.BasisT       = texInfo.lightmapVecT
+
     if not isDisplacement then
         if not isWater then get2DComponents(surf) end
         for i = 2, #filteredVertices - 1 do
