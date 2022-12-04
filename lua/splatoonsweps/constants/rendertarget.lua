@@ -25,8 +25,6 @@ return {
     },
     Name = {
         BaseTexture       = "splatoonsweps_basetexture",
-        InkSplash         = "splatoonsweps_inksplash",
-        InkSplashMaterial = "splatoonsweps_inksplashmaterial",
         Lightmap          = "splatoonsweps_lightmap",
         RenderTarget      = "splatoonsweps_rendertarget",
         RTScope           = "splatoonsweps_rtscope",
@@ -42,15 +40,6 @@ return {
             TEXTUREFLAGS.NODEPTHBUFFER
         ),
         Lightmap = bit.bor(
-            TEXTUREFLAGS.NOMIP,
-            TEXTUREFLAGS.NOLOD,
-            TEXTUREFLAGS.ALL_MIPS,
-            TEXTUREFLAGS.PROCEDURAL,
-            TEXTUREFLAGS.RENDERTARGET,
-            TEXTUREFLAGS.NODEPTHBUFFER
-        ),
-        InkSplash = bit.bor(
-            TEXTUREFLAGS.EIGHTBITALPHA,
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
             TEXTUREFLAGS.ALL_MIPS,
