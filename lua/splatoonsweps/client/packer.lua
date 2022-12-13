@@ -51,7 +51,7 @@ function ss.MakeRectanglePacker(rectangles)
     end
 
     local function generateRotatedIndices(rects)
-        rotatedIndices = {}
+        local rotatedIndices = {}
         for i = 1, #rects do rotatedIndices[i] = i end
         table.sort(rotatedIndices, function(i, j)
             if rects[i].height ~= rects[j].height then

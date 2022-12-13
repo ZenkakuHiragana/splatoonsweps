@@ -191,7 +191,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         file.Write(path, util.Compress(util.TableToJSON(data)))
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
-
     else
         ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)

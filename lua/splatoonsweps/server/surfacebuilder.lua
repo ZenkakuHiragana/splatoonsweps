@@ -373,7 +373,7 @@ local PROJECTION_NORMALS = {
     Vector( 0, -1,  0),
     Vector( 0,  0, -1),
 }
-function processStaticPropConvex(origin, angle, contents, phys)
+local function processStaticPropConvex(origin, angle, contents, phys)
     local surfaces = {}
     local maxs_all = {}
     local mins_all = {}
