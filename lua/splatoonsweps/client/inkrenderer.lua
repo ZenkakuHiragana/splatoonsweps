@@ -17,24 +17,16 @@ for i = 1, 14 do
     end
 end
 
-local function LightmapSample(pos, normal)
-    local p = pos + normal * 0.5
-    local c = render.ComputeLighting(p, normal)
-    - render.ComputeDynamicLighting(p, normal)
-    local gamma_recip = 1 / 2.2
-    c.x = c.x ^ gamma_recip
-    c.y = c.y ^ gamma_recip
-    c.z = c.z ^ gamma_recip
-    return c:ToColor()
-end
-
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
     local hdrscale = render.GetToneMappingScaleLinear()
     render.SetToneMappingScaleLinear(inkhdrscale) -- Set HDR scale for custom lightmap
     render.SetMaterial(rt.Material) -- Ink base texture
-    render.SetLightmapTexture(rt.Lightmap) -- Set custom lightmap
+    local mat = rt.DHTML:GetHTMLMaterial()
+    if mat then
+        render.SetLightmapTexture(mat:GetTexture "$basetexture") -- Set custom lightmap
+    end
     render.OverrideDepthEnable(true, true) -- Write to depth buffer for translucent surface culling
     for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw ink surface
     render.OverrideDepthEnable(false) -- Back to default
@@ -102,7 +94,6 @@ local function ProcessPaintQueue()
     local NumRepetition = 4
     local Painted = 0
     local BaseTexture = rt.BaseTexture
-    local Lightmap = rt.Lightmap
     local Clamp = math.Clamp
     local Lerp = Lerp
     local PaintQueue = ss.PaintQueue
@@ -138,18 +129,6 @@ local function ProcessPaintQueue()
             OverrideBlend(false)
             SetScissorRect(0, 0, 0, 0, false)
             End2D()
-            PopRenderTarget()
-
-            -- Draw on lightmap
-            PushRenderTarget(Lightmap)
-            SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
-            Start2D()
-            SetDrawColor(LightmapSample(q.pos, q.surf.Normal))
-            OverrideBlend(true, BLEND_ONE_MINUS_DST_ALPHA, BLEND_DST_ALPHA, BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
-            DrawTexturedRectRotated(q.center.x, q.center.y, q.width + 2, q.height + 2, angle)
-            OverrideBlend(false)
-            End2D()
-            SetScissorRect(0, 0, 0, 0, false)
             PopRenderTarget()
 
             q.done = q.done + 1
@@ -189,14 +168,6 @@ function ss.ClearAllInk()
     render.ClearDepth()
     render.ClearStencil()
     render.Clear(0, 0, 0, 0)
-    render.OverrideAlphaWriteEnable(false)
-    render.PopRenderTarget()
-
-    render.PushRenderTarget(rt.Lightmap)
-    render.OverrideAlphaWriteEnable(true, true)
-    render.ClearDepth()
-    render.ClearStencil()
-    render.Clear(amb.r, amb.g, amb.b, 0)
     render.OverrideAlphaWriteEnable(false)
     render.PopRenderTarget()
 end

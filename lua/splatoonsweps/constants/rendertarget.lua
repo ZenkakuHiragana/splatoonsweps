@@ -25,21 +25,12 @@ return {
     },
     Name = {
         BaseTexture       = "splatoonsweps_basetexture",
-        Lightmap          = "splatoonsweps_lightmap",
         RenderTarget      = "splatoonsweps_rendertarget",
         RTScope           = "splatoonsweps_rtscope",
         WaterMaterial     = "splatoonsweps_watermaterial",
     },
     Flags = {
         BaseTexture = bit.bor(
-            TEXTUREFLAGS.NOMIP,
-            TEXTUREFLAGS.NOLOD,
-            TEXTUREFLAGS.ALL_MIPS,
-            TEXTUREFLAGS.PROCEDURAL,
-            TEXTUREFLAGS.RENDERTARGET,
-            TEXTUREFLAGS.NODEPTHBUFFER
-        ),
-        Lightmap = bit.bor(
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
             TEXTUREFLAGS.ALL_MIPS,

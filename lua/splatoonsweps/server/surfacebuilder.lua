@@ -8,6 +8,7 @@ ss.class "PaintableSurface" {
     GridSize       = Vector(),
     Index          = 0,
     InkColorGrid   = {}, -- number[x * 32768 + y]
+    IsDisplacement = false,
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
@@ -27,6 +28,7 @@ ss.class "PaintableSurface" {
         Offset       = Vector(),
         BasisS       = Vector(),
         BasisT       = Vector(),
+        DispOrigin   = Vector(),
     }
 }
 
@@ -219,6 +221,7 @@ local function buildFace(faceindex, rawFace)
     local surf = ss.class "PaintableSurface"
     surf.Angles         = normal:Angle()
     surf.Contents       = contents
+    surf.IsDisplacement = isDisplacement
     surf.IsWaterSurface = tobool(isWater)
     surf.maxs           = maxs
     surf.mins           = mins
@@ -316,6 +319,7 @@ local function buildFace(faceindex, rawFace)
         mins = ss.MinVector(mins or worldPos, worldPos)
     end
 
+    li.DispOrigin = surf.Vertices3D[1]
     surf.maxs = maxs
     surf.mins = mins
     surf.Triangles = triangles
@@ -512,6 +516,6 @@ function ss.GenerateSurfaces()
 
     ss.BSP.Polygons = t
     local elapsed = math.Round((SysTime() - t0) * 1000, 2)
-    print("    Generated surfaces for " .. #ss.BSP.Raw.sprp.prop + #funclod .. " static props.")
+    print("    Generated surfaces for " .. #(ss.BSP.Raw.sprp.prop or {}) + #(funclod or {}) .. " static props.")
     print("Done!  Elapsed time: " .. elapsed .. " ms.")
 end

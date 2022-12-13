@@ -19,7 +19,7 @@ function ss.BuildInkMesh()
     local packer = ss.MakeRectanglePacker(rects)
     packer:packall()
 
-    local RT_MARGIN_PIXELS = 2
+    local RT_MARGIN_PIXELS = 4
     local rtSize = rt.BaseTexture:Width()
     local margin = packer.maxsize / rtSize * RT_MARGIN_PIXELS
     for i, surf in ipairs(ss.SurfaceArray) do
@@ -59,9 +59,14 @@ function ss.BuildInkMesh()
         local r = packer.rects[index]
         local surf = r.tag
         local v3 = surf.Vertices3D
-        local v2 = surf.Vertices2D
-        surf.OffsetUV = Vector(r.left, r.bottom) * ss.UnitsToUV
-        surf.BoundaryUV = Vector(r.width - margin, r.height - margin) * ss.UnitsToUV
+        local textureUV = surf.Vertices2D
+        local lightmapUV = {}
+        surf.OffsetUV = ss.PixelsToUV * Vector(
+            math.Round(r.left * ss.UnitsToPixels),
+            math.Round(r.bottom * ss.UnitsToPixels))
+        surf.BoundaryUV = ss.PixelsToUV * Vector(
+            math.Round((r.width - margin) * ss.UnitsToPixels),
+            math.Round((r.height - margin) * ss.UnitsToPixels))
         surf.AnglesUV = Angle(surf.Angles)
         surf.OriginUV = Vector(surf.Origin)
         if r.istall then
@@ -69,12 +74,23 @@ function ss.BuildInkMesh()
             surf.OriginUV:Sub(surf.AnglesUV:Up() * (r.height - margin))
         end
 
-        for i in ipairs(v2) do
+        for i in ipairs(textureUV) do
             if r.istall then
-                v2[i].x, v2[i].y = v2[i].y, r.height - margin - v2[i].x
+                textureUV[i].x, textureUV[i].y = textureUV[i].y, r.height - margin - textureUV[i].x
             end
-            v2[i]:Mul(ss.UnitsToUV)
-            v2[i]:Add(surf.OffsetUV)
+
+            textureUV[i]:Mul(ss.UnitsToUV)
+            textureUV[i]:Add(surf.OffsetUV)
+
+            lightmapUV[i] = Vector(textureUV[i])
+            if surf.IsDisplacement then
+                local sideLength = math.sqrt(#textureUV)
+                local divisor = sideLength - 1
+                lightmapUV[i].x =            (i - 1) % sideLength  / divisor
+                lightmapUV[i].y = math.floor((i - 1) / sideLength) / divisor
+                lightmapUV[i]:Mul(surf.BoundaryUV)
+                lightmapUV[i]:Add(surf.OffsetUV)
+            end
         end
 
         for _, t in ipairs(surf.Triangles) do
@@ -82,8 +98,8 @@ function ss.BuildInkMesh()
             for _, i in ipairs(t) do
                 mesh.Normal(n)
                 mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
-                mesh.TexCoord(0, v2[i].x, v2[i].y)
-                mesh.TexCoord(1, v2[i].x, v2[i].y)
+                mesh.TexCoord(0, textureUV[i].x, textureUV[i].y)
+                mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
                 mesh.AdvanceVertex()
             end
 

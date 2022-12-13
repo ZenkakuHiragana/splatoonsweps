@@ -79,15 +79,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
     )
     rtsize = math.min(rt.BaseTexture:Width(), rt.BaseTexture:Height())
-    rt.Lightmap = GetRenderTargetEx(
-        rt.Name.Lightmap,
-        rtsize, rtsize,
-        RT_SIZE_NO_CHANGE,
-        MATERIAL_RT_DEPTH_NONE,
-        rt.Flags.Lightmap,
-        CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
-    )
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
         "LightmappedGeneric",
@@ -101,6 +92,63 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$color"] = tostring(ss.vector_one * 0.5^2.2),
         }
     )
+
+    local MAX_CANVAS_SIZE = 8192
+    local canvassize = math.min(rtsize, MAX_CANVAS_SIZE)
+    local amb = render.GetAmbientLightColor():ToColor()
+    rt.DHTML = vgui.Create "DHTML" -- Used for rendering lightmap by HTML canvas element and JavaScript.
+    rt.DHTML:SetPos(0, 0)
+    rt.DHTML:SetSize(canvassize, canvassize)
+    rt.DHTML:SetVisible(false)
+    rt.DHTML:SetAllowLua(true)
+    rt.DHTML:SetHTML(string.format([[
+        <style>html, body, div, canvas { margin: 0; padding: 0; background: rgb(%d, %d, %d); }</style>
+        <canvas id="canvas" width="%d" height="%d"/>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.4/math.min.js"></script>
+        <script>
+            const canvas   = document.getElementById("canvas");
+            const renderer = document.createElement("canvas");
+            const ctx      = canvas.getContext("2d");
+            const gamma    = 1 / 2.2;
+            function getRGB(r, g, b, e) {
+                if (e > 127) e -= 256;
+                const mul = Math.pow(2, e);
+                const rMul = Math.min(255, Math.pow((r * mul) / 255, gamma) * 255);
+                const gMul = Math.min(255, Math.pow((g * mul) / 255, gamma) * 255);
+                const bMul = Math.min(255, Math.pow((b * mul) / 255, gamma) * 255);
+                return math.matrix([rMul, gMul, bMul]);
+            }
+            function toMatrix(str) {
+                if (typeof(str) !== "string") return str;
+                const matrix = math.matrix(str.match(/[^ \[\]{}]+/g).map(Number));
+                if (matrix == null) return Number(str);
+                const isAngle = str.match("{.*?}");
+                if (isAngle == null) return math.squeeze(matrix);
+                const pitch = math.rotationMatrix(matrix.get([0]) * math.pi / 180, math.matrix([0, 1, 0]));
+                const yaw   = math.rotationMatrix(matrix.get([1]) * math.pi / 180, math.matrix([0, 0, 1]));
+                const roll  = math.rotationMatrix(matrix.get([2]) * math.pi / 180, math.matrix([1, 0, 0]));
+                return math.multiply(yaw, pitch, roll);
+            }
+            function writeLightmap(image, w, h, sampleOffset, samples) {
+                for (var t = 0; t < h; ++t) {
+                    for (var s = 0; s < w; ++s) {
+                        var i = s + t * w + sampleOffset;
+                        var sample = samples[i] || 0;
+                        var r = 0xFF & (sample >> 0);
+                        var g = 0xFF & (sample >> 8);
+                        var b = 0xFF & (sample >> 16);
+                        var e = 0xFF & (sample >> 24);
+                        var c = getRGB(r, g, b, e);
+                        var j = (s + t * image.width) * 4;
+                        image.data[j + 0] = Math.round(c.get([0]));
+                        image.data[j + 1] = Math.round(c.get([1]));
+                        image.data[j + 2] = Math.round(c.get([2]));
+                        image.data[j + 3] = 255;
+                    }
+                }
+            }
+        </script>
+    ]], amb.r, amb.g, amb.b, canvassize, canvassize))
 
     file.Delete(crashpath) -- Succeeded to make RTs and remove crash detection
 
