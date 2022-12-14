@@ -173,10 +173,10 @@ if CLIENT then
             d.DVector(Vector(0, c), Vector(0, c))
             for _, s in ipairs(ss.SurfaceArray) do
                 local t = {}
-                for i, v in ipairs(s.Vertices2D) do t[i] = v * c end
+                for i, v in ipairs(s.Vertices2D or {}) do t[i] = v * c end
 
                 d.DColor()
-                for _, tri in ipairs(s.Triangles) do
+                for _, tri in ipairs(s.Triangles or {}) do
                     local v1 = t[tri[1]]
                     local v2 = t[tri[2]]
                     local v3 = t[tri[3]]

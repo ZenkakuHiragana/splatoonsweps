@@ -192,10 +192,14 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
     else
-        ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
-        ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     end
+
+    ss.MinimapAreaBounds, ss.WaterSurfaces = nil
+    for _, surf in ipairs(ss.SurfaceArray) do
+        surf.LightmapInfo, surf.Triangles, surf.Vertices2D, surf.Vertices3D = nil
+    end
+    collectgarbage "collect"
 
     -- This is needed due to a really annoying bug (GitHub/garrysmod-issues #1495)
     SetGlobalBool("SplatoonSWEPs: IsDedicated", game.IsDedicated())

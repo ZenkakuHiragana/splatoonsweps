@@ -105,6 +105,8 @@ function ss.BuildInkMesh()
 
             ContinueMesh()
         end
+
+        surf.Triangles, surf.Vertices3D, surf.Vertices2D = nil
     end
     mesh.End()
 end
@@ -144,6 +146,8 @@ function ss.BuildWaterMesh()
         end
     end
     mesh.End()
+
+    ss.WaterSurfaces = nil
 end
 
 function ss.PrecacheLightmap()
