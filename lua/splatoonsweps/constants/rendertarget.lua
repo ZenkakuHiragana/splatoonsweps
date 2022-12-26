@@ -20,17 +20,26 @@ return {
         [SMALL  ] = 4096,
         [DSMALL ] = 5792,
         [MEDIUM ] = 8192,
-        [DMEDIUM] = 11585,
+        [DMEDIUM] = 11586,
         [LARGE  ] = 16384,
     },
     Name = {
-        BaseTexture       = "splatoonsweps_basetexture",
-        RenderTarget      = "splatoonsweps_rendertarget",
-        RTScope           = "splatoonsweps_rtscope",
-        WaterMaterial     = "splatoonsweps_watermaterial",
+        BaseTexture   = "splatoonsweps_basetexture",
+        Lightmap      = "splatoonsweps_lightmap",
+        RenderTarget  = "splatoonsweps_rendertarget",
+        RTScope       = "splatoonsweps_rtscope",
+        WaterMaterial = "splatoonsweps_watermaterial",
     },
     Flags = {
         BaseTexture = bit.bor(
+            TEXTUREFLAGS.NOMIP,
+            TEXTUREFLAGS.NOLOD,
+            TEXTUREFLAGS.ALL_MIPS,
+            TEXTUREFLAGS.PROCEDURAL,
+            TEXTUREFLAGS.RENDERTARGET,
+            TEXTUREFLAGS.NODEPTHBUFFER
+        ),
+        Lightmap = bit.bor(
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
             TEXTUREFLAGS.ALL_MIPS,

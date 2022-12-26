@@ -23,10 +23,7 @@ local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     local hdrscale = render.GetToneMappingScaleLinear()
     render.SetToneMappingScaleLinear(inkhdrscale) -- Set HDR scale for custom lightmap
     render.SetMaterial(rt.Material) -- Ink base texture
-    local mat = rt.DHTML:GetHTMLMaterial()
-    if mat then
-        render.SetLightmapTexture(mat:GetTexture "$basetexture") -- Set custom lightmap
-    end
+    render.SetLightmapTexture(rt.Lightmap) -- Set custom lightmap
     render.OverrideDepthEnable(true, true) -- Write to depth buffer for translucent surface culling
     for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw ink surface
     render.OverrideDepthEnable(false) -- Back to default
@@ -157,12 +154,6 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if rt.Ready then table.Empty(ss.PaintQueue) end
     for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkColorGrid) end
-    local amb = ss.AmbientColor
-    if not amb then
-        amb = render.GetAmbientLightColor():ToColor()
-        ss.AmbientColor = amb
-    end
-
     render.PushRenderTarget(rt.BaseTexture)
     render.OverrideAlphaWriteEnable(true, true)
     render.ClearDepth()
