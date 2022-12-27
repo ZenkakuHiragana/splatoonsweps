@@ -117,13 +117,13 @@ onmessage = function(e) {
             w: uvBoundClip.get([0]),
             h: uvBoundClip.get([1]),
         },
+        size: {
+            x: w + 2, y: h + 2, offset: sizeOffset,
+        },
         transform: {
             sx: pixelBasisS.get([0]),      sy: pixelBasisS.get([1]),
             tx: pixelBasisT.get([0]),      ty: pixelBasisT.get([1]),
             x0: pixelOriginShift.get([0]), y0: pixelOriginShift.get([1]),
-        },
-        size: {
-            x: w + 2, y: h + 2, offset: sizeOffset,
         },
     }, [ image.buffer ]);
 }

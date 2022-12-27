@@ -170,7 +170,7 @@ function ss.PrecacheLightmap()
     dhtml:AddFunction("ss", "render", function(x, y)
         dhtml:UpdateHTMLTexture()
         local mat = dhtml:GetHTMLMaterial()
-        if not mat then return end
+        if not mat then return true end
         local mul = rt.BaseTexture:Width() / rtsize
         render.PushRenderTarget(rt.Lightmap)
         cam.Start2D()
@@ -179,6 +179,7 @@ function ss.PrecacheLightmap()
         surface.DrawTexturedRect(x * mul, y * mul, mat:Width() * mul, mat:Height() * mul)
         cam.End2D()
         render.PopRenderTarget()
+        return true
     end)
     function dhtml:OnFinishLoadingDocument()
         timer.Simple(0.5, function()

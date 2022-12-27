@@ -3,9 +3,10 @@
 <script src="https://polyfill.io/v3/polyfill.min.js?features=URLSearchParams"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.4/math.min.js"></script>
 <script type="text/javascript">
+    const wasHardwareConcurrencyUndefined = !navigator.hardwareConcurrency;
     (function() {
         const params = new URLSearchParams(window.location.search);
-        if (!navigator.hardwareConcurrency && params.has("c")) {
+        if (wasHardwareConcurrencyUndefined && params.has("c")) {
             const cores = Number(params.get("c"));
             if (cores >= 1) navigator.hardwareConcurrency = cores;
         }
