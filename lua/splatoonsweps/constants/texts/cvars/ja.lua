@@ -39,6 +39,7 @@ return {CVars = {
         Barnacle = "バーナクルのインクの色。",
         Others = "その他のNPCのインクの色。",
     },
+    NumThreads = "ライトマップを生成する時に利用可能な論理プロセッサの数。0にすると自動推定する。",
     Playermodel = "三人称モデル。使用可能な値は以下の通り。:\n",
     ResetCamera = "スプラトゥーンのYボタンに相当するカメラリセットコマンド。",
     RTResolution = [[インクの描画システムで用いるRenderTargetの設定。
