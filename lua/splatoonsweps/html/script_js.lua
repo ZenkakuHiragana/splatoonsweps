@@ -28,7 +28,7 @@ function copyToRenderTarget(delay) {
     const dy = window.innerHeight;
     document.body.scrollLeft = 0;
     document.body.scrollTop = 0;
-    delay = delay || 35;
+    delay = delay || 50;
     setTimeout(function () {
         var x = 0;
         var y = 0;
