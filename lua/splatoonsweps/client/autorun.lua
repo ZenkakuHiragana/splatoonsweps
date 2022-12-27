@@ -93,7 +93,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         {
             ["$basetexture"] = rt.Name.BaseTexture,
             ["$nolod"] = "1",
-            ["$alpha"] = system.IsLinux() and "1" or "0.9",
+            ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
             ["$alphatest"] = "1",
             ["$alphatestreference"] = "0.0625",
             ["$color"] = "[0.5 0.5 0.5]",
