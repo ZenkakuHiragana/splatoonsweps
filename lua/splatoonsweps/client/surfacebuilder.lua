@@ -151,9 +151,43 @@ function ss.BuildWaterMesh()
 end
 
 function ss.PrecacheLightmap()
-    local units  = ss.UnitsToPixels
     local dhtml  = rt.DHTML
     local rtsize = rt.BaseTexture:Width()
+    local url    = "asset://garrysmod/lua/splatoonsweps/html/lightmap_html.lua?c=%d&r=%d&g=%d&b=%d&s=%d&u=%16.8f"
+    local lpath  = string.format("splatoonsweps/%s_lightmap%d%%d.png", game.GetMap(), ss.GetOption "rtresolution")
+    local mpath  = "../data/" .. lpath
+    local function pastePNG()
+        local mats = {
+            Material(mpath:format(1)),
+            Material(mpath:format(2)),
+            Material(mpath:format(3)),
+            Material(mpath:format(4)),
+            nil,
+        }
+        local w, h = rt.Lightmap:Width() / 2, rt.Lightmap:Height() / 2
+        local x, y = { 0, w, 0, w }, { 0, 0, h, h }
+        render.PushRenderTarget(rt.Lightmap)
+        cam.Start2D()
+        surface.SetDrawColor(color_white)
+        for i, m in ipairs(mats) do
+            surface.SetMaterial(m)
+            surface.DrawTexturedRect(x[i], y[i], w, h)
+        end
+        cam.End2D()
+        render.PopRenderTarget()
+    end
+
+    if  file.Exists(lpath:format(1), "DATA") and not Material(mpath:format(1)):IsError()
+    and file.Exists(lpath:format(2), "DATA") and not Material(mpath:format(2)):IsError()
+    and file.Exists(lpath:format(3), "DATA") and not Material(mpath:format(3)):IsError()
+    and file.Exists(lpath:format(4), "DATA") and not Material(mpath:format(4)):IsError() then
+        return hook.Add("PostRender", "SplatoonSWEPs: Precache lightmap", function()
+            hook.Remove("PostRender", "SplatoonSWEPs: Precache lightmap")
+            pastePNG()
+        end)
+    end
+
+    local units  = ss.UnitsToPixels
     local amb    = render.GetAmbientLightColor():ToColor()
     local surf   = util.TableToJSON(ss.SurfaceArray)
     local path   = string.format("maps/%s.bsp", game.GetMap())
@@ -162,25 +196,15 @@ function ss.PrecacheLightmap()
     bsp:Seek(header.fileOffset)
     local samples = util.Base64Encode(bsp:Read(header.fileLength), true)
     bsp:Close()
-    local url = "asset://garrysmod/lua/splatoonsweps/html/lightmap_html.lua?c=%d&r=%d&g=%d&b=%d&s=%d&u=%16.8f"
+
     dhtml:OpenURL(url:format(ss.GetOption "numthreads", amb.r, amb.g, amb.b, rtsize, units))
-    dhtml:AddFunction("ss", "storeNumThreads", function(cores)
-        ss.SetOption("numthreads", cores)
-    end)
-    dhtml:AddFunction("ss", "render", function(x, y)
-        dhtml:UpdateHTMLTexture()
-        local mat = dhtml:GetHTMLMaterial()
-        if not mat then return true end
-        local mul = rt.BaseTexture:Width() / rtsize
-        render.PushRenderTarget(rt.Lightmap)
-        cam.Start2D()
-        surface.SetDrawColor(color_white)
-        surface.SetMaterial(mat)
-        surface.DrawTexturedRect(x * mul, y * mul, mat:Width() * mul, mat:Height() * mul)
-        cam.End2D()
-        render.PopRenderTarget()
+    dhtml:AddFunction("ss", "paste", pastePNG)
+    dhtml:AddFunction("ss", "storeNumThreads", function(cores) ss.SetOption("numthreads", cores) end)
+    dhtml:AddFunction("ss", "save", function(dataurl, index)
+        file.Write(lpath:format(index), util.Base64Decode(dataurl:sub(23)))
         return true
     end)
+
     function dhtml:OnFinishLoadingDocument()
         timer.Simple(0.5, function()
             dhtml:Call(string.format([[main(%s, "%s");]], surf, samples))
