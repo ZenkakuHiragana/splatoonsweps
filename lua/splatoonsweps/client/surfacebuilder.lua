@@ -156,14 +156,26 @@ function ss.PrecacheLightmap()
     local url    = "asset://garrysmod/lua/splatoonsweps/html/lightmap_html.lua?c=%d&r=%d&g=%d&b=%d&s=%d&u=%16.8f"
     local lpath  = string.format("splatoonsweps/%s_lightmap%d%%d.png", game.GetMap(), ss.GetOption "rtresolution")
     local mpath  = "../data/" .. lpath
+    local mats = {
+        file.Exists(lpath.format(1), "DATA") and Material(mpath:format(1)),
+        file.Exists(lpath.format(2), "DATA") and Material(mpath:format(2)),
+        file.Exists(lpath.format(3), "DATA") and Material(mpath:format(3)),
+        file.Exists(lpath.format(4), "DATA") and Material(mpath:format(4)),
+    }
+    local function exist()
+        for i = 1, 4 do
+            if not mats[i] then
+                if not file.Exists(lpath:format(i), "DATA") then return false end
+                mats[i] = Material(mpath:format(i))
+            else
+                mats[i]:GetTexture "$basetexture":Download()
+            end
+            if mats[i]:IsError() then return false end
+        end
+        return true
+    end
     local function pastePNG()
-        local mats = {
-            Material(mpath:format(1)),
-            Material(mpath:format(2)),
-            Material(mpath:format(3)),
-            Material(mpath:format(4)),
-            nil,
-        }
+        if not exist() then return end
         local w, h = rt.Lightmap:Width() / 2, rt.Lightmap:Height() / 2
         local x, y = { 0, w, 0, w }, { 0, 0, h, h }
         render.PushRenderTarget(rt.Lightmap)
@@ -177,10 +189,7 @@ function ss.PrecacheLightmap()
         render.PopRenderTarget()
     end
 
-    if  file.Exists(lpath:format(1), "DATA") and not Material(mpath:format(1)):IsError()
-    and file.Exists(lpath:format(2), "DATA") and not Material(mpath:format(2)):IsError()
-    and file.Exists(lpath:format(3), "DATA") and not Material(mpath:format(3)):IsError()
-    and file.Exists(lpath:format(4), "DATA") and not Material(mpath:format(4)):IsError() then
+    if exist() then
         return hook.Add("PostRender", "SplatoonSWEPs: Precache lightmap", function()
             hook.Remove("PostRender", "SplatoonSWEPs: Precache lightmap")
             pastePNG()
@@ -198,10 +207,28 @@ function ss.PrecacheLightmap()
     bsp:Close()
 
     dhtml:OpenURL(url:format(ss.GetOption "numthreads", amb.r, amb.g, amb.b, rtsize, units))
-    dhtml:AddFunction("ss", "paste", pastePNG)
     dhtml:AddFunction("ss", "storeNumThreads", function(cores) ss.SetOption("numthreads", cores) end)
-    dhtml:AddFunction("ss", "save", function(dataurl, index)
-        file.Write(lpath:format(index), util.Base64Decode(dataurl:sub(23)))
+    dhtml:AddFunction("ss", "save", (function()
+        local called = 0
+        return function(dataurl, index)
+            file.Write(lpath:format(index), util.Base64Decode(dataurl:sub(23)))
+            called = called + 1
+            if called == 4 then dhtml:Call "render();" end
+            return true
+        end
+    end)())
+    dhtml:AddFunction("ss", "render", function(x, y)
+        dhtml:UpdateHTMLTexture()
+        local mat = dhtml:GetHTMLMaterial()
+        if not mat then return true end
+        local mul = rt.BaseTexture:Width() / rtsize
+        render.PushRenderTarget(rt.Lightmap)
+        cam.Start2D()
+        surface.SetDrawColor(color_white)
+        surface.SetMaterial(mat)
+        surface.DrawTexturedRect(x * mul, y * mul, mat:Width() * mul, mat:Height() * mul)
+        cam.End2D()
+        render.PopRenderTarget()
         return true
     end)
 

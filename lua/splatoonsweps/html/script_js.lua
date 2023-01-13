@@ -5,7 +5,7 @@
 // u: Units to pixels
 // r, g, b: RenderTarget background color
 
-const canvas         = document.createElement("canvas");
+const canvas         = document.getElementById("canvas");
 const renderer       = document.createElement("canvas");
 const ctx            = canvas.getContext("2d");
 const rctx           = renderer.getContext("2d");
@@ -58,13 +58,58 @@ function save() {
             renderer.width = w;
             renderer.height = h;
             rctx.drawImage(canvas, x[i], y[i], w, h, 0, 0, w, h);
-            if (ss.save(renderer.toDataURL("image/png"), i + 1, function() { loop(i + 1); })) loop(i + 1);
-        }
-        else {
-            ss.paste();
+            ss.save(renderer.toDataURL("image/png"), i + 1);
+            loop(i + 1);
         }
     }
     loop(0);
+}
+// https://stackoverflow.com/questions/63078550/event-that-fires-after-a-certain-element-successfully-painted
+function render() {
+    var x = 0;
+    var y = 0;
+    var alreadyQueued = true;
+    const dx = window.innerWidth;
+    const dy = window.innerHeight;
+    if (!window.requestAnimationFrame) {
+        var lastTime = 0;
+		requestAnimationFrame = function(callback) {
+			const now = performance.now();
+			const nextTime = Math.max(lastTime + 25, now);
+			setTimeout(function() {
+                lastTime = nextTime;
+                callback();
+            }, nextTime - now);
+		};
+    }
+    function onpaint() {
+        function renderingFinished() {
+            if (alreadyQueued) return;
+            x += dx;
+            if (x >= canvas.width) {
+                x = 0;
+                y += dy;
+            }
+            else if (x > canvas.width - dx) {
+                x = canvas.width - dx;
+            }
+            if (y >= canvas.height) {
+                return;
+            }
+            else if (y > canvas.height - dy) {
+                y = canvas.height - dy;
+            }
+            alreadyQueued = true;
+            window.scroll(x, y);
+            requestAnimationFrame(onpaint);
+        }
+        requestAnimationFrame(function() {
+            alreadyQueued = false;
+            if (ss.render(x, y, renderingFinished)) renderingFinished();
+        });
+    }
+    window.scroll(x, y);
+    requestAnimationFrame(function() { requestAnimationFrame(onpaint); });
 }
 function send(workerIndex, surfaceIndex) {
     workers[workerIndex].processing = true;
