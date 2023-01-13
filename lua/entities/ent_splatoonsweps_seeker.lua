@@ -130,6 +130,7 @@ function ENT:Think()
 end
 
 function ENT:PhysicsUpdate(p)
+    if not IsValid(p) then return end
     self.BaseClass.PhysicsUpdate(self, p)
     p:AddVelocity(self.MoveDirection * self.DesiredSpeed * FrameTime())
     local axis = self.MoveDirection:Cross(self:GetForward())

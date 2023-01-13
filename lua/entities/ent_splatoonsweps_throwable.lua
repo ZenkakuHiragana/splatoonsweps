@@ -90,6 +90,7 @@ function ENT:Weld()
 end
 
 function ENT:PhysicsUpdate(p)
+    if not IsValid(p) then return end
     if self:IsStuck() then return end
 
     local fix = FrameTime() * ss.SecToFrame
