@@ -92,8 +92,8 @@ onmessage = function(e) {
     const renderOrigin    = toMatrix(surf.OriginUV);
     const worldToUV       = math.inv(math.matrixFromColumns(renderBasisU, renderBasisV, lightmapNormal));
     const worldToUVOffset = math.unaryMinus(math.multiply(worldToUV, renderOrigin, unitsToPixels));
-    const uvStartClip     = math.subtract(math.round(uvStart), math.matrix([2, 2, 0]));
-    const uvBoundClip     = math.add     (math.round(uvBound), math.matrix([4, 4, 0]));
+    const uvStartClip     = math.subtract(uvStart, math.matrix([2, 2, 0]));
+    const uvBoundClip     = math.add     (uvBound, math.matrix([4, 4, 0]));
 
     const lightmapSizeInLuxels = toMatrix(li.SizeInLuxels);
     const w = lightmapSizeInLuxels.get([0]) + 1;
