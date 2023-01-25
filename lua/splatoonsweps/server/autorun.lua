@@ -195,7 +195,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     end
 
-    ss.MinimapAreaBounds, ss.WaterSurfaces = nil
+    ss.WaterSurfaces = nil
     for _, surf in ipairs(ss.SurfaceArray) do
         surf.LightmapInfo, surf.Triangles, surf.Vertices2D, surf.Vertices3D = {}, {}, {}, {}
     end
