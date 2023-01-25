@@ -25,7 +25,6 @@ SplatoonSWEPs = SplatoonSWEPs or {
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
-include "bsploader.lua"
 include "network.lua"
 include "surfacebuilder.lua"
 
@@ -192,12 +191,15 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         file.Write(path, util.Compress(util.TableToJSON(data)))
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
-
     else
-        ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
-        ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     end
+
+    ss.WaterSurfaces = nil
+    for _, surf in ipairs(ss.SurfaceArray) do
+        surf.LightmapInfo, surf.Triangles, surf.Vertices2D, surf.Vertices3D = {}, {}, {}, {}
+    end
+    collectgarbage "collect"
 
     -- This is needed due to a really annoying bug (GitHub/garrysmod-issues #1495)
     SetGlobalBool("SplatoonSWEPs: IsDedicated", game.IsDedicated())

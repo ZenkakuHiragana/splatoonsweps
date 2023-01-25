@@ -19,8 +19,7 @@ end
 
 local function LightmapSample(pos, normal)
     local p = pos + normal * 0.5
-    local c = render.ComputeLighting(p, normal)
-    - render.ComputeDynamicLighting(p, normal)
+    local c = render.ComputeLighting(p, normal) - render.ComputeDynamicLighting(p, normal)
     local gamma_recip = 1 / 2.2
     c.x = c.x ^ gamma_recip
     c.y = c.y ^ gamma_recip
@@ -140,17 +139,18 @@ local function ProcessPaintQueue()
             End2D()
             PopRenderTarget()
 
-            -- Draw on lightmap
-            PushRenderTarget(Lightmap)
-            SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
-            Start2D()
-            SetDrawColor(LightmapSample(q.pos, q.surf.Normal))
-            OverrideBlend(true, BLEND_ONE_MINUS_DST_ALPHA, BLEND_DST_ALPHA, BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
-            DrawTexturedRectRotated(q.center.x, q.center.y, q.width + 2, q.height + 2, angle)
-            OverrideBlend(false)
-            End2D()
-            SetScissorRect(0, 0, 0, 0, false)
-            PopRenderTarget()
+            if not q.surf.LightmapInfo.Available then -- Draw on lightmap
+                PushRenderTarget(Lightmap)
+                Start2D()
+                SetDrawColor(LightmapSample(q.pos, q.surf.Normal))
+                SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
+                OverrideBlend(true, BLEND_ONE, BLEND_ZERO,BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
+                DrawTexturedRectRotated(q.center.x, q.center.y, q.width, q.height, angle)
+                OverrideBlend(false)
+                SetScissorRect(0, 0, 0, 0, false)
+                End2D()
+                PopRenderTarget()
+            end
 
             q.done = q.done + 1
             Painted = Painted + 1
@@ -178,25 +178,11 @@ function ss.ClearAllInk()
     table.Empty(ss.PaintSchedule)
     if rt.Ready then table.Empty(ss.PaintQueue) end
     for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkColorGrid) end
-    local amb = ss.AmbientColor
-    if not amb then
-        amb = render.GetAmbientLightColor():ToColor()
-        ss.AmbientColor = amb
-    end
-
     render.PushRenderTarget(rt.BaseTexture)
     render.OverrideAlphaWriteEnable(true, true)
     render.ClearDepth()
     render.ClearStencil()
     render.Clear(0, 0, 0, 0)
-    render.OverrideAlphaWriteEnable(false)
-    render.PopRenderTarget()
-
-    render.PushRenderTarget(rt.Lightmap)
-    render.OverrideAlphaWriteEnable(true, true)
-    render.ClearDepth()
-    render.ClearStencil()
-    render.Clear(amb.r, amb.g, amb.b, 0)
     render.OverrideAlphaWriteEnable(false)
     render.PopRenderTarget()
 end

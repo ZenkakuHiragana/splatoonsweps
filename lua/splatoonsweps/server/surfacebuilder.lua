@@ -8,6 +8,7 @@ ss.class "PaintableSurface" {
     GridSize       = Vector(),
     Index          = 0,
     InkColorGrid   = {}, -- number[x * 32768 + y]
+    IsDisplacement = false,
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
@@ -18,6 +19,17 @@ ss.class "PaintableSurface" {
     maxs           = -ss.vector_one * math.huge,
     mins           =  ss.vector_one * math.huge,
     Boundary2D     =  ss.vector_one * math.huge,
+    LightmapInfo   = {
+        Available    = false,
+        Styles       = {},
+        SampleOffset = 0,
+        MinsInLuxels = Vector(),
+        SizeInLuxels = Vector(),
+        Offset       = Vector(),
+        BasisS       = Vector(),
+        BasisT       = Vector(),
+        DispOrigin   = Vector(),
+    }
 }
 
 -- Index to SURFEDGES array -> actual vertex
@@ -209,12 +221,25 @@ local function buildFace(faceindex, rawFace)
     local surf = ss.class "PaintableSurface"
     surf.Angles         = normal:Angle()
     surf.Contents       = contents
+    surf.IsDisplacement = isDisplacement
     surf.IsWaterSurface = tobool(isWater)
     surf.maxs           = maxs
     surf.mins           = mins
     surf.Normal         = normal
     surf.Origin         = center
     surf.Vertices3D     = filteredVertices
+
+    -- Register lightmap info
+    local li = surf.LightmapInfo
+    li.Available    = true
+    li.Styles       = rawFace.styles
+    li.SampleOffset = rawFace.lightOffset
+    li.MinsInLuxels = Vector(rawFace.lightmapTextureMinsInLuxels[1], rawFace.lightmapTextureMinsInLuxels[2])
+    li.SizeInLuxels = Vector(rawFace.lightmapTextureSizeInLuxels[1], rawFace.lightmapTextureSizeInLuxels[2])
+    li.Offset       = Vector(texInfo.lightmapOffsetS, texInfo.lightmapOffsetT)
+    li.BasisS       = texInfo.lightmapVecS
+    li.BasisT       = texInfo.lightmapVecT
+
     if not isDisplacement then
         if not isWater then get2DComponents(surf) end
         for i = 2, #filteredVertices - 1 do
@@ -294,48 +319,13 @@ local function buildFace(faceindex, rawFace)
         mins = ss.MinVector(mins or worldPos, worldPos)
     end
 
+    li.DispOrigin = surf.Vertices3D[1]
     surf.maxs = maxs
     surf.mins = mins
     surf.Triangles = triangles
     surf.Vertices3D = vertices
     if not isWater then get2DComponents(surf) end
     return surf
-end
-
---                    +
---                  //|
---                / / |
---              /  +  |
---            /   /   |
---          /    /  + |
---        / +  _+     |
---      /   _-    \   |
---    /  _+        +  |
---  / _-     +      \ |
--- +------------------+
--- Samples some points (indicated by plus signs above)
--- and sees if any part of given convex is explosed to the world.
-function ss.IsConvexExposed(verts, normal)
-    local issolid = true
-    local center = Vector()
-    for _, v in ipairs(verts) do center:Add(v) end
-    center = center / #verts
-    local sample_points = {center}
-    for i = 1, #verts do
-        local v1 = verts[i]
-        local v2 = verts[i % #verts + 1]
-        table.Add(sample_points, {
-            center * ss.eps + v1 * (1 - ss.eps),
-            center * 0.5 + v1 * 0.5,
-            (center + v1 + v2) / 3,
-        })
-    end
-
-    for _, v in ipairs(sample_points) do
-        local c = util.PointContents(v + normal * ss.eps)
-        issolid = issolid and bit.band(c, MASK_VISIBLE) > 0
-        if not issolid then return true end
-    end
 end
 
 local MIN_NORMAL_LENGTH_SQR = 1
@@ -347,7 +337,7 @@ local PROJECTION_NORMALS = {
     Vector( 0, -1,  0),
     Vector( 0,  0, -1),
 }
-function processStaticPropConvex(origin, angle, contents, phys)
+local function processStaticPropConvex(origin, angle, contents, phys)
     local surfaces = {}
     local maxs_all = {}
     local mins_all = {}
@@ -366,9 +356,6 @@ function processStaticPropConvex(origin, angle, contents, phys)
         local n = v2v1:Cross(v2v3) -- normal around v1<-v2->v3
         if n:LengthSqr() < MIN_NORMAL_LENGTH_SQR then continue end -- normal is valid then
         n:Normalize()
-
-        if not ss.SplatoonMapPorts[game.GetMap()]
-        and not ss.IsConvexExposed({ v1, v2, v3 }, n) then continue end
 
         -- Find proper plane for projection
         local plane_index, max_dot = 1, -1
@@ -490,6 +477,6 @@ function ss.GenerateSurfaces()
 
     ss.BSP.Polygons = t
     local elapsed = math.Round((SysTime() - t0) * 1000, 2)
-    print("    Generated surfaces for " .. #ss.BSP.Raw.sprp.prop + #funclod .. " static props.")
+    print("    Generated surfaces for " .. #(ss.BSP.Raw.sprp.prop or {}) + #(funclod or {}) .. " static props.")
     print("Done!  Elapsed time: " .. elapsed .. " ms.")
 end

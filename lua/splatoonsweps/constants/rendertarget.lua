@@ -20,17 +20,23 @@ return {
         [SMALL  ] = 4096,
         [DSMALL ] = 5792,
         [MEDIUM ] = 8192,
-        [DMEDIUM] = 11585,
+        [DMEDIUM] = 11586,
         [LARGE  ] = 16384,
     },
+    SizeFromPixels = {
+        [2048 ] = MINIMUM,
+        [4096 ] = SMALL,
+        [5792 ] = DSMALL,
+        [8192 ] = MEDIUM,
+        [11586] = DMEDIUM,
+        [16384] = LARGE,
+    },
     Name = {
-        BaseTexture       = "splatoonsweps_basetexture",
-        InkSplash         = "splatoonsweps_inksplash",
-        InkSplashMaterial = "splatoonsweps_inksplashmaterial",
-        Lightmap          = "splatoonsweps_lightmap",
-        RenderTarget      = "splatoonsweps_rendertarget",
-        RTScope           = "splatoonsweps_rtscope",
-        WaterMaterial     = "splatoonsweps_watermaterial",
+        BaseTexture   = "splatoonsweps_basetexture",
+        Lightmap      = "splatoonsweps_lightmap",
+        RenderTarget  = "splatoonsweps_rendertarget",
+        RTScope       = "splatoonsweps_rtscope",
+        WaterMaterial = "splatoonsweps_watermaterial",
     },
     Flags = {
         BaseTexture = bit.bor(
@@ -42,15 +48,6 @@ return {
             TEXTUREFLAGS.NODEPTHBUFFER
         ),
         Lightmap = bit.bor(
-            TEXTUREFLAGS.NOMIP,
-            TEXTUREFLAGS.NOLOD,
-            TEXTUREFLAGS.ALL_MIPS,
-            TEXTUREFLAGS.PROCEDURAL,
-            TEXTUREFLAGS.RENDERTARGET,
-            TEXTUREFLAGS.NODEPTHBUFFER
-        ),
-        InkSplash = bit.bor(
-            TEXTUREFLAGS.EIGHTBITALPHA,
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
             TEXTUREFLAGS.ALL_MIPS,

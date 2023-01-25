@@ -54,6 +54,7 @@ end
 
 include "util.lua"
 include "debug.lua"
+include "bsploader.lua"
 include "explosion.lua"
 include "fixings.lua"
 include "text.lua"

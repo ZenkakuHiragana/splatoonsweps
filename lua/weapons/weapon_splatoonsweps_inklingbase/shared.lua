@@ -100,7 +100,7 @@ function SWEP:GetFOV()
 end
 
 local function RetrieveOption(self, name, pt)
-    if pt.options and pt.options.serverside then return end
+    if pt.options and (pt.options.serverside or pt.options.clientside) then return end
     if #pt.location > 1 then
         if pt.location[2] ~= self.Base then return end
         if #pt.location > 2 and pt.location[3] ~= self.ClassName then return end

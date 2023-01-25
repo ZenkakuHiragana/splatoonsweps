@@ -108,20 +108,34 @@ function GetPreference(cvar, ply, root)
     return GetValue(t, ply)
 end
 
-function SetPreference(cvar, value)
-    local t = GetCVarTable(cvar)
-    if SERVER and not t.options.clientside then
+function SetPreference(cvar, value, root)
+    local t = GetCVarTable(cvar, root)
+    if not (t.cl or t.sv) then
+        return function(c, v) return SetPreference(c, v, t) end
+    end
+    if not t.options.clientside then
         t.sv:SetString(tostring(value))
-    elseif CLIENT and not t.options.serverside then
-        t.cl:SetString(tostring(value))
+    end
+    if not t.options.serverside then
+        local str = tostring(value)
+        if value == nil then str = "" end
+        if isbool(value) then str = value and "1" or "0" end
+        if CLIENT and game.SinglePlayer() then
+            net.Start "greatzenkakuman.cvartree.sendchange"
+            net.WriteString("cl" .. cvarseparator .. table.concat(cvar, cvarseparator))
+            net.WriteString(str)
+            net.SendToServer()
+        else
+            t.cl:SetString(str)
+        end
     end
 end
 
 function SetPrintName(cvar, name)
     local t = GetCVarTable(cvar)
-    t.printname = name
     if t.panel then t.panel:SetText(name) end
     if t.paneladmin then t.paneladmin:SetText(name) end
+    t.printname = name
 end
 
 function IteratePreferences(root)

@@ -71,7 +71,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
     rt.BaseTexture = GetRenderTargetEx(
         rt.Name.BaseTexture,
         rtsize, rtsize,
-        RT_SIZE_NO_CHANGE,
+        RT_SIZE_LITERAL,
         MATERIAL_RT_DEPTH_NONE,
         rt.Flags.BaseTexture,
         CREATERENDERTARGETFLAGS_HDR,
@@ -81,45 +81,38 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
     rt.Lightmap = GetRenderTargetEx(
         rt.Name.Lightmap,
         rtsize, rtsize,
-        RT_SIZE_NO_CHANGE,
+        RT_SIZE_LITERAL,
         MATERIAL_RT_DEPTH_NONE,
         rt.Flags.Lightmap,
         CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
-    )
-    rt.InkSplash = GetRenderTargetEx( -- For flying ink effect, used by Rollers and Sloshers
-        rt.Name.InkSplash,
-        128, 128,
-        RT_SIZE_NO_CHANGE,
-        MATERIAL_RT_DEPTH_NONE,
-        rt.Flags.InkSplash,
-        CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGBA8888
+        IMAGE_FORMAT_RGB888 -- 8192x8192, 256MB
     )
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
         "LightmappedGeneric",
         {
             ["$basetexture"] = rt.Name.BaseTexture,
-            ["$ssbump"] = "1",
             ["$nolod"] = "1",
-            ["$alpha"] = system.IsLinux() and "1" or "0.9",
+            ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
             ["$alphatest"] = "1",
             ["$alphatestreference"] = "0.0625",
-            ["$color"] = tostring(ss.vector_one * 0.5^2.2),
+            ["$color"] = "[0.5 0.5 0.5]",
         }
     )
-    rt.InkSplashMaterial = CreateMaterial(
-        rt.Name.InkSplashMaterial,
-        "UnlitGeneric",
-        {
-            ["$basetexture"] = rt.Name.InkSplash,
-            ["$nolod"] = "1",
-            ["$alphatest"] = "1",
-            ["$alphatestreference"] = "0.5",
-            ["$vertexcolor"] = "1",
-        }
-    )
+
+    rt.DHTML = vgui.Create "DHTML" -- Used for rendering lightmap by HTML canvas element and JavaScript.
+    rt.DHTML:SetPos(0, 0)
+    rt.DHTML:SetSize(1024, 1024)
+    rt.DHTML:SetVisible(false)
+    rt.DHTML:SetAllowLua(true)
+
+    render.PushRenderTarget(rt.Lightmap)
+    render.OverrideAlphaWriteEnable(true, true)
+    render.ClearDepth()
+    render.ClearStencil()
+    render.Clear(ss.AmbientColor.r, ss.AmbientColor.g, ss.AmbientColor.b, 255)
+    render.OverrideAlphaWriteEnable(false)
+    render.PopRenderTarget()
 
     file.Delete(crashpath) -- Succeeded to make RTs and remove crash detection
 

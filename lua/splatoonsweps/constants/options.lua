@@ -39,6 +39,7 @@ return {
         Barnacle = {7, type = "color", serverside = true},
         Others = {8, bottomorder = 1, type = "color", serverside = true},
     },
+    NumThreads = {0, hidden = true, clientside = true},
     Playermodel = {1, hidden = true},
     RTResolution = {1, hidden = true},
     TakeFallDamage = {false, order = 5, serverside = true},

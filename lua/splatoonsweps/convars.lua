@@ -141,3 +141,14 @@ function ss.GetOption(name, ply)
     for _, n in ipairs(name) do nametable[#nametable + 1] = n:lower() end
     return gc.GetPreference(nametable, ply)
 end
+
+-- Set a value to given option.
+-- Arguments:
+--   string name  | the option name.
+--   any    value | The value to set.
+function ss.SetOption(name, value)
+    local nametable = {"splatoonsweps"}
+    if isstring(name) then name = {name} end
+    for _, n in ipairs(name) do nametable[#nametable + 1] = n:lower() end
+    return gc.SetPreference(nametable, value)
+end

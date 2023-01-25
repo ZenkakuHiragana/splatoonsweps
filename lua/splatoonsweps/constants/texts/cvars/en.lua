@@ -39,6 +39,7 @@ return {CVars = {
         Barnacle = "Ink color for barnacles.",
         Others = "Ink color for other NPCs.",
     },
+    NumThreads = "Number of logical processors to construct lightmaps.  Setting this to 0 to estimate automatically.",
     Playermodel = "Your thirdperson model.  Available values are:\n",
     ResetCamera = "Resets camera angle like Y button in Splatoon.",
     RTResolution = [[The resolution of RenderTarget used in ink system.
