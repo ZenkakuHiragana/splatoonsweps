@@ -23,6 +23,14 @@ return {
         [DMEDIUM] = 11586,
         [LARGE  ] = 16384,
     },
+    SizeFromPixels = {
+        [2048 ] = MINIMUM,
+        [4096 ] = SMALL,
+        [5792 ] = DSMALL,
+        [8192 ] = MEDIUM,
+        [11586] = DMEDIUM,
+        [16384] = LARGE,
+    },
     Name = {
         BaseTexture   = "splatoonsweps_basetexture",
         Lightmap      = "splatoonsweps_lightmap",

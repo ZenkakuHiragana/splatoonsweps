@@ -328,42 +328,6 @@ local function buildFace(faceindex, rawFace)
     return surf
 end
 
---                    +
---                  //|
---                / / |
---              /  +  |
---            /   /   |
---          /    /  + |
---        / +  _+     |
---      /   _-    \   |
---    /  _+        +  |
---  / _-     +      \ |
--- +------------------+
--- Samples some points (indicated by plus signs above)
--- and sees if any part of given convex is explosed to the world.
-function ss.IsConvexExposed(verts, normal)
-    local issolid = true
-    local center = Vector()
-    for _, v in ipairs(verts) do center:Add(v) end
-    center = center / #verts
-    local sample_points = {center}
-    for i = 1, #verts do
-        local v1 = verts[i]
-        local v2 = verts[i % #verts + 1]
-        table.Add(sample_points, {
-            center * ss.eps + v1 * (1 - ss.eps),
-            center * 0.5 + v1 * 0.5,
-            (center + v1 + v2) / 3,
-        })
-    end
-
-    for _, v in ipairs(sample_points) do
-        local c = util.PointContents(v + normal * ss.eps)
-        issolid = issolid and bit.band(c, MASK_VISIBLE) > 0
-        if not issolid then return true end
-    end
-end
-
 local MIN_NORMAL_LENGTH_SQR = 1
 local PROJECTION_NORMALS = {
     Vector( 1,  0,  0),
@@ -392,9 +356,6 @@ local function processStaticPropConvex(origin, angle, contents, phys)
         local n = v2v1:Cross(v2v3) -- normal around v1<-v2->v3
         if n:LengthSqr() < MIN_NORMAL_LENGTH_SQR then continue end -- normal is valid then
         n:Normalize()
-
-        if not ss.SplatoonMapPorts[game.GetMap()]
-        and not ss.IsConvexExposed({ v1, v2, v3 }, n) then continue end
 
         -- Find proper plane for projection
         local plane_index, max_dot = 1, -1

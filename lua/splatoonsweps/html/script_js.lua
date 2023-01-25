@@ -81,6 +81,7 @@ function save() {
     renderer.width = w;
     renderer.height = h;
     for (var i = 0; i < 4; ++i) {
+        rctx.clearRect(0, 0, w, h);
         rctx.drawImage(canvas, x[i], y[i], w, h, 0, 0, w, h);
         ss.save(renderer.toDataURL("image/png"), i + 1);
     }

@@ -17,6 +17,16 @@ for i = 1, 14 do
     end
 end
 
+local function LightmapSample(pos, normal)
+    local p = pos + normal * 0.5
+    local c = render.ComputeLighting(p, normal) - render.ComputeDynamicLighting(p, normal)
+    local gamma_recip = 1 / 2.2
+    c.x = c.x ^ gamma_recip
+    c.y = c.y ^ gamma_recip
+    c.z = c.z ^ gamma_recip
+    return c:ToColor()
+end
+
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
@@ -91,6 +101,7 @@ local function ProcessPaintQueue()
     local NumRepetition = 4
     local Painted = 0
     local BaseTexture = rt.BaseTexture
+    local Lightmap = rt.Lightmap
     local Clamp = math.Clamp
     local Lerp = Lerp
     local PaintQueue = ss.PaintQueue
@@ -128,6 +139,19 @@ local function ProcessPaintQueue()
             End2D()
             PopRenderTarget()
 
+            if not q.surf.LightmapInfo.Available then -- Draw on lightmap
+                PushRenderTarget(Lightmap)
+                Start2D()
+                SetDrawColor(LightmapSample(q.pos, q.surf.Normal))
+                SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
+                OverrideBlend(true, BLEND_ONE, BLEND_ZERO,BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
+                DrawTexturedRectRotated(q.center.x, q.center.y, q.width, q.height, angle)
+                OverrideBlend(false)
+                SetScissorRect(0, 0, 0, 0, false)
+                End2D()
+                PopRenderTarget()
+            end
+
             q.done = q.done + 1
             Painted = Painted + 1
             if q.done > NumRepetition then
@@ -155,13 +179,6 @@ function ss.ClearAllInk()
     if rt.Ready then table.Empty(ss.PaintQueue) end
     for _, s in ipairs(ss.SurfaceArray) do table.Empty(s.InkColorGrid) end
     render.PushRenderTarget(rt.BaseTexture)
-    render.OverrideAlphaWriteEnable(true, true)
-    render.ClearDepth()
-    render.ClearStencil()
-    render.Clear(128, 128, 128, 255)
-    render.OverrideAlphaWriteEnable(false)
-    render.PopRenderTarget()
-    render.PushRenderTarget(rt.Lightmap)
     render.OverrideAlphaWriteEnable(true, true)
     render.ClearDepth()
     render.ClearStencil()

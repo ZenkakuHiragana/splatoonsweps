@@ -152,9 +152,10 @@ end
 
 function ss.PrecacheLightmap()
     local dhtml  = rt.DHTML
-    local rtsize = rt.BaseTexture:Width()
+    local rtsize = rt.Lightmap:Width()
     local url    = "asset://garrysmod/lua/splatoonsweps/html/lightmap_html.lua?c=%d&r=%d&g=%d&b=%d&s=%d&u=%16.8f"
-    local lpath  = string.format("splatoonsweps/%s_lightmap%d%%d.png", game.GetMap(), ss.GetOption "rtresolution")
+    local lpath  = string.format("splatoonsweps/%s_lightmap%d%%d.png",
+        game.GetMap(), rt.SizeFromPixels[rtsize] or ss.GetOption "rtresolution")
     local mpath  = "../data/" .. lpath
     local mats = {
         file.Exists(lpath.format(1), "DATA") and Material(mpath:format(1)),
@@ -179,6 +180,11 @@ function ss.PrecacheLightmap()
         local w, h = rt.Lightmap:Width() / 2, rt.Lightmap:Height() / 2
         local x, y = { 0, w, 0, w }, { 0, 0, h, h }
         render.PushRenderTarget(rt.Lightmap)
+        render.OverrideAlphaWriteEnable(true, true)
+        render.ClearDepth()
+        render.ClearStencil()
+        render.Clear(0, 0, 0, 0)
+        render.OverrideAlphaWriteEnable(false)
         cam.Start2D()
         surface.SetDrawColor(color_white)
         for i, m in ipairs(mats) do
@@ -203,7 +209,7 @@ function ss.PrecacheLightmap()
     local bsp    = file.Open(path, "rb", "GAME")
     local header = ss.ReadHeader(bsp).lumps[ss.LookupLump "LIGHTING"]
     bsp:Seek(header.fileOffset)
-    local samples = util.Base64Encode(bsp:Read(header.fileLength), true)
+    local samples = util.Base64Encode(bsp:Read(header.fileLength) or "", true)
     bsp:Close()
 
     dhtml:OpenURL(url:format(ss.GetOption "numthreads", amb.r, amb.g, amb.b, rtsize, units))
@@ -222,7 +228,7 @@ function ss.PrecacheLightmap()
         dhtml:UpdateHTMLTexture()
         local mat = dhtml:GetHTMLMaterial()
         if not mat then return true end
-        local mul = rt.BaseTexture:Width() / rtsize
+        local mul = rt.Lightmap:Width() / rtsize
         render.PushRenderTarget(rt.Lightmap)
         cam.Start2D()
         surface.SetDrawColor(color_white)
