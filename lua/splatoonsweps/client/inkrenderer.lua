@@ -17,13 +17,13 @@ for i = 1, 14 do
     end
 end
 
+local gamma = 1 / 2.2
 local function LightmapSample(pos, normal)
     local p = pos + normal * 0.5
     local c = render.ComputeLighting(p, normal) - render.ComputeDynamicLighting(p, normal)
-    local gamma_recip = 1 / 2.2
-    c.x = c.x ^ gamma_recip
-    c.y = c.y ^ gamma_recip
-    c.z = c.z ^ gamma_recip
+    c.x = c.x ^ gamma
+    c.y = c.y ^ gamma
+    c.z = c.z ^ gamma
     return c:ToColor()
 end
 

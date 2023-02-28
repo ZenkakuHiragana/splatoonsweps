@@ -85,7 +85,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         MATERIAL_RT_DEPTH_NONE,
         rt.Flags.Lightmap,
         CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGB888 -- 8192x8192, 256MB
+        IMAGE_FORMAT_RGBA16161616 -- 8192x8192, 256MB
     )
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
@@ -96,7 +96,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
             ["$alphatest"] = "1",
             ["$alphatestreference"] = "0.0625",
-            ["$color"] = "[0.5 0.5 0.5]",
         }
     )
 

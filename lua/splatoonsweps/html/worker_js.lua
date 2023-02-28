@@ -1,21 +1,29 @@
 
 importScripts("https://cdnjs.cloudflare.com/ajax/libs/mathjs/10.6.4/math.min.js");
 importScripts("https://polyfill.io/v3/polyfill.min.js?features=URLSearchParams");
-const params        = new URLSearchParams(self.location.search);
-const rtsize        = Number(params.get("s"));
-const unitsToPixels = Number(params.get("u"));
-const gamma         = 1 / 2.2;
+const params           = new URLSearchParams(self.location.search);
+const rtsize           = Number(params.get("s"));
+const unitsToPixels    = Number(params.get("u"));
+const gamma            = 2.2;
+const gamma_inv        = 1 / gamma;
+const overBrightFactor = 0.5;
 
 var samples = null;
 var surfaces = null;
 
 function getRGB(r, g, b, e) {
     if (e > 127) e -= 256;
-    const mul = Math.pow(2, e);
-    const rMul = Math.min(255, Math.pow((r * mul) / 255, gamma) * 255);
-    const gMul = Math.min(255, Math.pow((g * mul) / 255, gamma) * 255);
-    const bMul = Math.min(255, Math.pow((b * mul) / 255, gamma) * 255);
-    return math.matrix([rMul, gMul, bMul]);
+    const rLinear = r * Math.pow(2, e) / 255;
+    const gLinear = g * Math.pow(2, e) / 255;
+    const bLinear = b * Math.pow(2, e) / 255;
+    const rVertex = Math.min(1, Math.pow(rLinear, gamma_inv) * overBrightFactor);
+    const gVertex = Math.min(1, Math.pow(gLinear, gamma_inv) * overBrightFactor);
+    const bVertex = Math.min(1, Math.pow(bLinear, gamma_inv) * overBrightFactor);
+    return math.matrix([
+        Math.round(rVertex * 255),
+        Math.round(gVertex * 255),
+        Math.round(bVertex * 255),
+    ]);
 }
 function toMatrix(str) {
     if (typeof(str) !== "string") return str;
@@ -41,9 +49,9 @@ function writeLightmap(image, w, h, sampleOffset) {
             var e = samples.charCodeAt(i + 3);
             var c = getRGB(r, g, b, e);
             var j = ((s + 1) + (t + 1) * (w + 2)) * 4;
-            image[j + 0] = Math.round(c.get([0]));
-            image[j + 1] = Math.round(c.get([1]));
-            image[j + 2] = Math.round(c.get([2]));
+            image[j + 0] = c.get([0]);
+            image[j + 1] = c.get([1]);
+            image[j + 2] = c.get([2]);
             image[j + 3] = 255;
         }
     }
