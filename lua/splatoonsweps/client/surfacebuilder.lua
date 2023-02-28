@@ -217,10 +217,10 @@ function ss.PrecacheLightmap()
     dhtml:AddFunction("ss", "paste", pastePNG)
     dhtml:AddFunction("ss", "save", (function()
         local called = 0
-        return function(dataurl, index)
-            file.Write(lpath:format(index), util.Base64Decode(dataurl:sub(23)))
+        return function(base64, index)
+            file.Write(lpath:format(index), util.Base64Decode(base64))
             called = called + 1
-            if called == 4 then dhtml:Call "if (!useAlt) render();" end
+            if called == 4 then pastePNG() end
             return true
         end
     end)())
