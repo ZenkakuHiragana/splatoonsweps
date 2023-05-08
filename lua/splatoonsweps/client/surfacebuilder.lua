@@ -16,9 +16,7 @@ function ss.BuildInkMesh()
         NumMeshTriangles = NumMeshTriangles + #surf.Triangles
     end
 
-    local packer = ss.MakeRectanglePacker(rects)
-    packer:packall()
-
+    local packer = ss.MakeRectanglePacker(rects):packall()
     local RT_MARGIN_PIXELS = 4
     local rtSize = rt.BaseTexture:Width()
     local margin = packer.maxsize / rtSize * RT_MARGIN_PIXELS
@@ -26,8 +24,7 @@ function ss.BuildInkMesh()
         rects[i] = ss.MakeRectangle(surf.Boundary2D.x + margin, surf.Boundary2D.y + margin, 0, 0, surf)
     end
 
-    packer = ss.MakeRectanglePacker(rects)
-    packer:packall()
+    packer = ss.MakeRectanglePacker(rects):packall()
 
     local rectSizeHU = packer.maxsize -- Size of generated rectangle in Hammer Units
     local unitsPerPixel = rectSizeHU / rtSize
@@ -55,12 +52,12 @@ function ss.BuildInkMesh()
         meshindex = meshindex + 1
     end
 
-    for _, index in ipairs(packer.dones) do
+    for _, index in ipairs(packer.results) do
         local r = packer.rects[index]
         local surf = r.tag
         local v3 = surf.Vertices3D
         local textureUV = surf.Vertices2D
-        local lightmapUV = {}
+        local lightmapUV = surf.LightmapInfo.Vertices2D
         surf.OffsetUV = ss.PixelsToUV * Vector(
             math.Round(r.left * ss.UnitsToPixels),
             math.Round(r.bottom * ss.UnitsToPixels))
@@ -81,16 +78,6 @@ function ss.BuildInkMesh()
 
             textureUV[i]:Mul(ss.UnitsToUV)
             textureUV[i]:Add(surf.OffsetUV)
-
-            lightmapUV[i] = Vector(textureUV[i])
-            if surf.IsDisplacement then
-                local sideLength = math.sqrt(#textureUV)
-                local divisor = sideLength - 1
-                lightmapUV[i].x =            (i - 1) % sideLength  / divisor
-                lightmapUV[i].y = math.floor((i - 1) / sideLength) / divisor
-                lightmapUV[i]:Mul(surf.BoundaryUV)
-                lightmapUV[i]:Add(surf.OffsetUV)
-            end
         end
 
         for _, t in ipairs(surf.Triangles) do
@@ -99,7 +86,9 @@ function ss.BuildInkMesh()
                 mesh.Normal(n)
                 mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
                 mesh.TexCoord(0, textureUV[i].x, textureUV[i].y)
-                mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
+                if #lightmapUV > 0 then
+                    mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
+                end
                 mesh.AdvanceVertex()
             end
 
@@ -150,112 +139,25 @@ function ss.BuildWaterMesh()
     ss.WaterSurfaces = nil
 end
 
-function ss.PrecacheLightmap()
-    local dhtml  = rt.DHTML
-    local rtsize = rt.Lightmap:Width()
-    local url    = "asset://garrysmod/lua/splatoonsweps/html/lightmap_html.lua?c=%d&r=%d&g=%d&b=%d&s=%d&u=%16.8f"
-    local lpath  = string.format("splatoonsweps/%s_lightmap%d%%d.png",
-        game.GetMap(), rt.SizeFromPixels[rtsize] or ss.GetOption "rtresolution")
-    local mpath  = "../data/" .. lpath
-    local mats = {
-        file.Exists(lpath.format(1), "DATA") and Material(mpath:format(1)),
-        file.Exists(lpath.format(2), "DATA") and Material(mpath:format(2)),
-        file.Exists(lpath.format(3), "DATA") and Material(mpath:format(3)),
-        file.Exists(lpath.format(4), "DATA") and Material(mpath:format(4)),
-    }
-    local function exist()
-        for i = 1, 4 do
-            if not mats[i] then
-                if not file.Exists(lpath:format(i), "DATA") then return false end
-                mats[i] = Material(mpath:format(i))
-            else
-                mats[i]:GetTexture "$basetexture":Download()
-            end
-            if mats[i]:IsError() then return false end
-        end
-        return true
-    end
-    local function pastePNG()
-        if not exist() then return end
-        local w, h = rt.Lightmap:Width() / 2, rt.Lightmap:Height() / 2
-        local x, y = { 0, w, 0, w }, { 0, 0, h, h }
-        render.PushRenderTarget(rt.Lightmap)
-        render.OverrideAlphaWriteEnable(true, true)
-        render.ClearDepth()
-        render.ClearStencil()
-        render.Clear(0, 0, 0, 0)
-        render.OverrideAlphaWriteEnable(false)
-        cam.Start2D()
-        surface.SetDrawColor(color_white)
-        for i, m in ipairs(mats) do
-            surface.SetMaterial(m)
-            surface.DrawTexturedRect(x[i], y[i], w, h)
-        end
-        cam.End2D()
-        render.PopRenderTarget()
-    end
-
-    if exist() then
-        return hook.Add("PostRender", "SplatoonSWEPs: Precache lightmap", function()
-            hook.Remove("PostRender", "SplatoonSWEPs: Precache lightmap")
-            pastePNG()
-        end)
-    end
-
-    local units  = ss.UnitsToPixels
-    local amb    = render.GetAmbientLightColor():ToColor()
-    local surf   = util.TableToJSON(ss.SurfaceArray)
-    local path   = string.format("maps/%s.bsp", game.GetMap())
-    local bsp    = file.Open(path, "rb", "GAME")
-    local header = ss.ReadHeader(bsp).lumps[ss.LookupLump "LIGHTING"]
-    bsp:Seek(header.fileOffset)
-    local samples = util.Base64Encode(bsp:Read(header.fileLength) or "", true)
-    bsp:Close()
-
-    dhtml:OpenURL(url:format(ss.GetOption "numthreads", amb.r, amb.g, amb.b, rtsize, units))
-    dhtml:AddFunction("ss", "storeNumThreads", function(cores) ss.SetOption("numthreads", cores) end)
-    dhtml:AddFunction("ss", "paste", pastePNG)
-    dhtml:AddFunction("ss", "save", (function()
-        local called = 0
-        return function(base64, index)
-            file.Write(lpath:format(index), util.Base64Decode(base64))
-            called = called + 1
-            if called == 4 then pastePNG() end
-            return true
-        end
-    end)())
-    dhtml:AddFunction("ss", "render", function(x, y)
-        dhtml:UpdateHTMLTexture()
-        local mat = dhtml:GetHTMLMaterial()
-        if not mat then return true end
-        local mul = rt.Lightmap:Width() / rtsize
-        render.PushRenderTarget(rt.Lightmap)
-        cam.Start2D()
-        surface.SetDrawColor(color_white)
-        surface.SetMaterial(mat)
-        surface.DrawTexturedRect(x * mul, y * mul, mat:Width() * mul, mat:Height() * mul)
-        cam.End2D()
-        render.PopRenderTarget()
-        return true
-    end)
-
-    function dhtml:OnFinishLoadingDocument()
-        timer.Simple(0.5, function()
-            dhtml:Call(string.format([[main(%s, "%s");]], surf, samples))
-        end)
-    end
-end
-
 function ss.PrepareInkSurface(data)
     util.TimerCycle()
+
+    ss.LightingScales = data.LightingScales
     ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
     ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
+    if rt.Lightmap then -- If lighting computation has been done
+        local intensity = 128
+        if ss.LightingScales then -- If there is light_environment
+            intensity = ss.LightingScales.ambientColor[4] * ss.LightingScales.ambientScaleHDR
+        end
+        rt.Material:SetVector("$color", ss.vector_one * intensity / 4096)
+    end
+
     ss.GenerateHashTable()
     ss.BuildInkMesh()
     ss.BuildWaterMesh()
-    ss.PrecacheLightmap()
     ss.ClearAllInk()
     ss.InitializeMoveEmulation(LocalPlayer())
     net.Start "SplatoonSWEPs: Ready to splat"

@@ -6,6 +6,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     CrosshairColors = {},
     EntityFilters = {},
     LastHitID = {},
+    LightingScales = nil,
     MinimapAreaBounds = {},
     NoCollide = {},
     NumInkEntities = 0,
@@ -25,6 +26,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
+include "lightmap.lua"
 include "network.lua"
 include "surfacebuilder.lua"
 
@@ -183,8 +185,10 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         print("\n[Splatoon SWEPs] Building inkable surface structre...")
         ss.LoadBSP()
         ss.GenerateSurfaces()
+        ss.BuildLightmap()
         data.MapCRC = mapCRC
         data.Revision = ss.MAPCACHE_REVISION
+        data.LightingScales = ss.LightingScales
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
@@ -195,10 +199,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     end
 
-    ss.WaterSurfaces = nil
-    for _, surf in ipairs(ss.SurfaceArray) do
-        surf.LightmapInfo, surf.Triangles, surf.Vertices2D, surf.Vertices3D = {}, {}, {}, {}
-    end
     collectgarbage "collect"
 
     -- This is needed due to a really annoying bug (GitHub/garrysmod-issues #1495)

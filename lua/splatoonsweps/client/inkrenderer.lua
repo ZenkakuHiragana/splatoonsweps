@@ -26,20 +26,21 @@ local function LightmapSample(pos, normal)
     return c:ToColor()
 end
 
+local white = Material "color":GetTexture "$basetexture"
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
-    render.SetMaterial(rt.Material) -- Ink base texture
-    render.SetLightmapTexture(rt.Lightmap) -- Set custom lightmap
-    render.OverrideDepthEnable(true, true) -- Write to depth buffer for translucent surface culling
-    for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw ink surface
-    render.OverrideDepthEnable(false) -- Back to default
+    render.SetMaterial(rt.Material)                 -- Ink base texture
+    render.SetLightmapTexture(rt.Lightmap or white) -- Set custom lightmap
+    render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
+    for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
+    render.OverrideDepthEnable(false)               -- Back to default
 
     if not LocalPlayer():FlashlightIsOn() and #ents.FindByClass "*projectedtexture*" == 0 then return end
-    render.PushFlashlightMode(true) -- Ink lit by player's flashlight or projected texture
-    render.SetMaterial(rt.Material) -- Ink base texture
+    render.PushFlashlightMode(true)              -- Ink lit by player's flashlight or projected texture
+    render.SetMaterial(rt.Material)              -- Ink base texture
     for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw once again
-    render.PopFlashlightMode() -- Back to default
+    render.PopFlashlightMode()                   -- Back to default
 end
 
 local ceil, floor = math.ceil, math.floor

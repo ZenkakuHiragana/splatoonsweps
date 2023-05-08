@@ -2,7 +2,6 @@
 -- Clientside SplatoonSWEPs structure
 
 SplatoonSWEPs = SplatoonSWEPs or {
-    AmbientColor = color_white,
     AreaBound = 0,
     AspectSum = 0,  -- Sum of aspect ratios for each surface
     AspectSumX = 0, -- Sum of widths for each surface
@@ -33,8 +32,6 @@ include "drawui.lua"
 include "inkrenderer.lua"
 include "minimap.lua"
 include "network.lua"
-include "packer.lua"
-include "structure.lua"
 include "surfacebuilder.lua"
 include "userinfo.lua"
 
@@ -65,7 +62,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
     end
 
     file.Write(crashpath, "")
-    ss.AmbientColor = render.GetAmbientLightColor():ToColor()
 
     local rtsize = math.min(rt.Size[ss.GetOption "rtresolution"] or 1, render.MaxTextureWidth(), render.MaxTextureHeight())
     rt.BaseTexture = GetRenderTargetEx(
@@ -78,15 +74,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
     )
     rtsize = math.min(rt.BaseTexture:Width(), rt.BaseTexture:Height())
-    rt.Lightmap = GetRenderTargetEx(
-        rt.Name.Lightmap,
-        rtsize, rtsize,
-        RT_SIZE_LITERAL,
-        MATERIAL_RT_DEPTH_NONE,
-        rt.Flags.Lightmap,
-        CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGBA16161616 -- 8192x8192, 256MB
-    )
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
         "LightmappedGeneric",
@@ -99,19 +86,10 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         }
     )
 
-    rt.DHTML = vgui.Create "DHTML" -- Used for rendering lightmap by HTML canvas element and JavaScript.
-    rt.DHTML:SetPos(0, 0)
-    rt.DHTML:SetSize(1024, 1024)
-    rt.DHTML:SetVisible(false)
-    rt.DHTML:SetAllowLua(true)
-
-    render.PushRenderTarget(rt.Lightmap)
-    render.OverrideAlphaWriteEnable(true, true)
-    render.ClearDepth()
-    render.ClearStencil()
-    render.Clear(ss.AmbientColor.r, ss.AmbientColor.g, ss.AmbientColor.b, 255)
-    render.OverrideAlphaWriteEnable(false)
-    render.PopRenderTarget()
+    local lightmap = Material(string.format("../data/splatoonsweps/%s.png", game.GetMap()), "smooth")
+    if not lightmap:IsError() then
+        rt.Lightmap = lightmap:GetTexture "$basetexture"
+    end
 
     file.Delete(crashpath) -- Succeeded to make RTs and remove crash detection
 

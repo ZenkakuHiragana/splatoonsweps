@@ -28,7 +28,7 @@ ss.class "PaintableSurface" {
         Offset       = Vector(),
         BasisS       = Vector(),
         BasisT       = Vector(),
-        DispOrigin   = Vector(),
+        Vertices2D   = {},
     }
 }
 
@@ -319,7 +319,6 @@ local function buildFace(faceindex, rawFace)
         mins = ss.MinVector(mins or worldPos, worldPos)
     end
 
-    li.DispOrigin = surf.Vertices3D[1]
     surf.maxs = maxs
     surf.mins = mins
     surf.Triangles = triangles

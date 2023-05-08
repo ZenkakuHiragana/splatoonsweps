@@ -257,7 +257,7 @@ local StructureDefinitions = {
         "Float  alpha",
     },
     DISP_TRIS = "UShort",
-    LIGHTING = "Long",
+    LIGHTING = "Raw",
     GAME_LUMP = {
         size = -1, -- Negative size means this is a single lump
         "Long        lumpCount",
@@ -425,9 +425,11 @@ function ss.ReadLump(bsp, headers, lumpname)
     end
 
     local numElements = length / strlen
-    if struct == "String" then
+    if struct == "Raw" then
+        t = read(bsp, length)
+    elseif struct == "String" then
         local all = read(bsp, length)
-        t = string.Explode("\0", all)
+        t = all:Split "\0"
     elseif numElements > 0 then
         for i = 1, numElements do
             t[i] = read(bsp, struct, header)
@@ -450,7 +452,7 @@ function ss.LoadBSP()
     local t = ss.BSP.Raw
     for i = 1, #LUMP do
         local lumpname = LUMP[i]
-        if lumpname ~= "LIGHTING" and StructureDefinitions[lumpname] then
+        if StructureDefinitions[lumpname] then
             print("        LUMP #" .. i .. "\t" .. lumpname)
             t[lumpname] = ss.ReadLump(bsp, t.header.lumps, lumpname)
         end
