@@ -83,6 +83,11 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
             ["$alphatest"] = "1",
             ["$alphatestreference"] = "0.0625",
+
+            ["$detail"]             = rt.BaseTexture,
+            ["$detailscale"]        = 1,
+            ["$detailblendmode"]    = 5,
+            ["$detailblendfactor"]  = 1, -- Increase this for bright ink in night maps
         }
     )
 

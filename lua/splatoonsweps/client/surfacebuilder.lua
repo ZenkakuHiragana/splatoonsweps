@@ -147,10 +147,10 @@ function ss.PrepareInkSurface(data)
     ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
-    if rt.Lightmap then -- If lighting computation has been done
+    if rt.Lightmap and render.GetHDREnabled() then -- If HDR lighting computation has been done
         local intensity = 128
         if ss.LightingScales then -- If there is light_environment
-            intensity = ss.LightingScales.ambientColor[4] * ss.LightingScales.ambientScaleHDR
+            intensity = intensity + ss.LightingScales.lightColor[4] * ss.LightingScales.lightScaleHDR
         end
         rt.Material:SetVector("$color", ss.vector_one * intensity / 4096)
     end
