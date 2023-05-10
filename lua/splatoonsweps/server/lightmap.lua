@@ -191,31 +191,20 @@ function ss.BuildLightmap()
         for k in entities:gmatch "{[^}]+}" do
             local t = util.KeyValuesToTable("\"\" " .. k)
             if t.classname == "light_environment" then
-                local ambientColor    = t._ambient:Split " "
-                local ambientColorHDR = t._ambienthdr:Split " "
-                local ambientScaleHDR = t._ambientscalehdr
-                local lightColor      = t._light:Split " "
-                local lightColorHDR   = t._lighthdr:Split " "
-                local lightScaleHDR   = t._lightscalehdr
+                local lightColor    = t._light:Split " "
+                local lightColorHDR = t._lighthdr:Split " "
+                local lightScaleHDR = t._lightscalehdr
                 for i = 1, 4 do
-                    ambientColor[i]    = tonumber(ambientColor[i])
-                    ambientColorHDR[i] = tonumber(ambientColorHDR[i])
-                    lightColor[i]      = tonumber(lightColor[i])
-                    lightColorHDR[i]   = tonumber(lightColorHDR[i])
-                    if ambientColorHDR[i] < 0 then
-                        ambientColorHDR[i] = ambientColor[i]
-                    end
-                    if lightColorHDR[i] < 0 then
+                    lightColor[i]    = tonumber(lightColor[i])
+                    lightColorHDR[i] = tonumber(lightColorHDR[i])
+                    if lightColorHDR[i] and lightColorHDR[i] < 0 then
                         lightColorHDR[i] = lightColor[i]
                     end
                 end
                 ss.LightingScales = {
-                    ambientColor    = ambientColor,
-                    ambientColorHDR = ambientColorHDR,
-                    ambientScaleHDR = ambientScaleHDR,
-                    lightColor      = lightColor,
-                    lightColorHDR   = lightColorHDR,
-                    lightScaleHDR   = lightScaleHDR,
+                    lightColor    = lightColor,
+                    lightColorHDR = lightColorHDR,
+                    lightScaleHDR = tonumber(lightScaleHDR) or 1,
                 }
                 break
             end
