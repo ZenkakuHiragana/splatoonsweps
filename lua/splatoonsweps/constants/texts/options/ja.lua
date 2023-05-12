@@ -26,6 +26,7 @@ return {Options = {
     FF = "同士討ちの有効化",
     Gain = {
         __printname = "各種パラメータ",
+        DamageScale = "与ダメージ倍率[%]",
         HealSpeedInk = "体力回復速度[%] (インク内)",
         HealSpeedStand = "体力回復速度[%] (インク外)",
         MaxHealth = "最大ヘルス",

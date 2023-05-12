@@ -222,7 +222,7 @@ local function HitEntity(ink, t)
     d:SetReportedPosition(t.HitPos)
     d:SetAttacker(IsValid(o) and o or game.GetWorld())
     d:SetInflictor(IsValid(weapon) and weapon or game.GetWorld())
-    d:ScaleDamage(ss.ToHammerHealth)
+    d:ScaleDamage(ss.ToHammerHealth * ss.GetDamageScale())
     ss.ProtectedCall(e.TakeDamageInfo, e, d)
 end
 

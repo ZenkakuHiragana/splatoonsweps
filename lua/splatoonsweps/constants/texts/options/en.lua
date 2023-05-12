@@ -26,6 +26,7 @@ Otherwise, all victims splatted by the SWEPs will.]],
     FF = "Enable friendly fire",
     Gain = {
         __printname = "Parameters",
+        DamageScale = "Weapon damage multiplier [%]",
         HealSpeedInk = "Heal speed [%] (In ink)",
         HealSpeedStand = "Heal speed [%] (Out of ink)",
         MaxHealth = "Maximum health",

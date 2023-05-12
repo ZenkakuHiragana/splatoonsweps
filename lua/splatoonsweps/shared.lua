@@ -401,7 +401,7 @@ end
 local gain = ss.GetOption "gain"
 function ss.GetMaxHealth() return gain "maxhealth" end
 function ss.GetMaxInkAmount() return gain "inkamount" end
-
+function ss.GetDamageScale() return gain "damagescale" / 100 end
 function ss.GetBotOption(pt)
     return (pt.cl or pt.sv):GetDefault()
 end
