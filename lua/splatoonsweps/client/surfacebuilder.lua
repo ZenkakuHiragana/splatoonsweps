@@ -156,7 +156,10 @@ function ss.PrepareInkSurface(data)
     if rt.Lightmap and render.GetHDREnabled() then -- If HDR lighting computation has been done
         local intensity = 128
         if ss.Lightmap.lightColor then -- If there is light_environment
-            intensity = intensity + (ss.Lightmap.lightColor[4] or 0) * (ss.Lightmap.lightScaleHDR or 1)
+            local lightIntensity = Vector(unpack(ss.Lightmap.lightColor)):Dot(ss.GrayScaleFactor) / 255
+            local brightness = ss.Lightmap.lightColor[4] or 0
+            local scale = ss.Lightmap.lightScaleHDR or 1
+            intensity = intensity + lightIntensity * brightness * scale
         end
         rt.Material:SetVector("$color", ss.vector_one * intensity / 4096)
     end
