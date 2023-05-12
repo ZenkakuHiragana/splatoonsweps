@@ -189,7 +189,7 @@ end
 function ss.BuildLightmap()
     for _, entities in ipairs(ss.BSP.Raw.ENTITIES) do
         for k in entities:gmatch "{[^}]+}" do
-            local t = util.KeyValuesToTable("\"\" " .. k)
+            local t = util.KeyValuesToTable("\"-\" " .. k)
             if t.classname == "light_environment" then
                 local lightColor    = t._light:Split " "
                 local lightColorHDR = t._lighthdr:Split " "
@@ -201,11 +201,9 @@ function ss.BuildLightmap()
                         lightColorHDR[i] = lightColor[i]
                     end
                 end
-                ss.LightingScales = {
-                    lightColor    = lightColor,
-                    lightColorHDR = lightColorHDR,
-                    lightScaleHDR = tonumber(lightScaleHDR) or 1,
-                }
+                ss.Lightmap.lightColor    = lightColor
+                ss.Lightmap.lightColorHDR = lightColorHDR
+                ss.Lightmap.lightScaleHDR = tonumber(lightScaleHDR) or 1
                 break
             end
         end
@@ -249,6 +247,5 @@ function ss.BuildLightmap()
         end
     end
 
-    print "done"
-    file.Write(string.format("splatoonsweps/%s.png", game.GetMap()), encode(pngsize, pngsize, bitmap))
+    ss.Lightmap.png = encode(pngsize, pngsize, bitmap)
 end

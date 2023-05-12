@@ -142,15 +142,21 @@ end
 function ss.PrepareInkSurface(data)
     util.TimerCycle()
 
-    ss.LightingScales = data.LightingScales
+    ss.Lightmap = data.Lightmap
     ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
     ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
+
+    file.Write("splatoonsweps/lightmap.png", ss.Lightmap.png)
+    local lightmap = Material("../data/splatoonsweps/lightmap.png", "smooth")
+    if not lightmap:IsError() then
+        rt.Lightmap = lightmap:GetTexture "$basetexture"
+    end
     if rt.Lightmap and render.GetHDREnabled() then -- If HDR lighting computation has been done
         local intensity = 128
-        if ss.LightingScales then -- If there is light_environment
-            intensity = intensity + ss.LightingScales.lightColor[4] * ss.LightingScales.lightScaleHDR
+        if ss.Lightmap.lightColor then -- If there is light_environment
+            intensity = intensity + (ss.Lightmap.lightColor[4] or 0) * (ss.Lightmap.lightScaleHDR or 1)
         end
         rt.Material:SetVector("$color", ss.vector_one * intensity / 4096)
     end

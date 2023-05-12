@@ -16,22 +16,12 @@ for i = 1, 14 do
     end
 end
 
-local gamma = 1 / 2.2
-local function LightmapSample(pos, normal)
-    local p = pos + normal * 0.5
-    local c = render.ComputeLighting(p, normal) - render.ComputeDynamicLighting(p, normal)
-    c.x = c.x ^ gamma
-    c.y = c.y ^ gamma
-    c.z = c.z ^ gamma
-    return c:ToColor()
-end
-
 local white = Material "color":GetTexture "$basetexture"
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
     render.SetMaterial(rt.Material)                 -- Ink base texture
-    render.SetLightmapTexture(rt.Lightmap) -- Set custom lightmap
+    render.SetLightmapTexture(rt.Lightmap or white) -- Set custom lightmap
     render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
     for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
     render.OverrideDepthEnable(false)               -- Back to default
