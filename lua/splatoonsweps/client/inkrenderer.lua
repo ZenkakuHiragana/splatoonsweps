@@ -5,7 +5,6 @@ local ss = SplatoonSWEPs
 if not ss then return end
 local CVarWireframe = GetConVar "mat_wireframe"
 local CVarMinecraft = GetConVar "mat_showlowresimage"
-local inkhdrscale = ss.vector_one * 0.5^2.2
 local inkmaterials = {}
 local rt = ss.RenderTarget
 local MAX_QUEUE_TIME = ss.FrameToSec
@@ -17,33 +16,21 @@ for i = 1, 14 do
     end
 end
 
-local function LightmapSample(pos, normal)
-    local p = pos + normal * 0.5
-    local c = render.ComputeLighting(p, normal) - render.ComputeDynamicLighting(p, normal)
-    local gamma_recip = 1 / 2.2
-    c.x = c.x ^ gamma_recip
-    c.y = c.y ^ gamma_recip
-    c.z = c.z ^ gamma_recip
-    return c:ToColor()
-end
-
+local white = Material "color":GetTexture "$basetexture"
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
-    local hdrscale = render.GetToneMappingScaleLinear()
-    render.SetToneMappingScaleLinear(inkhdrscale) -- Set HDR scale for custom lightmap
-    render.SetMaterial(rt.Material) -- Ink base texture
-    render.SetLightmapTexture(rt.Lightmap) -- Set custom lightmap
-    render.OverrideDepthEnable(true, true) -- Write to depth buffer for translucent surface culling
-    for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw ink surface
-    render.OverrideDepthEnable(false) -- Back to default
-    render.SetToneMappingScaleLinear(hdrscale) -- Back to default
+    render.SetMaterial(rt.Material)                 -- Ink base texture
+    render.SetLightmapTexture(rt.Lightmap or white) -- Set custom lightmap
+    render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
+    for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
+    render.OverrideDepthEnable(false)               -- Back to default
 
     if not LocalPlayer():FlashlightIsOn() and #ents.FindByClass "*projectedtexture*" == 0 then return end
-    render.PushFlashlightMode(true) -- Ink lit by player's flashlight or projected texture
-    render.SetMaterial(rt.Material) -- Ink base texture
+    render.PushFlashlightMode(true)              -- Ink lit by player's flashlight or projected texture
+    render.SetMaterial(rt.Material)              -- Ink base texture
     for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw once again
-    render.PopFlashlightMode() -- Back to default
+    render.PopFlashlightMode()                   -- Back to default
 end
 
 local ceil, floor = math.ceil, math.floor
@@ -138,19 +125,6 @@ local function ProcessPaintQueue()
             SetScissorRect(0, 0, 0, 0, false)
             End2D()
             PopRenderTarget()
-
-            if not q.surf.LightmapInfo.Available then -- Draw on lightmap
-                PushRenderTarget(Lightmap)
-                Start2D()
-                SetDrawColor(LightmapSample(q.pos, q.surf.Normal))
-                SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
-                OverrideBlend(true, BLEND_ONE, BLEND_ZERO,BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
-                DrawTexturedRectRotated(q.center.x, q.center.y, q.width, q.height, angle)
-                OverrideBlend(false)
-                SetScissorRect(0, 0, 0, 0, false)
-                End2D()
-                PopRenderTarget()
-            end
 
             q.done = q.done + 1
             Painted = Painted + 1

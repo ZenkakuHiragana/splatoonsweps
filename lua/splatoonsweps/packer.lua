@@ -85,7 +85,7 @@ function ss.MakeRectanglePacker(rectangles)
     end
 
     sortinputs(rectangles)
-    t.dones        = {}
+    t.results      = {}
     t.optimized    = {}
     t.rects        = rectangles
     t.queue        = ss.MakeAVL()
@@ -538,7 +538,7 @@ function ss.MakeRectanglePacker(rectangles)
             local height = lowest.value.height
             if is_y then offset, height = height, offset end
             r:place(offset, height)
-            self.dones[#self.dones + 1] = best
+            self.results[#self.results + 1] = best
             self:placebox(best, lowest, is_y)
             return false
         else
@@ -548,7 +548,7 @@ function ss.MakeRectanglePacker(rectangles)
 
     function t:packall()
         while true do
-            if self:pack() then return end
+            if self:pack() then return self end
         end
     end
 

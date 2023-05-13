@@ -29,10 +29,10 @@ local LIGHT_GRAY = 24
 local WHITE = 25
 
 return {
-    [RED]               = {0, 1, 1,     ORANGE},
-    [ORANGE]            = {30, 1, 1,    RED},
-    [YELLOW]            = {60, 1, 1,    OLIVE},
-    [YELLOWISH_GREEN]   = {80, 1, 1,    OLIVE},
+    [RED]               = {0,   1, 1,   ORANGE},
+    [ORANGE]            = {30,  1, 1,   RED},
+    [YELLOW]            = {60,  1, 1,   OLIVE},
+    [YELLOWISH_GREEN]   = {80,  1, 1,   OLIVE},
     [LIME]              = {120, 1, 1,   GREEN},
     [SPRING_GREEN]      = {150, 1, 1,   DARK_CYAN},
     [CYAN]              = {180, 1, 1,   DARK_CYAN},
@@ -42,8 +42,8 @@ return {
     [MAGENTA]           = {300, 1, 1,   DEEP_PINK},
     [DEEP_PINK]         = {330, 1, 1,   MAGENTA},
 
-    [MAROON]            = {0, 1, .5,    RED},
-    [OLIVE]             = {60, 1, .5,   GREEN},
+    [MAROON]            = {0,   1, .5,  RED},
+    [OLIVE]             = {60,  1, .5,  GREEN},
     [GREEN]             = {120, 1, .5,  LIGHT_GREEN},
     [DARK_CYAN]         = {180, 1, .5,  LIGHT_INDIGO},
     [NAVY]              = {240, 1, .5,  LIGHT_INDIGO},
@@ -53,8 +53,8 @@ return {
     [LIGHT_BLUE]        = {210, .5, 1,  DARK_CYAN},
     [PINK]              = {315, .5, 1,  MAGENTA},
 
-    [BLACK]             = {0, 0, .03,   BLACK},
+    [BLACK]             = {0, 0, .125,  BLACK},
     [GRAY]              = {0, 0, .5,    GRAY},
     [LIGHT_GRAY]        = {0, 0, .75,   LIGHT_GRAY},
-    [WHITE]             = {0, 0, .999,  WHITE},
+    [WHITE]             = {0, 0, 1,     WHITE},
 }

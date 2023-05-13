@@ -6,6 +6,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     CrosshairColors = {},
     EntityFilters = {},
     LastHitID = {},
+    Lightmap = {},
     MinimapAreaBounds = {},
     NoCollide = {},
     NumInkEntities = 0,
@@ -25,6 +26,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
+include "lightmap.lua"
 include "network.lua"
 include "surfacebuilder.lua"
 
@@ -173,39 +175,40 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         ss.SendError(ss.Text.Error.CrashDetected, nil, nil, 15)
     end
 
-    local path = string.format("splatoonsweps/%s.txt", game.GetMap())
-    local pathbsp = string.format("maps/%s.bsp", game.GetMap())
-    local data = util.JSONToTable(util.Decompress(file.Read(path) or "") or "") or {}
-    local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
+    local bspPath = string.format("maps/%s.bsp", game.GetMap())
+    local txtPath = string.format("splatoonsweps/%s.txt", game.GetMap())
+    local data = util.JSONToTable(util.Decompress(file.Read(txtPath) or "") or "") or {}
+    local mapCRC = util.CRC(file.Read(bspPath, true))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
-    if data.MapCRC ~= mapCRC or not data.Revision or data.Revision < ss.MAPCACHE_REVISION then
+    if data.MapCRC ~= mapCRC or data.Revision ~= ss.MAPCACHE_REVISION then
         local t0 = SysTime()
         print("\n[Splatoon SWEPs] Building inkable surface structre...")
         ss.LoadBSP()
         ss.GenerateSurfaces()
+        ss.BuildLightmap()
         data.MapCRC = mapCRC
         data.Revision = ss.MAPCACHE_REVISION
+        data.Lightmap = ss.Lightmap
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
         data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
-        file.Write(path, util.Compress(util.TableToJSON(data)))
+        file.Write(txtPath, util.Compress(util.TableToJSON(data)))
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
     else
         ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
     end
 
-    ss.WaterSurfaces = nil
-    for _, surf in ipairs(ss.SurfaceArray) do
-        surf.LightmapInfo, surf.Triangles, surf.Vertices2D, surf.Vertices3D = {}, {}, {}, {}
-    end
     collectgarbage "collect"
 
     -- This is needed due to a really annoying bug (GitHub/garrysmod-issues #1495)
     SetGlobalBool("SplatoonSWEPs: IsDedicated", game.IsDedicated())
-    SetGlobalString("SplatoonSWEPs: Ink map CRC", util.CRC(file.Read(path))) -- CRC check clientside
-    resource.AddSingleFile("data/" .. path)
+
+    -- CRC check clientside
+    SetGlobalString("SplatoonSWEPs: Ink map CRC", util.CRC(file.Read(txtPath)))
+
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
+    resource.AddSingleFile("data/" .. txtPath)
 
     ss.GenerateHashTable()
     ss.ClearAllInk()

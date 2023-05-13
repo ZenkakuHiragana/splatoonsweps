@@ -62,8 +62,10 @@ include "convars.lua"
 include "hash.lua"
 include "inkcolorgrid.lua"
 include "movement.lua"
+include "packer.lua"
 include "projectile.lua"
 include "sounds/common.lua"
+include "structure.lua"
 include "weapons.lua"
 include "weaponregistration.lua"
 
@@ -399,7 +401,7 @@ end
 local gain = ss.GetOption "gain"
 function ss.GetMaxHealth() return gain "maxhealth" end
 function ss.GetMaxInkAmount() return gain "inkamount" end
-
+function ss.GetDamageScale() return gain "damagescale" / 100 end
 function ss.GetBotOption(pt)
     return (pt.cl or pt.sv):GetDefault()
 end

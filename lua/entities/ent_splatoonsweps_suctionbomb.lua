@@ -39,6 +39,7 @@ if CLIENT then
 end
 
 function ENT:PhysicsUpdate(p)
+    if not IsValid(p) then return end
     if self:IsStuck() then return end
     self.BaseClass.PhysicsUpdate(self, p)
     local desired = p:GetVelocity()

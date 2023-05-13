@@ -2,7 +2,6 @@
 -- Clientside SplatoonSWEPs structure
 
 SplatoonSWEPs = SplatoonSWEPs or {
-    AmbientColor = color_white,
     AreaBound = 0,
     AspectSum = 0,  -- Sum of aspect ratios for each surface
     AspectSumX = 0, -- Sum of widths for each surface
@@ -33,8 +32,6 @@ include "drawui.lua"
 include "inkrenderer.lua"
 include "minimap.lua"
 include "network.lua"
-include "packer.lua"
-include "structure.lua"
 include "surfacebuilder.lua"
 include "userinfo.lua"
 
@@ -58,14 +55,13 @@ local crashpath = "splatoonsweps/crashdump.txt" -- Existing this means the clien
 hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function()
     gameevent.Listen "entity_killed"
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
-    if ss.mp and file.Exists(crashpath, "DATA") then -- If the client has crashed before, RT shrinks.
+    if file.Exists(crashpath, "DATA") then -- If the client has crashed before, RT shrinks.
         local res = ss.GetConVar "rtresolution"
         if res then res:SetInt(rt.RESOLUTION.MINIMUM) end
         notification.AddLegacy(ss.Text.Error.CrashDetected, NOTIFY_GENERIC, 15)
     end
 
     file.Write(crashpath, "")
-    ss.AmbientColor = render.GetAmbientLightColor():ToColor()
 
     local rtsize = math.min(rt.Size[ss.GetOption "rtresolution"] or 1, render.MaxTextureWidth(), render.MaxTextureHeight())
     rt.BaseTexture = GetRenderTargetEx(
@@ -78,15 +74,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
     )
     rtsize = math.min(rt.BaseTexture:Width(), rt.BaseTexture:Height())
-    rt.Lightmap = GetRenderTargetEx(
-        rt.Name.Lightmap,
-        rtsize, rtsize,
-        RT_SIZE_LITERAL,
-        MATERIAL_RT_DEPTH_NONE,
-        rt.Flags.Lightmap,
-        CREATERENDERTARGETFLAGS_HDR,
-        IMAGE_FORMAT_RGB888 -- 8192x8192, 256MB
-    )
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
         "LightmappedGeneric",
@@ -96,54 +83,42 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
             ["$alphatest"] = "1",
             ["$alphatestreference"] = "0.0625",
-            ["$color"] = "[0.5 0.5 0.5]",
+
+            ["$detail"]             = rt.BaseTexture,
+            ["$detailscale"]        = 1,
+            ["$detailblendmode"]    = 5,
+            ["$detailblendfactor"]  = 1, -- Increase this for bright ink in night maps
         }
     )
-
-    rt.DHTML = vgui.Create "DHTML" -- Used for rendering lightmap by HTML canvas element and JavaScript.
-    rt.DHTML:SetPos(0, 0)
-    rt.DHTML:SetSize(1024, 1024)
-    rt.DHTML:SetVisible(false)
-    rt.DHTML:SetAllowLua(true)
-
-    render.PushRenderTarget(rt.Lightmap)
-    render.OverrideAlphaWriteEnable(true, true)
-    render.ClearDepth()
-    render.ClearStencil()
-    render.Clear(ss.AmbientColor.r, ss.AmbientColor.g, ss.AmbientColor.b, 255)
-    render.OverrideAlphaWriteEnable(false)
-    render.PopRenderTarget()
 
     file.Delete(crashpath) -- Succeeded to make RTs and remove crash detection
 
     -- Checking ink map in data/
-    local path = string.format("splatoonsweps/%s.txt", game.GetMap())
-    local pathbsp = string.format("maps/%s.bsp", game.GetMap())
-    local inkCRCServer = GetGlobalString "SplatoonSWEPs: Ink map CRC"
-    local dataJSONCompressed = file.Read(path) or file.Read("data/" .. path, true) or ""
-    local dataJSON = util.Decompress(dataJSONCompressed) or ""
-    local dataTable = util.JSONToTable(dataJSON) or {}
-    local mapCRC = tonumber(util.CRC(file.Read(pathbsp, true)))
-    local inkCRC = util.CRC(dataJSONCompressed)
-    local isvalid = dataJSONCompressed ~= ""
-        and dataJSON ~= ""
-        and dataTable.MapCRC == mapCRC
-        and (ss.sp or inkCRC == inkCRCServer)
-        and dataTable.Revision == ss.MAPCACHE_REVISION
-    if ss.mp and not isvalid then -- Local ink cache ~= Ink cache from server
-        file.Rename(path, path .. ".txt")
-        dataJSONCompressed = file.Read("data/" .. path, true) or ""
-        dataJSON = util.Decompress(dataJSONCompressed) or ""
-        dataTable = util.JSONToTable(dataJSON) or {}
-        inkCRC = util.CRC(dataJSONCompressed)
-        isvalid = dataTable and dataTable.MapCRC == mapCRC and inkCRC == inkCRCServer
-        file.Rename(path .. ".txt", path)
+    local bspPath = string.format("maps/%s.bsp", game.GetMap())
+    local txtPath = string.format("splatoonsweps/%s.txt", game.GetMap())
+    local mapCRC = util.CRC(file.Read(bspPath, true))
+    local dataJSON = file.Read("data/" .. txtPath, "DOWNLOAD") or ""
+    local dataCRC = util.CRC(dataJSON) or ""
+    local dataCRCServer = GetGlobalString "SplatoonSWEPs: Ink map CRC"
+    if dataCRC ~= dataCRCServer then
+        dataJSON = file.Read(txtPath, "DATA") or ""
+        dataCRC = util.CRC(dataJSON) or ""
     end
 
-    if isvalid then ss.PrepareInkSurface(dataTable) return end
-    net.Start "SplatoonSWEPs: Redownload ink data"
-    net.SendToServer()
-    notification.AddProgress("SplatoonSWEPs: Redownload ink data", "Downloading ink map...")
+    local dataTable = util.JSONToTable(util.Decompress(dataJSON) or "") or {}
+    local isvalid = dataJSON ~= ""
+        and dataTable.MapCRC == mapCRC
+        and (ss.sp or dataCRC == dataCRCServer)
+        and dataTable.Revision == ss.MAPCACHE_REVISION
+
+    if not isvalid then -- Local ink cache ~= Ink cache from server
+        net.Start "SplatoonSWEPs: Redownload ink data"
+        net.SendToServer()
+        notification.AddProgress("SplatoonSWEPs: Redownload ink data", "Downloading ink map...")
+        return
+    end
+
+    ss.PrepareInkSurface(dataTable)
 end)
 
 -- Local player isn't considered by Trace.  This is a poor workaround.
