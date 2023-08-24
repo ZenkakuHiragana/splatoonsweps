@@ -74,6 +74,7 @@ local BuiltinTypeSizes = {
     Byte        = 1,
     Float       = 4,
     Long        = 4,
+    LongVector  = 12,
     SByte       = 1,
     Short       = 2,
     ShortVector = 6,
@@ -258,6 +259,12 @@ local StructureDefinitions = {
     },
     DISP_TRIS = "UShort",
     LIGHTING = "Raw",
+    LIGHTING_HDR = "Raw",
+    -- CUBEMAPS = {
+    --     size = 16,
+    --     "LongVector origin",
+    --     "Long       size",
+    -- },
     GAME_LUMP = {
         size = -1, -- Negative size means this is a single lump
         "Long        lumpCount",
@@ -280,7 +287,7 @@ local GameLumpContents = {
 -- arg should be one of the following:
 --   - String for one of these:
 --     - a call of File:Read%s(), e.g. "Long", "Float"
---     - Additional built-in types: "Vector", "ShortVector", "Angle", or "SByte" (signed byte)
+--     - Additional built-in types: "Vector", "ShortVector", "LongVector", "Angle", or "SByte" (signed byte)
 --     - "String" for null-terminated string
 --     - "String%d" for a null-terminated string but padded to %d bytes.
 --     - Structure name defined at StructureDefinitions
@@ -329,6 +336,11 @@ local function read(bsp, arg, ...)
         local x = bsp:ReadShort()
         local y = bsp:ReadShort()
         local z = bsp:ReadShort()
+        return Vector(x, y, z)
+    elseif arg == "LongVector" then
+        local x = bsp:ReadLong()
+        local y = bsp:ReadLong()
+        local z = bsp:ReadLong()
         return Vector(x, y, z)
     elseif arg:StartWith "String" then
         local str = ""

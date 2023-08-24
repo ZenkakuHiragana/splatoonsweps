@@ -479,3 +479,19 @@ function ss.GenerateSurfaces()
     print("    Generated surfaces for " .. #(ss.BSP.Raw.sprp.prop or {}) + #(funclod or {}) .. " static props.")
     print("Done!  Elapsed time: " .. elapsed .. " ms.")
 end
+
+-- function ss.GenerateCubemapTree()
+--     ss.Cubemaps = {}
+--     local path = "maps/" .. game.GetMap() .. "/c%d_%d_%d"
+--     for i, cubemap in ipairs(ss.BSP.Raw.CUBEMAPS) do
+--         local formatted = path:format(cubemap.origin.x, cubemap.origin.y, cubemap.origin.z)
+--         ss.Cubemaps[i] = {
+--             pos = cubemap.origin,
+--             ldr = formatted,
+--             hdr = formatted .. ".hdr",
+--         }
+--         if not file.Exists("materials/" .. ss.Cubemaps[i].hdr .. ".vtf", "GAME") then
+--             ss.Cubemaps[i].hdr = ss.Cubemaps[i].ldr
+--         end
+--     end
+-- end

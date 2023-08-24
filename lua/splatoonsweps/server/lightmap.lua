@@ -58,7 +58,7 @@ local CHANNEL_MAX = BYTES_PER_CHANNEL == 1 and 255    or 65535
 --    y' =  x ^ (1 / 2.2) * 2 ^ ((exp - 8) / 2.2) * 2^(-1) * 2^16
 --       =  x ^ (1 / 2.2) * 2 ^ ((exp - 8 + 15 * 2.2) / 2.2)
 --       = (x * 2 ^ (exp - 8 + 15 * 2.2)) ^ (1 / 2.2)
-local gammaInv, expConst = 1 / 2.2, -8 + 15 * 2.2
+local gammaInv, expConst = 1 / 2.2, -8 + (8 * BYTES_PER_CHANNEL - 1) * 2.2
 local function getRGB(r, g, b, exp)
     if exp > 127 then exp = exp - 256 end
     return clamp(round(pow(r * pow(2, exp + expConst), gammaInv)), 0, CHANNEL_MAX),
@@ -186,38 +186,10 @@ local function encode(width, height, data)
         .. "\x00\x00\x00\x00IEND\xAE\x42\x60\x82"
 end
 
-function ss.BuildLightmap()
-    for _, entities in ipairs(ss.BSP.Raw.ENTITIES) do
-        for k in entities:gmatch "{[^}]+}" do
-            local t = util.KeyValuesToTable("\"-\" " .. k)
-            if t.classname == "light_environment" then
-                local lightColor    = t._light:Split " "
-                local lightColorHDR = t._lighthdr:Split " "
-                local lightScaleHDR = t._lightscalehdr
-                for i = 1, 4 do
-                    lightColor[i]    = tonumber(lightColor[i])
-                    lightColorHDR[i] = tonumber(lightColorHDR[i])
-                    if lightColorHDR[i] and lightColorHDR[i] < 0 then
-                        lightColorHDR[i] = lightColor[i]
-                    end
-                end
-                ss.Lightmap.lightColor    = lightColor
-                ss.Lightmap.lightColorHDR = lightColorHDR
-                ss.Lightmap.lightScaleHDR = tonumber(lightScaleHDR) or 1
-                break
-            end
-        end
-    end
-
-    local samples = ss.BSP.Raw.LIGHTING
-    if not samples then return end
-    local rects = getLightmapBounds()
-    if #rects == 0 then return end
-
-    local packer = ss.MakeRectanglePacker(rects):packall()
-    local pngsize = packer.maxsize
-
+local function generatePNG(packer, samples)
     local bitmap = {}
+    local pngsize = packer.maxsize
+    if not samples then return end
     for _, index in ipairs(packer.results) do
         local rect = packer.rects[index]
         local surf = rect.tag
@@ -247,5 +219,35 @@ function ss.BuildLightmap()
         end
     end
 
-    ss.Lightmap.png = encode(pngsize, pngsize, bitmap)
+    return encode(pngsize, pngsize, bitmap)
+end
+
+function ss.BuildLightmap()
+    for _, entities in ipairs(ss.BSP.Raw.ENTITIES) do
+        for k in entities:gmatch "{[^}]+}" do
+            local t = util.KeyValuesToTable("\"-\" " .. k)
+            if t.classname == "light_environment" then
+                local lightColor    = t._light:Split " "
+                local lightColorHDR = t._lighthdr:Split " "
+                local lightScaleHDR = t._lightscalehdr
+                for i = 1, 4 do
+                    lightColor[i]    = tonumber(lightColor[i])
+                    lightColorHDR[i] = tonumber(lightColorHDR[i])
+                    if lightColorHDR[i] and lightColorHDR[i] < 0 then
+                        lightColorHDR[i] = lightColor[i]
+                    end
+                end
+                ss.Lightmap.lightColor    = lightColor
+                ss.Lightmap.lightColorHDR = lightColorHDR
+                ss.Lightmap.lightScaleHDR = tonumber(lightScaleHDR) or 1
+                break
+            end
+        end
+    end
+
+    local rects = getLightmapBounds()
+    if #rects == 0 then return end
+    local packer = ss.MakeRectanglePacker(rects):packall()
+    ss.Lightmap.ldr = generatePNG(packer, ss.BSP.Raw.LIGHTING)
+    ss.Lightmap.hdr = generatePNG(packer, ss.BSP.Raw.LIGHTING_HDR)
 end

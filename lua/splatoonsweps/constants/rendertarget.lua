@@ -33,6 +33,7 @@ return {
     },
     Name = {
         BaseTexture   = "splatoonsweps_basetexture",
+        Bumpmap       = "splatoonsweps_bumpmap",
         Lightmap      = "splatoonsweps_lightmap",
         RenderTarget  = "splatoonsweps_rendertarget",
         RTScope       = "splatoonsweps_rtscope",
@@ -40,6 +41,15 @@ return {
     },
     Flags = {
         BaseTexture = bit.bor(
+            TEXTUREFLAGS.NOMIP,
+            TEXTUREFLAGS.NOLOD,
+            TEXTUREFLAGS.ALL_MIPS,
+            TEXTUREFLAGS.PROCEDURAL,
+            TEXTUREFLAGS.RENDERTARGET,
+            TEXTUREFLAGS.NODEPTHBUFFER
+        ),
+        Bumpmap = bit.bor(
+            TEXTUREFLAGS.NORMAL,
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
             TEXTUREFLAGS.ALL_MIPS,

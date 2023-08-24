@@ -79,16 +79,87 @@ function ss.BuildInkMesh()
             textureUV[i]:Mul(ss.UnitsToUV)
             textureUV[i]:Add(surf.OffsetUV)
         end
+        
+        -- Straightly taken from https://github.com/CapsAdmin/pac3/pull/578/commits/43fa75c262cde661713cdaa9d1b09bc29ec796b4
+        -- Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”. Terathon Software, 2001. http://terathon.com/code/tangent.html
+        local tan1, tan2 = {}, {}
+        for i = 1, #surf.Triangles * 3 do
+            tan1[i] = Vector()
+            tan2[i] = Vector()
+        end
 
-        for _, t in ipairs(surf.Triangles) do
+        local tangents, tangentWeights = {}, {}
+        for i = 1, #surf.Triangles do
+            local p = {
+                v3[surf.Triangles[i][1]],
+                v3[surf.Triangles[i][2]],
+                v3[surf.Triangles[i][3]],
+            }
+            local u = {
+                textureUV[surf.Triangles[i][1]].x,
+                textureUV[surf.Triangles[i][2]].x,
+                textureUV[surf.Triangles[i][3]].x,
+            }
+            local v = {
+                textureUV[surf.Triangles[i][1]].y,
+                textureUV[surf.Triangles[i][2]].y,
+                textureUV[surf.Triangles[i][3]].y,
+            }
+            local p1, p2, p3 = p[1], p[2], p[3]
+            local u1, u2, u3 = u[1], u[2], u[3]
+            local v1, v2, v3 = v[1], v[2], v[3]
+
+            local x1 = p2.x - p1.x
+            local x2 = p3.x - p1.x
+            local y1 = p2.y - p1.y
+            local y2 = p3.y - p1.y
+            local z1 = p2.z - p1.z
+            local z2 = p3.z - p1.z
+
+            local s1 = u2 - u1
+            local s2 = u3 - u1
+            local t1 = v2 - v1
+            local t2 = v3 - v1
+
+            local r = 1 / (s1 * t2 - s2 * t1)
+            local sdir = Vector((t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r)
+            local tdir = Vector((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r)
+
+            tan1[(i - 1) * 3 + 1]:Add(sdir)
+            tan1[(i - 1) * 3 + 2]:Add(sdir)
+            tan1[(i - 1) * 3 + 3]:Add(sdir)
+            tan2[(i - 1) * 3 + 1]:Add(tdir)
+            tan2[(i - 1) * 3 + 2]:Add(tdir)
+            tan2[(i - 1) * 3 + 3]:Add(tdir)
+        end
+
+        for triangle_index, t in ipairs(surf.Triangles) do
             local n = (v3[t[1]] - v3[t[2]]):Cross(v3[t[3]] - v3[t[2]]):GetNormalized()
-            for _, i in ipairs(t) do
+            for vertex_index, i in ipairs(t) do
+                local j = (triangle_index - 1) * 3 + vertex_index
+                local ss = tan2[j]
+                local tt = tan1[j]
+                local tan = (tt - n * n:Dot(tt)):GetNormalized()
+                local bitan = (ss - n * n:Dot(ss)):GetNormalized()
+                local w = n:Cross(tt):Dot(ss) < 0 and -1 or 1
+
                 mesh.Normal(n)
+                mesh.UserData(tan.x, tan.y, tan.z, w)
+                mesh.TangentS(tan * w) -- These functions actually DOES something
+                mesh.TangentT(bitan)   -- in terms of bumpmap for LightmappedGeneric
                 mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
                 mesh.TexCoord(0, textureUV[i].x, textureUV[i].y)
+                local color = Color(255, 255, 255, 255)
                 if #lightmapUV > 0 then
                     mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
+                else
+                    mesh.TexCoord(1, 1, 1)
+                    local sample = render.GetLightColor(v3[i]) * 256
+                    color.r = math.Round(sample.x)
+                    color.g = math.Round(sample.y)
+                    color.b = math.Round(sample.z)
                 end
+                mesh.Color(color:Unpack())
                 mesh.AdvanceVertex()
             end
 
@@ -148,10 +219,11 @@ function ss.PrepareInkSurface(data)
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
 
-    file.Write("splatoonsweps/lightmap.png", ss.Lightmap.png)
+    file.Write("splatoonsweps/lightmap.png", render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr)
     local lightmap = Material("../data/splatoonsweps/lightmap.png", "smooth")
     if not lightmap:IsError() then
         rt.Lightmap = lightmap:GetTexture "$basetexture"
+        rt.Lightmap:Download()
     end
     if rt.Lightmap and render.GetHDREnabled() then -- If HDR lighting computation has been done
         local intensity = 128

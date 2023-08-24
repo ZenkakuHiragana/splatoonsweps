@@ -6,13 +6,16 @@ if not ss then return end
 local CVarWireframe = GetConVar "mat_wireframe"
 local CVarMinecraft = GetConVar "mat_showlowresimage"
 local inkmaterials = {}
+local inknormals = {}
 local rt = ss.RenderTarget
 local MAX_QUEUE_TIME = ss.FrameToSec
 local MAX_QUEUES_TOLERANCE = 5 -- Possible number of queues to be processed at once without losing FPS.
 for i = 1, 14 do
     inkmaterials[i] = {}
+    inknormals[i] = {}
     for j = 1, 4 do
         inkmaterials[i][j] = Material(string.format("splatoonsweps/inkshot/%d/%d.vmt", i, j))
+        inknormals[i][j] = Material(string.format("splatoonsweps/inkshot/%d/%dn.vmt", i, j))
     end
 end
 
@@ -25,12 +28,11 @@ local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
     for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
     render.OverrideDepthEnable(false)               -- Back to default
-
-    if not LocalPlayer():FlashlightIsOn() and #ents.FindByClass "*projectedtexture*" == 0 then return end
-    render.PushFlashlightMode(true)              -- Ink lit by player's flashlight or projected texture
-    render.SetMaterial(rt.Material)              -- Ink base texture
-    for _, m in ipairs(ss.IMesh) do m:Draw() end -- Draw once again
-    render.PopFlashlightMode()                   -- Back to default
+    render.RenderFlashlights(function()
+        render.SetMaterial(rt.Material)
+        render.SetLightmapTexture(rt.Lightmap or white)
+        for _, m in ipairs(ss.IMesh) do m:Draw() end
+    end)
 end
 
 local ceil, floor = math.ceil, math.floor
@@ -88,7 +90,7 @@ local function ProcessPaintQueue()
     local NumRepetition = 4
     local Painted = 0
     local BaseTexture = rt.BaseTexture
-    local Lightmap = rt.Lightmap
+    local Bumpmap = rt.Bumpmap
     local Clamp = math.Clamp
     local Lerp = Lerp
     local PaintQueue = ss.PaintQueue
@@ -112,6 +114,7 @@ local function ProcessPaintQueue()
             local alpha = Clamp(NumRepetition - q.done, 1, 4)
             if q.t > 12 then alpha = 1 end
             local inkmaterial = inkmaterials[q.t][alpha]
+            local inknormal = inknormals[q.t][alpha]
             local angle = q.surf.AnglesUV.roll + q.surf.AnglesUV.yaw - q.angle
 
             PushRenderTarget(BaseTexture)
@@ -120,6 +123,18 @@ local function ProcessPaintQueue()
             SetMaterial(inkmaterial)
             SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
             OverrideBlend(true, BLEND_ONE, BLEND_ZERO, BLENDFUNC_ADD, BLEND_ONE, BLEND_ONE, BLENDFUNC_ADD)
+            DrawTexturedRectRotated(q.center.x, q.center.y, q.width, q.height, angle)
+            OverrideBlend(false)
+            SetScissorRect(0, 0, 0, 0, false)
+            End2D()
+            PopRenderTarget()
+
+            PushRenderTarget(Bumpmap)
+            Start2D()
+            SetDrawColor(Color(255, 255, 255, 255))
+            SetMaterial(inknormal)
+            SetScissorRect(q.start.x, q.start.y, q.endpos.x, q.endpos.y, true)
+            OverrideBlend(true, BLEND_ONE, BLEND_ZERO, BLENDFUNC_ADD, BLEND_ONE, BLEND_ZERO, BLENDFUNC_ADD)
             DrawTexturedRectRotated(q.center.x, q.center.y, q.width, q.height, angle)
             OverrideBlend(false)
             SetScissorRect(0, 0, 0, 0, false)
@@ -157,6 +172,14 @@ function ss.ClearAllInk()
     render.ClearDepth()
     render.ClearStencil()
     render.Clear(0, 0, 0, 0)
+    render.OverrideAlphaWriteEnable(false)
+    render.PopRenderTarget()
+
+    render.PushRenderTarget(rt.Bumpmap)
+    render.OverrideAlphaWriteEnable(true, true)
+    render.ClearDepth()
+    render.ClearStencil()
+    render.Clear(128, 128, 255, 255)
     render.OverrideAlphaWriteEnable(false)
     render.PopRenderTarget()
 end
