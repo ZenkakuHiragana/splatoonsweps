@@ -228,10 +228,11 @@ function ss.BuildLightmap()
             local t = util.KeyValuesToTable("\"-\" " .. k)
             if t.classname == "light_environment" then
                 local lightColor    = t._light:Split " "
-                local lightColorHDR = t._lighthdr:Split " "
+                local lightColorHDR = t._lighthdr and t._lighthdr:Split " "
                 local lightScaleHDR = t._lightscalehdr
                 for i = 1, 4 do
-                    lightColor[i]    = tonumber(lightColor[i])
+                    lightColor[i] = tonumber(lightColor[i])
+                    if not lightColorHDR then continue end
                     lightColorHDR[i] = tonumber(lightColorHDR[i])
                     if lightColorHDR[i] and lightColorHDR[i] < 0 then
                         lightColorHDR[i] = lightColor[i]
