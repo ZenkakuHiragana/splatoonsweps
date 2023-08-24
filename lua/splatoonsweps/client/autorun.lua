@@ -73,21 +73,36 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         CREATERENDERTARGETFLAGS_HDR,
         IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
     )
+    rt.Bumpmap = GetRenderTargetEx(
+        rt.Name.Bumpmap,
+        rtsize, rtsize,
+        RT_SIZE_LITERAL,
+        MATERIAL_RT_DEPTH_NONE,
+        rt.Flags.Bumpmap,
+        CREATERENDERTARGETFLAGS_HDR,
+        IMAGE_FORMAT_RGBA8888 -- 8192x8192, 256MB
+    )
     rtsize = math.min(rt.BaseTexture:Width(), rt.BaseTexture:Height())
     rt.Material = CreateMaterial(
         rt.Name.RenderTarget,
-        "LightmappedGeneric",
-        {
-            ["$basetexture"] = rt.Name.BaseTexture,
-            ["$nolod"] = "1",
-            ["$alpha"] = "1", -- system.IsLinux() and "1" or "0.9",
-            ["$alphatest"] = "1",
-            ["$alphatestreference"] = "0.0625",
-
-            ["$detail"]             = rt.BaseTexture,
-            ["$detailscale"]        = 1,
-            ["$detailblendmode"]    = 5,
-            ["$detailblendfactor"]  = 1, -- Increase this for bright ink in night maps
+        "LightmappedGeneric", {
+            ["$basetexture"]                 = rt.Name.BaseTexture,
+            ["$bumpmap"]                     = rt.Name.Bumpmap,
+            ["$vertexcolor"]                 = "1",
+            ["$nolod"]                       = "1",
+            ["$alpha"]                       = "1", -- system.IsLinux() and "1" or "0.9",
+            ["$alphatest"]                   = "1",
+            ["$alphatestreference"]          = "0.0625",
+            ["$phong"]                       = "1",
+            ["$phongexponent"]               = "128",
+            ["$phongamount"]                 = "[1 1 1 1]",
+            ["$phongmaskcontrastbrightness"] = "[2 .7]",
+            ["$envmap"]                      = "shadertest/shadertest_env",
+            ["$envmaptint"]                  = "[0.03125 0.03125 0.03125]",
+            -- ["$detail"]                      = rt.BaseTexture,
+            -- ["$detailscale"]                 = 1,
+            -- ["$detailblendmode"]             = 5,
+            -- ["$detailblendfactor"]           = 1, -- Increase this for bright ink in night maps
         }
     )
 

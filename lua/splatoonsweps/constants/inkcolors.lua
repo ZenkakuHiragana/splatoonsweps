@@ -56,5 +56,5 @@ return {
     [BLACK]             = {0, 0, .125,  BLACK},
     [GRAY]              = {0, 0, .5,    GRAY},
     [LIGHT_GRAY]        = {0, 0, .75,   LIGHT_GRAY},
-    [WHITE]             = {0, 0, 1,     WHITE},
+    [WHITE]             = {0, 0, .875,  WHITE},
 }
