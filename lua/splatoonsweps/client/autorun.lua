@@ -21,6 +21,7 @@ SplatoonSWEPs = SplatoonSWEPs or {
     PlayerHullChanged = {},
     PlayerShouldResetCamera = {},
     RenderTarget = {},
+    SurfaceArray = {},
     WaterMesh = {},
     WaterSurfaces = {},
     WeaponRecord = {},

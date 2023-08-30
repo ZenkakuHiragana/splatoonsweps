@@ -158,6 +158,7 @@ local StructureDefinitions = {
         "UShort firstPrimitiveID",
         "ULong  smoothingGroups",
     },
+    FACES_HDR = "FACES",
     -- ORIGINALFACES = "FACES",
     -- BRUSHES = {
     --     size = 4 + 4 + 4,

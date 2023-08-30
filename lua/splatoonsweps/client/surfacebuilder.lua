@@ -215,16 +215,39 @@ function ss.PrepareInkSurface(data)
 
     ss.Lightmap = data.Lightmap
     ss.MinimapAreaBounds = ss.DesanitizeJSONLimit(data.MinimapAreaBounds)
-    ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
+    local ldr = ss.DesanitizeJSONLimit(data.SurfaceArrayLDR)
+    local hdr = ss.DesanitizeJSONLimit(data.SurfaceArrayHDR)
+    local details = ss.DesanitizeJSONLimit(data.SurfaceArrayDetails)
+    local isusinghdr = false
+    if render.GetHDREnabled() then
+        isusinghdr = #hdr > 0 and ss.Lightmap.hdr and #ss.Lightmap.hdr > 0
+    else
+        isusinghdr = not (#ldr > 0 and ss.Lightmap.ldr and #ss.Lightmap.ldr > 0)
+    end
+
+    if isusinghdr then
+        ss.SurfaceArray, hdr, ldr = hdr, nil, nil
+    else
+        ss.SurfaceArray, hdr, ldr = ldr, nil, nil
+    end
+    table.Add(ss.SurfaceArray, details)
+
     ss.WaterSurfaces = ss.DesanitizeJSONLimit(data.WaterSurfaces)
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
 
-    file.Write("splatoonsweps/lightmap.png", render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr)
-    local lightmap = Material("../data/splatoonsweps/lightmap.png", "smooth")
+    local lightmap = render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr
+    file.Write("splatoonsweps/lightmap.png", lightmap)
+    if lightmap and #lightmap > 0 then
+        lightmap = Material("../data/splatoonsweps/lightmap.png", "smooth")
+    else
+        lightmap = Material "grey"
+    end
+
     if not lightmap:IsError() then
         rt.Lightmap = lightmap:GetTexture "$basetexture"
         rt.Lightmap:Download()
     end
+
     if rt.Lightmap and render.GetHDREnabled() then -- If HDR lighting computation has been done
         local intensity = 128
         if ss.Lightmap.lightColor then -- If there is light_environment

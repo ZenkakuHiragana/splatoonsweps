@@ -438,31 +438,31 @@ local function buildStaticProp(prop)
     return buildFaceFromPhysObj(ph, prop.origin, prop.angle)
 end
 
-local function addSurface(surf)
+local function addSurface(surf, output)
     if not surf then return end
     if surf.IsWaterSurface then
-        surf.Index = #ss.WaterSurfaces + 1
         ss.WaterSurfaces[#ss.WaterSurfaces + 1] = surf
     else
-        surf.Index = #ss.SurfaceArray + 1
-        ss.SurfaceArray[#ss.SurfaceArray + 1] = surf
+        output[#output + 1] = surf
     end
 end
 
 function ss.GenerateSurfaces()
     local t0 = SysTime()
     print "Generating inkable surfaces..."
-    ss.SurfaceArray = {}
-    ss.WaterSurfaces = {}
-    for i, face in ipairs(ss.BSP.Raw.FACES) do
-        addSurface(buildFace(i, face))
+    for i, face in ipairs(ss.BSP.Raw.FACES or {}) do
+        addSurface(buildFace(i, face), ss.SurfaceArrayLDR)
     end
+    print("    Generated " .. #ss.BSP.Raw.FACES .. " surfaces for LDR.")
+    for i, face in ipairs(ss.BSP.Raw.FACES_HDR or {}) do
+        addSurface(buildFace(i, face), ss.SurfaceArrayHDR)
+    end
+    print("    Generated " .. #ss.BSP.Raw.FACES_HDR .. " surfaces for HDR.")
 
-    print("    Generated " .. #ss.BSP.Raw.FACES .. " surfaces.")
     print "Generating static prop surfaces..."
     for _, prop in ipairs(ss.BSP.Raw.sprp.prop or {}) do
         for _, surf in ipairs(buildStaticProp(prop) or {}) do
-            addSurface(surf)
+            addSurface(surf, ss.SurfaceArrayDetails)
         end
     end
 
@@ -470,7 +470,7 @@ function ss.GenerateSurfaces()
     for _, prop in ipairs(funclod) do
         local ph = prop:GetPhysicsObject()
         for _, surf in ipairs(buildFaceFromPhysObj(ph) or {}) do
-            addSurface(surf)
+            addSurface(surf, ss.SurfaceArrayDetails)
         end
     end
 

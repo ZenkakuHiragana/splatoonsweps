@@ -19,18 +19,18 @@ for i = 1, 14 do
     end
 end
 
-local white = Material "color":GetTexture "$basetexture"
+local grey = Material "grey":GetTexture "$basetexture"
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
     render.SetMaterial(rt.Material)                 -- Ink base texture
-    render.SetLightmapTexture(rt.Lightmap or white) -- Set custom lightmap
+    render.SetLightmapTexture(rt.Lightmap or grey) -- Set custom lightmap
     render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
     for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
     render.OverrideDepthEnable(false)               -- Back to default
     render.RenderFlashlights(function()
         render.SetMaterial(rt.Material)
-        render.SetLightmapTexture(rt.Lightmap or white)
+        render.SetLightmapTexture(rt.Lightmap or grey)
         for _, m in ipairs(ss.IMesh) do m:Draw() end
     end)
 end

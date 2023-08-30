@@ -19,6 +19,9 @@ SplatoonSWEPs = SplatoonSWEPs or {
     PlayerShouldResetCamera = {},
     PlayersReady = {},
     SurfaceArray = {},
+    SurfaceArrayLDR = {},
+    SurfaceArrayHDR = {},
+    SurfaceArrayDetails = {},
     RenderTarget = {},
     WeaponRecord = {},
     WaterSurfaces = {},
@@ -190,14 +193,28 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         data.Revision = ss.MAPCACHE_REVISION
         data.Lightmap = ss.Lightmap
         data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
-        data.SurfaceArray = ss.SanitizeJSONLimit(ss.SurfaceArray)
+        data.SurfaceArrayLDR = ss.SanitizeJSONLimit(ss.SurfaceArrayLDR or {})
+        data.SurfaceArrayHDR = ss.SanitizeJSONLimit(ss.SurfaceArrayHDR or {})
+        data.SurfaceArrayDetails = ss.SanitizeJSONLimit(ss.SurfaceArrayDetails or {})
         data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
         file.Write(txtPath, util.Compress(util.TableToJSON(data)))
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
     else
-        ss.SurfaceArray = ss.DesanitizeJSONLimit(data.SurfaceArray)
+        ss.SurfaceArrayLDR = ss.DesanitizeJSONLimit(data.SurfaceArrayLDR)
+        ss.SurfaceArrayHDR = ss.DesanitizeJSONLimit(data.SurfaceArrayHDR)
+        ss.SurfaceArrayDetails = ss.DesanitizeJSONLimit(data.SurfaceArrayDetails)
     end
+
+    if #ss.SurfaceArrayHDR > 0 then
+        ss.SurfaceArray, ss.SurfaceArrayHDR = ss.SurfaceArrayHDR, nil
+    else
+        ss.SurfaceArray, ss.SurfaceArrayLDR = ss.SurfaceArrayLDR, nil
+    end
+    table.Add(ss.SurfaceArray, ss.SurfaceArrayDetails)
+    ss.SurfaceArrayLDR = nil
+    ss.SurfaceArrayHDR = nil
+    ss.SurfaceArrayDetails = nil
 
     collectgarbage "collect"
 

@@ -4,16 +4,25 @@ if not ss then return end
 
 local ipairs = ipairs
 local marginInLuxels = 1
-local function getLightmapBounds()
+local function getLightmapBounds(ishdr)
     local out = {}
-    for _, surf in ipairs(ss.SurfaceArray) do
-        local li = surf.LightmapInfo
-        if not li.Available then continue end
-        if li.SampleOffset < 0 then continue end
-        local width = li.SizeInLuxels.x + 1 + marginInLuxels * 2
-        local height = li.SizeInLuxels.y + 1 + marginInLuxels * 2
-        out[#out + 1] = ss.MakeRectangle(width, height, 0, 0, surf)
+    local function add(src)
+        for _, surf in ipairs(src) do
+            local li = surf.LightmapInfo
+            if not li.Available then continue end
+            if li.SampleOffset < 0 then continue end
+            local width = li.SizeInLuxels.x + 1 + marginInLuxels * 2
+            local height = li.SizeInLuxels.y + 1 + marginInLuxels * 2
+            out[#out + 1] = ss.MakeRectangle(width, height, 0, 0, surf)
+        end
     end
+
+    if ishdr then
+        add(#ss.SurfaceArrayHDR > 0 and ss.SurfaceArrayHDR or ss.SurfaceArrayLDR)
+    else
+        add(#ss.SurfaceArrayLDR > 0 and ss.SurfaceArrayLDR or ss.SurfaceArrayHDR)
+    end
+    add(ss.SurfaceArrayDetails)
 
     return out
 end
@@ -246,9 +255,14 @@ function ss.BuildLightmap()
         end
     end
 
-    local rects = getLightmapBounds()
-    if #rects == 0 then return end
-    local packer = ss.MakeRectanglePacker(rects):packall()
-    ss.Lightmap.ldr = generatePNG(packer, ss.BSP.Raw.LIGHTING)
-    ss.Lightmap.hdr = generatePNG(packer, ss.BSP.Raw.LIGHTING_HDR)
+    local rectsldr = getLightmapBounds(false)
+    local rectshdr = getLightmapBounds(true)
+    if #rectsldr > 0 then
+        local packer = ss.MakeRectanglePacker(rectsldr):packall()
+        ss.Lightmap.ldr = generatePNG(packer, ss.BSP.Raw.LIGHTING)
+    end
+    if #rectshdr > 0 then
+        local packer = ss.MakeRectanglePacker(rectshdr):packall()
+        ss.Lightmap.hdr = generatePNG(packer, ss.BSP.Raw.LIGHTING_HDR)
+    end
 end
