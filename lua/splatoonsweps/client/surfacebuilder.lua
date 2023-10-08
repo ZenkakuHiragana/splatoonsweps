@@ -6,8 +6,6 @@ if not ss then return end
 -- local IMAGE_FORMAT_BGRA4444 = 19
 local rt = ss.RenderTarget
 local MAX_TRIANGLES = math.floor(32768 / 3) -- mesh library limitation
-local INK_SURFACE_DELTA_NORMAL = .8 -- Distance between map surface and ink mesh
-if ss.SplatoonMapPorts[game.GetMap()] then INK_SURFACE_DELTA_NORMAL = 2 end
 function ss.BuildInkMesh()
     local rects = {}
     local NumMeshTriangles = 0
@@ -145,16 +143,16 @@ function ss.BuildInkMesh()
 
                 mesh.Normal(n)
                 mesh.UserData(tan.x, tan.y, tan.z, w)
-                mesh.TangentS(tan * w) -- These functions actually DOES something
+                mesh.TangentS(tan * w) -- These functions actually DO something
                 mesh.TangentT(bitan)   -- in terms of bumpmap for LightmappedGeneric
-                mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
+                mesh.Position(v3[i])
                 mesh.TexCoord(0, textureUV[i].x, textureUV[i].y)
                 local color = Color(255, 255, 255, 255)
                 if #lightmapUV > 0 then
                     mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
                 else
                     mesh.TexCoord(1, 1, 1)
-                    local sample = render.GetLightColor(v3[i]) * 256
+                    local sample = render.GetLightColor(v3[i]) * 256 / 4
                     color.r = math.Round(sample.x)
                     color.g = math.Round(sample.y)
                     color.b = math.Round(sample.z)
@@ -196,7 +194,7 @@ function ss.BuildWaterMesh()
             local n = (v3[t[1]] - v3[t[2]]):Cross(v3[t[3]] - v3[t[2]]):GetNormalized()
             for _, i in ipairs(t) do
                 mesh.Normal(n)
-                mesh.Position(v3[i] + n * INK_SURFACE_DELTA_NORMAL)
+                mesh.Position(v3[i])
                 mesh.TexCoord(0, v3[i].x, v3[i].y)
                 mesh.TexCoord(1, v3[i].x, v3[i].y)
                 mesh.AdvanceVertex()

@@ -25,14 +25,14 @@ local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if not rt.Ready or bDrawingSkybox or CVarWireframe:GetBool() or CVarMinecraft:GetBool() then return end
     render.SetMaterial(rt.Material)                 -- Ink base texture
     render.SetLightmapTexture(rt.Lightmap or grey) -- Set custom lightmap
-    render.OverrideDepthEnable(true, true)          -- Write to depth buffer for translucent surface culling
+    render.DepthRange(0, 65534 / 65535)
     for _, m in ipairs(ss.IMesh) do m:Draw() end    -- Draw ink surface
-    render.OverrideDepthEnable(false)               -- Back to default
     render.RenderFlashlights(function()
         render.SetMaterial(rt.Material)
         render.SetLightmapTexture(rt.Lightmap or grey)
         for _, m in ipairs(ss.IMesh) do m:Draw() end
     end)
+    render.DepthRange(0, 1)
 end
 
 local ceil, floor = math.ceil, math.floor
