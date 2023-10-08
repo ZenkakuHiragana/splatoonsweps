@@ -59,7 +59,7 @@ function ss.CollectSurfaces(mins, maxs, normal)
         for h in hashpairs(mins - vector_tenth, maxs + vector_tenth) do
             for _, i in ipairs(ss.SurfaceHash and ss.SurfaceHash[h] or {}) do
                 local s = ss.SurfaceArray[i]
-                if dot(s.Normal, normal) > MAX_COS_DIFF then yield(s) end
+                if s.IsSmallProp or dot(s.Normal, normal) > MAX_COS_DIFF then yield(s) end
             end
         end
     end)

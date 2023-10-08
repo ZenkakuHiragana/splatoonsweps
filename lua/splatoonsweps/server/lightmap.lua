@@ -232,6 +232,8 @@ local function generatePNG(packer, samples)
 end
 
 function ss.BuildLightmap()
+    local t0 = SysTime()
+    print "Packing lightmap..."
     for _, entities in ipairs(ss.BSP.Raw.ENTITIES) do
         for k in entities:gmatch "{[^}]+}" do
             local t = util.KeyValuesToTable("\"-\" " .. k)
@@ -257,12 +259,20 @@ function ss.BuildLightmap()
 
     local rectsldr = getLightmapBounds(false)
     local rectshdr = getLightmapBounds(true)
+    local elapsed = math.Round((SysTime() - t0) * 1000, 2)
+    print("    Collected surfaces in " .. elapsed .. " ms.")
     if #rectsldr > 0 then
+        t0 = SysTime()
         local packer = ss.MakeRectanglePacker(rectsldr):packall()
         ss.Lightmap.ldr = generatePNG(packer, ss.BSP.Raw.LIGHTING)
+        elapsed = math.Round((SysTime() - t0) * 1000, 2)
+        print("    Packed LDR lightmap in " .. elapsed .. " ms.")
     end
     if #rectshdr > 0 then
+        t0 = SysTime()
         local packer = ss.MakeRectanglePacker(rectshdr):packall()
         ss.Lightmap.hdr = generatePNG(packer, ss.BSP.Raw.LIGHTING_HDR)
+        elapsed = math.Round((SysTime() - t0) * 1000, 2)
+        print("    Packed HDR lightmap in " .. elapsed .. " ms.")
     end
 end

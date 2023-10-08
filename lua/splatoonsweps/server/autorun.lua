@@ -180,7 +180,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
 
     local bspPath = string.format("maps/%s.bsp", game.GetMap())
     local txtPath = string.format("splatoonsweps/%s.txt", game.GetMap())
-    local data = util.JSONToTable(util.Decompress(file.Read(txtPath) or "") or "") or {}
+    local data = util.JSONToTable(util.Decompress(file.Read(txtPath) or "") or "", true) or {}
     local mapCRC = util.CRC(file.Read(bspPath, true))
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
     if data.MapCRC ~= mapCRC or data.Revision ~= ss.MAPCACHE_REVISION then
@@ -192,18 +192,18 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
         data.MapCRC = mapCRC
         data.Revision = ss.MAPCACHE_REVISION
         data.Lightmap = ss.Lightmap
-        data.MinimapAreaBounds = ss.SanitizeJSONLimit(ss.MinimapAreaBounds)
-        data.SurfaceArrayLDR = ss.SanitizeJSONLimit(ss.SurfaceArrayLDR or {})
-        data.SurfaceArrayHDR = ss.SanitizeJSONLimit(ss.SurfaceArrayHDR or {})
-        data.SurfaceArrayDetails = ss.SanitizeJSONLimit(ss.SurfaceArrayDetails or {})
-        data.WaterSurfaces = ss.SanitizeJSONLimit(ss.WaterSurfaces)
+        data.MinimapAreaBounds = ss.MinimapAreaBounds
+        data.SurfaceArrayLDR = ss.SurfaceArrayLDR
+        data.SurfaceArrayHDR = ss.SurfaceArrayHDR
+        data.SurfaceArrayDetails = ss.SurfaceArrayDetails
+        data.WaterSurfaces = ss.WaterSurfaces
         file.Write(txtPath, util.Compress(util.TableToJSON(data)))
         local total = math.Round((SysTime() - t0) * 1000, 2)
         print("Finished!  Total construction time: " .. total .. " ms.\n")
     else
-        ss.SurfaceArrayLDR = ss.DesanitizeJSONLimit(data.SurfaceArrayLDR)
-        ss.SurfaceArrayHDR = ss.DesanitizeJSONLimit(data.SurfaceArrayHDR)
-        ss.SurfaceArrayDetails = ss.DesanitizeJSONLimit(data.SurfaceArrayDetails)
+        ss.SurfaceArrayLDR = data.SurfaceArrayLDR
+        ss.SurfaceArrayHDR = data.SurfaceArrayHDR
+        ss.SurfaceArrayDetails = data.SurfaceArrayDetails
     end
 
     if #ss.SurfaceArrayHDR > 0 then

@@ -99,7 +99,8 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$phongamount"]                 = "[1 1 1 1]",
             ["$phongmaskcontrastbrightness"] = "[2 .7]",
             ["$envmap"]                      = "shadertest/shadertest_env",
-            ["$envmaptint"]                  = "[0.03125 0.03125 0.03125]",
+            ["$envmaptint"]                  = "[1 1 1]",
+            ["$color"]                       = "[1 1 1]",
             -- ["$detail"]                      = rt.BaseTexture,
             -- ["$detailscale"]                 = 1,
             -- ["$detailblendmode"]             = 5,
@@ -121,7 +122,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         dataCRC = util.CRC(dataJSON) or ""
     end
 
-    local dataTable = util.JSONToTable(util.Decompress(dataJSON) or "") or {}
+    local dataTable = util.JSONToTable(util.Decompress(dataJSON) or "", true) or {}
     local isvalid = dataJSON ~= ""
         and dataTable.MapCRC == mapCRC
         and (ss.sp or dataCRC == dataCRCServer)

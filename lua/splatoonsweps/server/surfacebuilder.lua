@@ -4,11 +4,10 @@ if not ss then return end
 
 ss.class "PaintableSurface" {
     Angles         = Angle(),
-    Contents       = CONTENTS_EMPTY,
     GridSize       = Vector(),
-    Index          = 0,
     InkColorGrid   = {}, -- number[x * 32768 + y]
     IsDisplacement = false,
+    IsSmallProp    = false,
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
@@ -158,6 +157,18 @@ local function get2DComponents(surf)
     surf.GridSize = Vector(math.floor(gridsize.x), math.floor(gridsize.y))
 end
 
+local MaterialCache = {}
+local function getMaterial(name)
+    if not MaterialCache[name] then MaterialCache[name] = Material(name) end
+    return MaterialCache[name]
+end
+
+local ModelMeshCache = {}
+local function getModelMeshes(name)
+    if not ModelMeshCache[name] then ModelMeshCache[name] = util.GetModelMeshes(name) end
+    return ModelMeshCache[name]
+end
+
 local TextureFilterBits = bit.bor(
     SURF_SKY, SURF_NOPORTAL, SURF_TRIGGER,
     SURF_NODRAW, SURF_HINT, SURF_SKIP)
@@ -174,7 +185,7 @@ local function buildFace(faceindex, rawFace)
     local texOffset    = rawTexDict[texData.nameStringTableID + 1]
     local texIndex     = rawTexIndex[texOffset]
     local texName      = rawTexString[texIndex]:lower()
-    local texMaterial  = Material(texName)
+    local texMaterial  = getMaterial(texName)
     if bit.band(texInfo.flags, TextureFilterBits) ~= 0 then return end
     if texMaterial:GetString "$surfaceprop" == "metalgrate" then return end
     if texName:find "tools/" then return end
@@ -220,7 +231,6 @@ local function buildFace(faceindex, rawFace)
 
     local surf = ss.class "PaintableSurface"
     surf.Angles         = normal:Angle()
-    surf.Contents       = contents
     surf.IsDisplacement = isDisplacement
     surf.IsWaterSurface = tobool(isWater)
     surf.maxs           = maxs
@@ -327,92 +337,138 @@ local function buildFace(faceindex, rawFace)
     return surf
 end
 
-local MIN_NORMAL_LENGTH_SQR = 1
+local abs = math.abs
+local angle_zero = angle_zero
+local class = ss.class
+local huge = math.huge
+local LocalToWorld = LocalToWorld
+local OrderVectors = OrderVectors
+local pairs = pairs
+local table_insert = table.insert
+local Vector = Vector
+local vector_one = ss.vector_one
+local vector_origin = vector_origin
 local PROJECTION_NORMALS = {
-    Vector( 1,  0,  0),
-    Vector( 0,  1,  0),
-    Vector( 0,  0,  1),
-    Vector(-1,  0,  0),
-    Vector( 0, -1,  0),
-    Vector( 0,  0, -1),
+    ["x+"] = Vector( 1,  0,  0),
+    ["y+"] = Vector( 0,  1,  0),
+    ["z+"] = Vector( 0,  0,  1),
+    ["x-"] = Vector(-1,  0,  0),
+    ["y-"] = Vector( 0, -1,  0),
+    ["z-"] = Vector( 0,  0, -1),
 }
-local function processStaticPropConvex(origin, angle, contents, phys)
-    local surfaces = {}
-    local maxs_all = {}
-    local mins_all = {}
-    for _, n in ipairs(PROJECTION_NORMALS) do
-        surfaces[tostring(n)] = ss.class "PaintableSurface"
-        maxs_all[tostring(n)] = ss.vector_one * -math.huge
-        mins_all[tostring(n)] = ss.vector_one * math.huge
-    end
+local PROJECTION_ANGLES = {
+    ["x+"] = PROJECTION_NORMALS["x+"]:Angle(),
+    ["y+"] = PROJECTION_NORMALS["y+"]:Angle(),
+    ["z+"] = PROJECTION_NORMALS["z+"]:Angle(),
+    ["x-"] = PROJECTION_NORMALS["x-"]:Angle(),
+    ["y-"] = PROJECTION_NORMALS["y-"]:Angle(),
+    ["z-"] = PROJECTION_NORMALS["z-"]:Angle(),
+}
+local function processStaticPropConvex(origin, angle, triangles)
+    local surfaces = {
+        ["x+"] = class "PaintableSurface",
+        ["y+"] = class "PaintableSurface",
+        ["z+"] = class "PaintableSurface",
+        ["x-"] = class "PaintableSurface",
+        ["y-"] = class "PaintableSurface",
+        ["z-"] = class "PaintableSurface",
+    }
+    local maxs_all = {
+        ["x+"] = -vector_one * huge,
+        ["y+"] = -vector_one * huge,
+        ["z+"] = -vector_one * huge,
+        ["x-"] = -vector_one * huge,
+        ["y-"] = -vector_one * huge,
+        ["z-"] = -vector_one * huge,
+    }
+    local mins_all = {
+        ["x+"] = vector_one * huge,
+        ["y+"] = vector_one * huge,
+        ["z+"] = vector_one * huge,
+        ["x-"] = vector_one * huge,
+        ["y-"] = vector_one * huge,
+        ["z-"] = vector_one * huge,
+    }
 
-    for i = 1, #phys, 3 do
-        local v1 = LocalToWorld(phys[i    ].pos, angle_zero, origin, angle)
-        local v2 = LocalToWorld(phys[i + 1].pos, angle_zero, origin, angle)
-        local v3 = LocalToWorld(phys[i + 2].pos, angle_zero, origin, angle)
-        local v2v1 = v1 - v2
-        local v2v3 = v3 - v2
-        local n = v2v1:Cross(v2v3) -- normal around v1<-v2->v3
-        if n:LengthSqr() < MIN_NORMAL_LENGTH_SQR then continue end -- normal is valid then
-        n:Normalize()
-
-        -- Find proper plane for projection
-        local plane_index, max_dot = 1, -1
-        for k, pn in ipairs(PROJECTION_NORMALS) do
-            local dot = n:Dot(pn)
-            if dot > max_dot then
-                plane_index = k
-                max_dot = dot
-            end
+    for i = 1, #triangles, 3 do
+        local v1 = LocalToWorld(triangles[i    ].pos, angle_zero, origin, angle)
+        local v2 = LocalToWorld(triangles[i + 1].pos, angle_zero, origin, angle)
+        local v3 = LocalToWorld(triangles[i + 2].pos, angle_zero, origin, angle)
+        local n = (triangles[i].normal or Vector())
+            + (triangles[i + 1].normal or Vector())
+            + (triangles[i + 2].normal or Vector())
+        if n:IsZero() then
+            local v2v1 = v1 - v2
+            local v2v3 = v3 - v2
+            n = v2v1:Cross(v2v3) -- normal around v1<-v2->v3
+            if n:LengthSqr() < 1 then continue end -- normal is valid then
+        else
+            n = LocalToWorld(n, angle_zero, vector_origin, angle)
         end
 
-        local pn = PROJECTION_NORMALS[plane_index]
-        maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v1)
-        maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v2)
-        maxs_all[tostring(pn)] = ss.MaxVector(maxs_all[tostring(pn)], v3)
-        mins_all[tostring(pn)] = ss.MinVector(mins_all[tostring(pn)], v1)
-        mins_all[tostring(pn)] = ss.MinVector(mins_all[tostring(pn)], v2)
-        mins_all[tostring(pn)] = ss.MinVector(mins_all[tostring(pn)], v3)
+        -- Find proper plane for projection
+        local nx, ny, nz, plane_index = abs(n.x), abs(n.y), abs(n.z)
+        if nx > ny and nx > nz then
+            plane_index = n.x > 0 and "x+" or "x-"
+        elseif ny > nx and ny > nz then
+            plane_index = n.y > 0 and "y+" or "y-"
+        else
+            plane_index = n.z > 0 and "z+" or "z-"
+        end
 
-        local surf = surfaces[tostring(pn)]
-        surf.Angles = pn:Angle()
-        surf.Contents = contents
-        surf.Normal = pn
+        OrderVectors(Vector(v1), maxs_all[plane_index])
+        OrderVectors(Vector(v2), maxs_all[plane_index])
+        OrderVectors(Vector(v3), maxs_all[plane_index])
+        OrderVectors(mins_all[plane_index], Vector(v1))
+        OrderVectors(mins_all[plane_index], Vector(v2))
+        OrderVectors(mins_all[plane_index], Vector(v3))
+
+        local surf = surfaces[plane_index]
         surf.Origin:Add(v1 + v2 + v3)
-        table.Add(surf.Vertices3D, { v1, v2, v3 })
-        table.insert(surf.Triangles, {
+        surf.Vertices3D[#surf.Vertices3D + 1] = v1
+        surf.Vertices3D[#surf.Vertices3D + 1] = v2
+        surf.Vertices3D[#surf.Vertices3D + 1] = v3
+        table_insert(surf.Triangles, {
             #surf.Vertices3D - 2,
             #surf.Vertices3D - 1,
             #surf.Vertices3D,
         })
     end
 
-    for _, n in ipairs(PROJECTION_NORMALS) do
-        local surf = surfaces[tostring(n)]
+    for k, n in pairs(PROJECTION_NORMALS) do
+        local surf = surfaces[k]
         if #surf.Vertices3D < 3 then continue end
         surf.Origin:Div(#surf.Vertices3D)
-        surf.maxs = maxs_all[tostring(n)]
-        surf.mins = mins_all[tostring(n)]
+        surf.maxs = maxs_all[k]
+        surf.mins = mins_all[k]
+        surf.Angles = PROJECTION_ANGLES[k]
+        surf.Normal = n
         get2DComponents(surf)
     end
 
     return surfaces
 end
 
-local function buildFaceFromPhysObj(ph, org, ang)
+local function buildFacesFromPropMesh(ph, name, org, ang)
     if not IsValid(ph) then return end
-
     local mat = ph:GetMaterial()
     if mat:find "chain" or mat:find "grate" then return end
 
-    -- local meshes = util.GetModelMeshes(name)
-    local meshes = ph:GetMeshConvexes()
+    local meshes = name and getModelMeshes(name) or ph:GetMeshConvexes()
     if not meshes or #meshes == 0 then return end
 
     local surfaces = {}
+    org, ang = org or ph:GetPos(), ang or ph:GetAngles()
     for _, t in ipairs(meshes) do
-        for _, surf in pairs(processStaticPropConvex(
-            org or ph:GetPos(), ang or ph:GetAngles(), ph:GetContents(), t)) do
+        if t.material then
+            local m = getMaterial(t.material)
+            if m then
+                if m:IsError() then continue end
+                if (m:GetInt "$translucent" or 0) ~= 0 then continue end
+                if (m:GetInt "$alphatest" or 0) ~= 0 then continue end
+            end
+        end
+        for _, surf in pairs(processStaticPropConvex(org, ang, t.triangles or t)) do
             if #surf.Vertices3D < 3 then continue end
             surfaces[#surfaces + 1] = surf
         end
@@ -421,29 +477,83 @@ local function buildFaceFromPhysObj(ph, org, ang)
     return surfaces
 end
 
+local function buildStaticPropSurface(ph, name, origin, angle, mins, maxs)
+    if IsValid(ph) then
+       local mat = ph:GetMaterial()
+       if mat:find "chain" or mat:find "grate" then return end
+    end
+
+    local surf = class "PaintableSurface"
+    local meshes = getModelMeshes(name)
+    surf.Angles = angle
+    surf.Boundary2D = Vector()
+    surf.IsSmallProp = true
+    surf.Origin = origin
+    surf.maxs = LocalToWorld(maxs, angle_zero, origin, angle)
+    surf.mins = LocalToWorld(mins, angle_zero, origin, angle)
+    OrderVectors(surf.mins, surf.maxs)
+    for _, t in ipairs(meshes) do
+        local m = getMaterial(t.material or "")
+        if m then
+            if m:IsError() then continue end
+            if (m:GetInt "$translucent" or 0) ~= 0 then continue end
+            if (m:GetInt "$alphatest" or 0) ~= 0 then continue end
+        end
+        local triangles = t.triangles
+        for i = 1, #triangles, 3 do
+            local v1 = LocalToWorld(triangles[i    ].pos, angle_zero, origin, angle)
+            local v2 = LocalToWorld(triangles[i + 1].pos, angle_zero, origin, angle)
+            local v3 = LocalToWorld(triangles[i + 2].pos, angle_zero, origin, angle)
+            surf.Vertices2D[#surf.Vertices2D + 1] = Vector()
+            surf.Vertices2D[#surf.Vertices2D + 1] = Vector()
+            surf.Vertices2D[#surf.Vertices2D + 1] = Vector()
+            surf.Vertices3D[#surf.Vertices3D + 1] = v1
+            surf.Vertices3D[#surf.Vertices3D + 1] = v2
+            surf.Vertices3D[#surf.Vertices3D + 1] = v3
+            table_insert(surf.Triangles, {
+                #surf.Vertices3D - 2,
+                #surf.Vertices3D - 1,
+                #surf.Vertices3D,
+            })
+        end
+    end
+
+    if #surf.Vertices3D < 3 then return end
+    return { surf }
+end
+
 local function buildStaticProp(prop)
     local name = ss.BSP.Raw.sprp.name[prop.propType + 1]
-    if prop.solid ~= SOLID_VPHYSICS then return end
     if not name then return end
     if not file.Exists(name, "GAME") then return end
     if not file.Exists(name:sub(1, -4) .. "phy", "GAME") then return end
 
-    local mdl = ents.Create "prop_physics"
+    local mdl = ents.Create "base_anim"
     if not IsValid(mdl) then return end
     mdl:SetModel(name)
     mdl:Spawn()
-    local ph = mdl:GetPhysicsObject()
+    local ph
+    local mins, maxs = mdl:GetModelBounds()
+    local size = maxs - mins
+    if prop.solid == SOLID_VPHYSICS then
+        mdl:PhysicsInit(SOLID_VPHYSICS)
+        ph = mdl:GetPhysicsObject()
+    end
     mdl:Remove()
 
-    return buildFaceFromPhysObj(ph, prop.origin, prop.angle)
+    if math.max(size.x, size.y, size.z) > 100 then
+        return buildFacesFromPropMesh(ph, name, prop.origin, prop.angle), false
+    else
+        return buildStaticPropSurface(ph, name, prop.origin, prop.angle, mins, maxs), true
+    end
 end
 
 local function addSurface(surf, output)
     if not surf then return end
     if surf.IsWaterSurface then
-        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = surf
+        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = -surf
     else
-        output[#output + 1] = surf
+        output[#output + 1] = -surf
     end
 end
 
@@ -460,23 +570,35 @@ function ss.GenerateSurfaces()
     print("    Generated " .. #ss.BSP.Raw.FACES_HDR .. " surfaces for HDR.")
 
     print "Generating static prop surfaces..."
+    local numLargeProps = 0
+    local numSmallProps = 0
     for _, prop in ipairs(ss.BSP.Raw.sprp.prop or {}) do
-        for _, surf in ipairs(buildStaticProp(prop) or {}) do
+        local surfaces, issmall = buildStaticProp(prop)
+        if issmall then
+            numSmallProps = numSmallProps + 1
+        else
+            numLargeProps = numLargeProps + 1
+        end
+
+        for _, surf in ipairs(surfaces or {}) do
             addSurface(surf, ss.SurfaceArrayDetails)
         end
     end
+    print("    Generated surfaces for "
+    .. numLargeProps .. " standard static props and "
+    .. numSmallProps .. " small static props.")
 
+    print "Generating surfaces for func_lods..."
     local funclod = ents.FindByClass "func_lod"
     for _, prop in ipairs(funclod) do
         local ph = prop:GetPhysicsObject()
-        for _, surf in ipairs(buildFaceFromPhysObj(ph) or {}) do
+        for _, surf in ipairs(buildFacesFromPropMesh(ph) or {}) do
             addSurface(surf, ss.SurfaceArrayDetails)
         end
     end
+    print("    Generated surfaces for " .. #(funclod or {}) .. " func_lods.")
 
-    ss.BSP.Polygons = t
     local elapsed = math.Round((SysTime() - t0) * 1000, 2)
-    print("    Generated surfaces for " .. #(ss.BSP.Raw.sprp.prop or {}) + #(funclod or {}) .. " static props.")
     print("Done!  Elapsed time: " .. elapsed .. " ms.")
 end
 

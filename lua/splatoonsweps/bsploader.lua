@@ -117,16 +117,171 @@ local StructureDefinitions = {
         "Long   fileOffset",
         "Long   fileLength",
     },
-    StaticPropCommon = {
-        size = 31,
+    StaticProp4 = { -- version == 4
+        size = 56,
         "Vector origin",
         "Angle  angle",
         "UShort propType",
         "UShort firstLeaf",
         "UShort leafCount",
         "Byte   solid",
-        -- Different entries are following, depending on game lump version.
-        -- But they are all unused in Splatoon SWEPs so just skip them.
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+    },
+    StaticProp5 = { -- version == 5
+        size = 60,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale", -- since v5
+    },
+    StaticProp6 = { -- version == 6
+        size = 64,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale", -- since v5
+        "UShort minDXLevel",      -- v6, v7, v7*
+        "UShort maxDXLevel",      -- v6, v7, v7*
+    },
+    StaticProp7Star = { -- version == 7 or version == 10 and size matches
+        size = 72,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   padding",
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale", -- since v5
+        "UShort minDXLevel",      -- v6, v7, v7*
+        "UShort maxDXLevel",      -- v6, v7, v7*
+        "ULong  flags",           -- v7* only
+        "UShort lightmapResX",    -- v7* only
+        "UShort lightmapResY",    -- v7* only
+    },
+    StaticProp7 = { -- version == 7
+        size = 68,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale",     -- since v5
+        "UShort minDXLevel",          -- v6, v7, v7*
+        "UShort maxDXLevel",          -- v6, v7, v7*
+        "Byte   diffuseModulation 4", -- since v7
+    },
+    StaticProp8 = { -- version == 8
+        size = 68,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale",     -- since v5
+        -- "UShort minDXLevel",          -- v6, v7, v7*
+        -- "UShort maxDXLevel",          -- v6, v7, v7*
+        "Byte   cpugpuLevels 4",      -- since v8
+        "Byte   diffuseModulation 4", -- since v7
+    },
+    StaticProp9 = { -- version == 9
+        size = 72,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale",     -- since v5
+        -- "UShort minDXLevel",          -- v6, v7, v7*
+        -- "UShort maxDXLevel",          -- v6, v7, v7*
+        "Byte   cpugpuLevels 4",      -- since v8
+        "Byte   diffuseModulation 4", -- since v7
+        "Long   disableX360",         -- v9, v10
+    },
+    StaticProp10 = { -- version == 10
+        size = 76,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale",     -- since v5
+        -- "UShort minDXLevel",          -- v6, v7, v7*
+        -- "UShort maxDXLevel",          -- v6, v7, v7*
+        "Byte   cpugpuLevels 4",      -- since v8
+        "Byte   diffuseModulation 4", -- since v7
+        "Long   disableX360",         -- v9, v10
+        "ULong  flagsEx",             -- since v10
+    },
+    StaticProp11 = { -- version == 11
+        size = 76,
+        "Vector origin",
+        "Angle  angle",
+        "UShort propType",
+        "UShort firstLeaf",
+        "UShort leafCount",
+        "Byte   solid",
+        "Byte   flags", -- every version except v7*
+        "Long   skin",
+        "Float  fadeMinDist",
+        "Float  fadeMaxDist",
+        "Vector lightingOrigin",
+        "Float  forcedFadeScale",     -- since v5
+        -- "UShort minDXLevel",          -- v6, v7, v7*
+        -- "UShort maxDXLevel",          -- v6, v7, v7*
+        "Byte   cpugpuLevels 4",      -- since v8
+        "Byte   diffuseModulation 4", -- since v7
+        -- "Bool   disableX360",         -- v9, v10
+        "ULong  flagsEx",             -- since v10
+        "Float uniformScale",         -- since v11
     },
     ENTITIES = "String",
     PLANES = {
@@ -363,20 +518,44 @@ local function read(bsp, arg, ...)
         return Vector(x, y, z)
     elseif isfunction(bsp["Read" .. arg]) then
         return bsp["Read" .. arg](bsp)
+    elseif StructureDefinitions[arg] then
+        return read(bsp, StructureDefinitions[arg], ...)
     else
-        return read(bsp, assert(StructureDefinitions[arg],
-            "SplatoonSWEPs/BSPLoader: Need a correct structure name"), ...)
+        ErrorNoHalt(string.format(
+            "SplatoonSWEPs/BSPLoader: Need a correct structure name\n"
+            .. "    Map: %s\n"
+            .. "    Structure name given: %s\n",
+            game.GetMap(), tostring(arg)))
     end
 end
 
+local sprpInvalidSize = false
 function StructureDefinitions.StaticProp(bsp, struct, header)
     local offset = struct.dictEntries * 128 + struct.leafEntries * 2 + 4 * 3
     local nextlump = header.fileOffset + header.fileLength
     local staticPropOffset = header.fileOffset + offset
     local sizeofStaticPropLump = (nextlump - staticPropOffset) / struct.propEntries
-    local t = read(bsp, "StaticPropCommon")
-    bsp:Skip(sizeofStaticPropLump - StructureDefinitions.StaticPropCommon.size)
-    return t
+    local version = header.version
+    local structType = "StaticProp" .. tostring(version)
+    if not StructureDefinitions[structType] then return {} end
+    if version == 7 or version == 10 and sizeofStaticPropLump == StructureDefinitions.StaticProp7Star.size then
+        structType = "StaticProp7Star"
+    end
+    local data = read(bsp, structType)
+    if sizeofStaticPropLump ~= StructureDefinitions[structType].size then
+        bsp:Skip(sizeofStaticPropLump - StructureDefinitions[structType].size)
+        if not sprpInvalidSize then
+            sprpInvalidSize = true
+            ErrorNoHalt(string.format(
+                "SplatoonSWEPs/BSPLoader: StaticPropLump_t has unknown format.\n"
+                .. "    Map: %s\n"
+                .. "    Calculated size of StaticPropLump_t: %d\n"
+                .. "    StaticPropLump_t version: %d\n"
+                .. "    Suggested size of StaticPropLump_t: %d\n",
+                game.GetMap(), sizeofStaticPropLump, version, StructureDefinitions[structType].size))
+        end
+    end
+    return data
 end
 
 local function getGameLumpStr(id)
@@ -410,8 +589,7 @@ local function closeDecompressed(tmp)
     file.Delete "splatoonsweps/temp.txt"
 end
 
-local LUMP_INV = {}
-for i, v in ipairs(LUMP) do LUMP_INV[v] = i end
+local LUMP_INV = table.Flip(LUMP)
 function ss.LookupLump(name) return LUMP_INV[name] end
 function ss.ReadHeader(bsp) return read(bsp, "BSPHeader") end
 function ss.ReadLump(bsp, headers, lumpname)
@@ -463,6 +641,7 @@ function ss.LoadBSP()
     print "Loading BSP file..."
     ss.BSP = { Raw = { header = ss.ReadHeader(bsp), TexDataStringTableToIndex = {} } }
     local t = ss.BSP.Raw
+    print("    BSP file version: " .. t.header.version)
     for i = 1, #LUMP do
         local lumpname = LUMP[i]
         if StructureDefinitions[lumpname] then
@@ -476,7 +655,7 @@ function ss.LoadBSP()
         local idstr = getGameLumpStr(header.id)
         local gamelump = GameLumpContents[idstr]
         if gamelump then
-            print("        GameLump \"" .. idstr .. "\"...")
+            print("        GameLump \"" .. idstr .. "\"... (version: " .. header.version .. ")")
             bsp:Seek(header.fileOffset)
             local LZMAHeader = read(bsp, 4)
             if LZMAHeader == "LZMA" then
