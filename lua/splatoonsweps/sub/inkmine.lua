@@ -1,12 +1,15 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.inkmine = {
     Merge = {
         IsSubWeaponThrowable = false,
         NumInkmines = 0,
     },
+    ---@class SubParameters.Inkmine
     Parameters = {
         Burst_Damage_Far = 0.3,
         Burst_Damage_Near = 1.8,
@@ -65,6 +68,7 @@ ss.inkmine = {
 
 ss.ConvertUnits(ss.inkmine.Parameters, ss.inkmine.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.inkmine.Merge
 local p = ss.inkmine.Parameters
 function module:CanSecondaryAttack()
@@ -88,7 +92,7 @@ function module:ServerSecondaryAttack(throwable)
     if not ss.IsPaintable(tr.HitPos, tr.HitNormal) then return end
 
     local inkcolor = self:GetNWInt "inkcolor"
-    local e = ents.Create "ent_splatoonsweps_inkmine"
+    local e = ents.Create "ent_splatoonsweps_inkmine" --[[@as ENT.Inkmine]]
     local ang = (tr.Hit and tr.HitNormal or vector_up):Angle()
     ang:RotateAroundAxis(ang:Right(), -90)
     e.Weapon = self

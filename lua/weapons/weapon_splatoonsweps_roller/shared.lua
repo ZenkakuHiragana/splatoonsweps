@@ -2,8 +2,37 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Roller
+---@class SWEP.Roller : SplatoonWeaponBase
+---@field Parameters          Parameters.Roller
+---@field NotEnoughInk        boolean
+---@field NotEnoughInkRoll    boolean
+---@field PreSwingSound       string
+---@field RollSoundName       string
+---@field SplashSound         string
+---@field SwingSound          string
+---@field CollapseRollTime    number
+---@field PreSwingTime        number
+---@field RollingEffectDelay  number
+---@field RunningEffectDelay  number
+---@field SwingAnimTime       number
+---@field SwingBackWait       number
+---@field SwingCountInit      integer
+---@field MODE                { READY: 0, ATTACK: 1, ATTACK2: 2, PAINT: 4 }
+---@field RunoverExclusion    { [Entity]: true }
+---@field GetVelocitySpread   fun(self, issub: boolean): number, number, number, number, number
+---@field GetStraightFrame    fun(self, issub: boolean): number
+---@field GetDrawRadius       fun(self, issub: boolean): number
+---@field GetCollisionRadii   fun(self, issub: boolean): number, number
+---@field GetPaintParameters  fun(self, issub: boolean): number, number, number, number
+---@field GetDamageParameters fun(self, t: string): number, number, number, number, number
+---@field GetInitVelocity     fun(self, i: integer, splashnum: integer, sb: number, sz: number, sx: number, sy: number, degmax: number): number, number, number
+---@field CreateInk           fun(self, createnum: integer)
+
 local randsplash = "Splatoon SWEPs: SplashNum"
 local randvel = "SplatoonSWEPs: Spread velocity"
+---@param self SWEP.Roller
 local function EndSwing(self)
     self.NotEnoughInk = false
     self:SetIsSecondSwing(false)
@@ -20,7 +49,8 @@ local function EndSwing(self)
     if not self:IsFirstTimePredicted() then return end
     ss.EmitSoundPredicted(self:GetOwner(), self, "SplatoonSWEPs.RollerHolster")
 end
-
+---@param self SWEP.Roller
+---@param enoughink boolean
 local function PlaySwingSound(self, enoughink)
     if enoughink then
         ss.EmitSoundPredicted(self:GetOwner(), self, self.SplashSound)
@@ -39,6 +69,8 @@ local TraceLookStart = 20
 local TraceLookAhead = 45
 local TraceDown = 70
 local TraceUp = 8
+---@param self SWEP.Roller
+---@return TraceResult
 local function GetRollerTrace(self)
     local forward = self:GetForward()
     local pos = self:GetOwner():WorldSpaceCenter()
@@ -49,7 +81,8 @@ local function GetRollerTrace(self)
         mask = ss.SquidSolidMask,
     }
 end
-
+---@param self SWEP.Roller
+---@param velocity number
 local function DoRollingEffect(self, velocity)
     if CurTime() < self:GetNextRollingEffectTime() then return end
     local delay = self.IsBrush and self.RunningEffectDelay or self.RollingEffectDelay
@@ -61,7 +94,9 @@ local function DoRollingEffect(self, velocity)
     e:SetRadius(velocity)
     ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsRollerRolling", e, true, self.IgnorePrediction)
 end
-
+---@param self SWEP.Roller
+---@param t TraceResult
+---@param mv CMoveData
 local function DoRunover(self, t, mv)
     local p = self.Parameters
     local color = self:GetNWInt "inkcolor"
@@ -75,7 +110,9 @@ local function DoRunover(self, t, mv)
     local right = center + dir * width
     local victims = ents.FindAlongRay(left, right, -bounds, bounds)
     local knockback = false
-    local keys = {}
+    local keys = {} ---@type table<Entity, true>
+    ---@param i integer
+    ---@param v Entity
     local function dealdamage(i, v)
         if v == self:GetOwner() then return end
         keys[v] = true
@@ -231,7 +268,7 @@ function SWEP:CreateInk(createnum)
     local width = p.mSplashPositionWidth
     local insiderate = p.mSplashInsideDamageRate
     local insidenum = math.floor(splashnum * insiderate)
-    local randomorder, skiptable = {}, {}
+    local randomorder, skiptable = {}, {} ---@type integer[], table<integer, true>
     local ang = dir:Angle()
     local angoffset = p.mPaintBrushRotYDegree
     local angsign = self:GetIsSecondSwing() and 1 or -1
@@ -333,8 +370,8 @@ function SWEP:SharedInit()
     self.Bodygroup = table.Copy(self.Bodygroup or {})
     self.IsBrush = self.Parameters.mPaintBrushType
     self.RunoverExclusion = {}
-    self.LoopSounds.RollSound = {SoundName = self.RollSoundName}
-    self.LoopSounds.EmptyRollSound = {SoundName = self.IsBrush and ss.EmptyRun or ss.EmptyRoll}
+    self.LoopSounds.RollSound = { SoundName = self.RollSoundName }
+    self.LoopSounds.EmptyRollSound = { SoundName = self.IsBrush and ss.EmptyRun or ss.EmptyRoll }
     self:SetIsSecondSwing(false)
     self:SetMousePressedTime(CurTime())
     self:SetSwingStartTime(CurTime())
@@ -397,7 +434,7 @@ function SWEP:SharedPrimaryAttack(able, auto)
         local count = self:GetSwingCount() + 1
         if count >= p.mPaintBrushNearestBulletLoopNum then
             local dropdata = ss.MakeProjectileStructure()
-            local colent, colworld = self:GetCollisionRadii(issub)
+            local colent, colworld = self:GetCollisionRadii(false)
             table.Merge(dropdata, {
                 Color = self:GetNWInt "inkcolor",
                 ColRadiusEntity = colent,
@@ -428,6 +465,26 @@ function SWEP:SharedPrimaryAttack(able, auto)
 end
 
 function SWEP:CustomDataTables()
+    ---@class SWEP.Roller
+    ---@field GetIsSecondSwing         fun(self): boolean
+    ---@field GetIsSecondSwingAnim     fun(self): boolean
+    ---@field GetMousePressedTime      fun(self): number
+    ---@field GetSwingStartTime        fun(self): number
+    ---@field GetSwingEndTime          fun(self): number
+    ---@field GetNextRollingEffectTime fun(self): number
+    ---@field GetRunoverDelay          fun(self): number
+    ---@field GetMode                  fun(self): integer
+    ---@field GetSwingCount            fun(self): integer
+    ---@field SetIsSecondSwing         fun(self, value: boolean)
+    ---@field SetIsSecondSwingAnim     fun(self, value: boolean)
+    ---@field SetMousePressedTime      fun(self, value: number)
+    ---@field SetSwingStartTime        fun(self, value: number)
+    ---@field SetSwingEndTime          fun(self, value: number)
+    ---@field SetNextRollingEffectTime fun(self, value: number)
+    ---@field SetRunoverDelay          fun(self, value: number)
+    ---@field SetMode                  fun(self, value: integer)
+    ---@field SetSwingCount            fun(self, value: integer)
+
     self:AddNetworkVar("Bool", "IsSecondSwing")
     self:AddNetworkVar("Bool", "IsSecondSwingAnim")
     self:AddNetworkVar("Float", "MousePressedTime")
@@ -457,18 +514,18 @@ function SWEP:Move(ply, mv)
         local soundplay = self.LoopSounds.RollSound.SoundPatch
         local soundstop = self.LoopSounds.EmptyRollSound.SoundPatch
         local velocity = 1
-        if ply:IsPlayer() then
+        if ply:IsPlayer() then ---@cast ply Player
             velocity = math.abs(ply:GetVelocity():Dot(ply:GetForward())) / ply:GetMaxSpeed()
-        elseif ply:IsNPC() and isfunction(ply.IsMoving) then
+        elseif ply:IsNPC() and isfunction(ply--[[@as NPC]].IsMoving) then ---@cast ply NPC
             velocity = ply:IsMoving() and 1 or 0
         end
 
         if ply:OnGround() and self:GetInk() == 0 then
-            soundplay, soundstop = soundstop, soundplay
+            soundplay, soundstop = soundstop, soundplay ---@type CSoundPatch?, CSoundPatch?
         end
 
-        soundplay:ChangeVolume(velocity * (ply:OnGround() and 1 or 0))
-        soundstop:ChangeVolume(0)
+        if soundplay then soundplay:ChangeVolume(velocity * (ply:OnGround() and 1 or 0)) end
+        if soundstop then soundstop:ChangeVolume(0) end
 
         if velocity < 0.01 then return end
         self:SetReloadDelay(p.mInkRecoverCoreStop)
@@ -550,7 +607,7 @@ function SWEP:CustomActivity() return "melee2" end
 function SWEP:UpdateAnimation(ply, velocity, maxseqspeed)
     local mode = self:GetMode()
     local ct = CurTime() + (self:IsMine() and self:Ping() or 0)
-    local start, duration, c1, c2
+    local start, duration, c1, c2 ---@type number, number, number, number
     if mode == self.MODE.READY then return end
     if mode == self.MODE.ATTACK or mode == self.MODE.ATTACK2 then
         if self.IsBrush then
@@ -558,7 +615,7 @@ function SWEP:UpdateAnimation(ply, velocity, maxseqspeed)
             duration = self.PreSwingTime
             c1, c2 = .3, .6125
             if self:GetIsSecondSwingAnim() then
-                c1, c2 = c2, c1
+                c1, c2 = c2, c1 ---@type number, number
             end
         else
             start = self:GetMousePressedTime()

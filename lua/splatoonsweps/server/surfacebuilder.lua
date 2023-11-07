@@ -1,6 +1,39 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
+
+---@class PaintableSurface
+---@field Angles         Angle
+---@field AnglesUV       Angle?
+---@field GridSize       Vector
+---@field InkColorGrid   integer[]
+---@field IsDisplacement boolean
+---@field IsSmallProp    boolean
+---@field IsWaterSurface boolean
+---@field Normal         Vector
+---@field Origin         Vector
+---@field OriginUV       Vector?
+---@field Triangles      integer[][]
+---@field Vertices2D     Vector[]
+---@field Vertices3D     Vector[]
+---@field maxs           Vector
+---@field mins           Vector
+---@field Boundary2D     Vector
+---@field BoundaryUV     Vector?
+---@field LightmapInfo   LightmapInfo
+---@field OffsetUV       Vector?
+
+---@class LightmapInfo
+---@field Available    boolean
+---@field Styles       integer[]
+---@field SampleOffset integer
+---@field MinsInLuxels Vector
+---@field SizeInLuxels Vector
+---@field Offset       Vector
+---@field BasisS       Vector
+---@field BasisT       Vector
+---@field Vertices2D   Vector[]
 
 ss.class "PaintableSurface" {
     Angles         = Angle(),
@@ -31,7 +64,9 @@ ss.class "PaintableSurface" {
     }
 }
 
--- Index to SURFEDGES array -> actual vertex
+---Index to SURFEDGES array -> actual vertex
+---@param index integer
+---@return Vector
 local function surfEdgeToVertex(index)
     local surfedge  = ss.BSP.Raw.SURFEDGES[index]
     local edge      = ss.BSP.Raw.EDGES    [math.abs(surfedge) + 1]
@@ -40,13 +75,15 @@ local function surfEdgeToVertex(index)
 end
 
 -- Generating convex hull by monotone chain method
+---@param source Vector[]
+---@return Vector[]
 local function getConvex(source)
     local vertices2D = table.Copy(source)
     table.sort(vertices2D, function(a, b)
         return Either(a.x == b.x, a.y < b.y, a.x < b.x)
     end)
 
-    local convex = {}
+    local convex = {} ---@type Vector[]
     for i = 1, #vertices2D do
         if i > 2 then
             local p = convex[#convex]
@@ -82,12 +119,13 @@ local function getConvex(source)
     return convex
 end
 
--- Minimizes AABB of given convex.
+---Minimizes AABB of given convex.
+---@param surf PaintableSurface
 local function get2DComponents(surf)
-    local desiredDir = nil
+    local desiredDir = nil ---@type Vector
     local add90deg   = false
     local minarea    = math.huge
-    local vertices2D = {}
+    local vertices2D = {} ---@type Vector[]
     for i, v in ipairs(surf.Vertices3D) do
         vertices2D[i] = ss.To2D(v, surf.Origin, surf.Angles)
     end
@@ -143,7 +181,7 @@ local function get2DComponents(surf)
     surf.Origin = ss.To3D(mins, surf.Origin, surf.Angles)
 
     -- Shift vertices to eliminate negative components
-    local mins2D, maxs2D
+    local mins2D, maxs2D ---@type Vector, Vector
     for _, v in ipairs(vertices2D) do
         v:Sub(mins)
         mins2D = ss.MinVector(mins2D or v, v)
@@ -157,13 +195,19 @@ local function get2DComponents(surf)
     surf.GridSize = Vector(math.floor(gridsize.x), math.floor(gridsize.y))
 end
 
-local MaterialCache = {}
+---@type table<string, { material: string, triangles: MeshVertex[], vertices: MeshVertex[] }[]>
+local ModelMeshCache = {}
+local MaterialCache = {} ---@type table<string, IMaterial>
+
+---@param name string
+---@return IMaterial
 local function getMaterial(name)
     if not MaterialCache[name] then MaterialCache[name] = Material(name) end
     return MaterialCache[name]
 end
 
-local ModelMeshCache = {}
+---@param name string
+---@return { material: string, triangles: MeshVertex[], vertices: MeshVertex[] }[]
 local function getModelMeshes(name)
     if not ModelMeshCache[name] then ModelMeshCache[name] = util.GetModelMeshes(name) end
     return ModelMeshCache[name]
@@ -173,6 +217,9 @@ local TextureFilterBits = bit.bor(
     SURF_SKY, SURF_NOPORTAL, SURF_TRIGGER,
     SURF_NODRAW, SURF_HINT, SURF_SKIP)
 -- Construct a polygon from a raw face data
+---@param faceindex integer
+---@param rawFace BSP.Face
+---@return PaintableSurface?
 local function buildFace(faceindex, rawFace)
     -- Collect texture information and see if it's valid
     local rawTexInfo   = ss.BSP.Raw.TEXINFO
@@ -198,16 +245,16 @@ local function buildFace(faceindex, rawFace)
     local normal    = plane.normal
 
     -- Collect "raw" vertex list
-    local rawVertices = {}
+    local rawVertices = {} ---@type Vector[]
     for i = firstedge, lastedge do
         rawVertices[#rawVertices + 1] = surfEdgeToVertex(i)
     end
 
     -- Filter out colinear vertices and calculate the center
     -- This is also good time to calculate bounding box
-    local filteredVertices = {}
+    local filteredVertices = {} ---@type Vector[]
     local vertexSum = Vector()
-    local maxs, mins = nil, nil
+    local maxs, mins = nil, nil ---@type Vector, Vector
     for i, current in ipairs(rawVertices) do
         local before = rawVertices[(#rawVertices + i - 2) % #rawVertices + 1]
         local after  = rawVertices[i % #rawVertices + 1]
@@ -267,6 +314,7 @@ local function buildFace(faceindex, rawFace)
     do
         -- dispInfo.startPosition isn't always equal to
         -- surf.Vertices3D[1] so find correct one and sort them
+        ---@type integer[], number, integer
         local indices, mindist, startindex = {}, math.huge, 0
         for i, v in ipairs(surf.Vertices3D) do
             local dist = dispInfo.startPosition:DistToSqr(v)
@@ -297,9 +345,9 @@ local function buildFace(faceindex, rawFace)
     local u1 = surf.Vertices3D[4] - surf.Vertices3D[1]
     local v1 = surf.Vertices3D[2] - surf.Vertices3D[1]
     local v2 = surf.Vertices3D[3] - surf.Vertices3D[4]
-    local triangles = {} -- Indices of triangle mesh
-    local vertices  = {} -- List of vertices
-    maxs, mins = nil, nil
+    local triangles = {} ---@type integer[][] Indices of triangle mesh
+    local vertices  = {} ---@type Vector[]    List of vertices
+    maxs, mins = nil, nil ---@type Vector, Vector
     for i = 1, numMeshVertices do
         -- Calculate x-y offset
         local dispVert = rawDispVerts[dispInfo.dispVertStart + i]
@@ -364,6 +412,10 @@ local PROJECTION_ANGLES = {
     ["y-"] = PROJECTION_NORMALS["y-"]:Angle(),
     ["z-"] = PROJECTION_NORMALS["z-"]:Angle(),
 }
+---@param origin Vector
+---@param angle Angle
+---@param triangles { pos: Vector, normal: Vector }[]
+---@return table<string, PaintableSurface>
 local function processStaticPropConvex(origin, angle, triangles)
     local surfaces = {
         ["x+"] = class "PaintableSurface",
@@ -449,15 +501,21 @@ local function processStaticPropConvex(origin, angle, triangles)
     return surfaces
 end
 
+---@param ph PhysObj
+---@param name string?
+---@param org Vector?
+---@param ang Angle?
+---@return PaintableSurface[]?
 local function buildFacesFromPropMesh(ph, name, org, ang)
     if not IsValid(ph) then return end
     local mat = ph:GetMaterial()
     if mat:find "chain" or mat:find "grate" then return end
 
+    ---@type MeshVertex[]|{ material: string, triangles: MeshVertex[], vertices: MeshVertex[] }[]
     local meshes = name and getModelMeshes(name) or ph:GetMeshConvexes()
     if not meshes or #meshes == 0 then return end
 
-    local surfaces = {}
+    local surfaces = {} ---@type PaintableSurface[]
     org, ang = org or ph:GetPos(), ang or ph:GetAngles()
     for _, t in ipairs(meshes) do
         if t.material then
@@ -477,6 +535,13 @@ local function buildFacesFromPropMesh(ph, name, org, ang)
     return surfaces
 end
 
+---@param ph PhysObj
+---@param name string
+---@param origin Vector
+---@param angle Angle
+---@param mins Vector
+---@param maxs Vector
+---@return PaintableSurface[]?
 local function buildStaticPropSurface(ph, name, origin, angle, mins, maxs)
     if IsValid(ph) then
        local mat = ph:GetMaterial()
@@ -522,6 +587,9 @@ local function buildStaticPropSurface(ph, name, origin, angle, mins, maxs)
     return { surf }
 end
 
+---@param prop BSP.StaticProp
+---@return PaintableSurface[]?
+---@return boolean?
 local function buildStaticProp(prop)
     local name = ss.BSP.Raw.sprp.name[prop.propType + 1]
     if not name then return end
@@ -532,7 +600,7 @@ local function buildStaticProp(prop)
     if not IsValid(mdl) then return end
     mdl:SetModel(name)
     mdl:Spawn()
-    local ph
+    local ph ---@type PhysObj
     local mins, maxs = mdl:GetModelBounds()
     local size = maxs - mins
     if prop.solid == SOLID_VPHYSICS then
@@ -548,12 +616,14 @@ local function buildStaticProp(prop)
     end
 end
 
+---@param surf PaintableSurface?
+---@param output PaintableSurface[]
 local function addSurface(surf, output)
     if not surf then return end
     if surf.IsWaterSurface then
-        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = -surf
+        ss.WaterSurfaces[#ss.WaterSurfaces + 1] = ss.getraw(surf)
     else
-        output[#output + 1] = -surf
+        output[#output + 1] = ss.getraw(surf)
     end
 end
 

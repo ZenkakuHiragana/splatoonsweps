@@ -1,7 +1,13 @@
 
+local ENT = ENT
+---@cast ENT ENT.PointSensor
+---@class ENT.PointSensor : ENT.BurstBomb
+---@field BaseClass ENT.BurstBomb
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_burstbomb"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.Model = Model "models/splatoonsweps/subs/pointsensor/pointsensor.mdl"
@@ -22,7 +28,7 @@ function ENT:PhysicsCollide(data, collider)
     util.Effect("SplatoonSWEPsPointSensor", e)
 
     for _, ent in ipairs(ents.FindInSphere(self:GetPos(), p.Burst_Radius)) do
-        local w = ss.IsValidInkling(ent)
+        local w = ss.IsValidInkling(ent) ---@type Weapon?
         if (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) and not (w and ss.IsAlly(self, w)) then
             hit = true
             ent:EmitSound "SplatoonSWEPs.PointSensorTaken"

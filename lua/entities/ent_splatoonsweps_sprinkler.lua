@@ -1,7 +1,20 @@
 
+local ENT = ENT
+---@cast ENT ENT.Sprinkler
+---@class ENT.Sprinkler : ENT.SplatBomb
+---@field BaseClass ENT.SplatBomb
+---@field DestroyOnLand     Entity
+---@field GetMuzzlePosition fun(self): Vector, Angle
+---@field NextSpoutTime     number
+---@field Parameters        SubParameters.Sprinkler
+---@field RunningSound      CSoundPatch
+---@field Spout             fun(self)
+---@field Weapon            Weapon
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_splatbomb"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.AutomaticFrameAdvance = true
@@ -17,8 +30,7 @@ if CLIENT then
     end
 
     function ENT:GetMuzzlePosition()
-        local a = self:LookupAttachment "muzzle_1"
-        a = self:GetAttachment(a)
+        local a = self:GetAttachment(self:LookupAttachment "muzzle_1")
         return a.Pos, a.Ang
     end
 

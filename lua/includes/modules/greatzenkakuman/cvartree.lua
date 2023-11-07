@@ -1,54 +1,141 @@
 AddCSLuaFile()
 local serverflags = {FCVAR_ARCHIVE, FCVAR_REPLICATED, FCVAR_SERVER_CAN_EXECUTE}
 local clientflags = {FCVAR_ARCHIVE, FCVAR_USERINFO}
-local cvarlist = {}
-local cvarprefix = {}
+local cvarlist    = {} ---@type cvartree.CVarItem
+local cvarprefix  = {} ---@type string[]
 local cvarseparator = "_"
 module("greatzenkakuman.cvartree", package.seeall)
+local cvartree = greatzenkakuman.cvartree or {}
+cvartree.OverrideHelpText = "Override this setting with serverside value"
 
-OverrideHelpText = "Override this setting with serverside value"
+---@alias cvartree.OnChangeCVar fun(self: cvartree.CVarItem): fun(convar: string, old: string, new: string)
+---@alias cvartree.DermaOnChange fun(self: cvartree.CVarItem): fun(convar: Panel, value: string|number|boolean)
+---@alias cvartree.OnMakePanel fun(parent: DForm, self: cvartree.CVarItem, cvar: ConVar, admin: boolean?): DPanel
+---@alias cvartree.OnTypeChange fun(value: any): any
 
+---@class cvartree.Panel : Panel
+---@field CheckBox DCheckBox?
+---@field CVarName string
+---@field Label    DLabel
+
+---@alias cvartree.PreferenceTypes boolean|string|number
+---@alias cvartree.AddCVarPrefixReturns 
+---| fun(prefix: string|string[], options: cvartree.CVarOption): cvartree.AddCVarPrefixReturns
+---@alias cvartree.RemoveCVarPrefixReturns fun(n: integer?): cvartree.RemoveCVarPrefixReturns
+---@alias cvartree.SetPreferenceReturns (fun(cvar: string[], value: any): cvartree.SetPreferenceReturns)?
+---@alias cvartree.GetPreferenceReturns
+---| cvartree.PreferenceTypes?
+---| fun(cvar: string|string[]?, ply: Player?): cvartree.GetPreferenceReturns
+
+---@class cvartree.CVarCategory
+---@field __closed      boolean?
+---@field __subcategory boolean?
+---@field [string] cvartree.CVarCategory|cvartree.CVarOption|boolean
+
+---@class cvartree.CVarItem
+---@field options     cvartree.CVarOption? Various configurations for this preference
+---@field location    string[]?            The path of this preference
+---@field sv          ConVar?              Serverside ConVar object
+---@field cl          ConVar?              Clientside ConVar object
+---@field iscvarlayer boolean?             Indicates if this is a layer to hold other preferences
+---@field panel       Panel?
+---@field paneladmin  Panel?
+---@field [string]    cvartree.CVarItem   [Preference name] = its details
+
+---@class cvartree.CVarOption : { [1]: boolean|number? }
+---@field bottomorder    integer?                The order from the bottom of the GUI
+---@field clientside     boolean?                Indicates if this only exists clientside
+---@field closed         boolean?                Indicates if this makes its collapsible category closed by default
+---@field cvaronchange   cvartree.OnChangeCVar?
+---@field decimals       integer?                The decimal places to round to
+---@field dermaonchange  cvartree.DermaOnChange?
+---@field enablepanel    any?
+---@field helptext       string?                 Help text in the console
+---@field hidden         boolean?                Indicates if this doesn not generate GUI panel
+---@field makepanel      cvartree.OnMakePanel?
+---@field max            number?                 Maximum value for DNumSlider
+---@field min            number?                 Minimum value for DNumSlider
+---@field order          integer?                The order placed in the GUI
+---@field printname      string?                 Name shown in GUI
+---@field serverside     boolean?                Indicates if this only exists serverside
+---@field subcategory    boolean?                Indicates if this CVarLayer does not create collapsible category
+---@field type           string|"color"?         Type of the value
+---@field typeconversion cvartree.OnTypeChange?
+
+---Creates a new category
+---@param nametable string[] e.g. { "splatoonsweps", "weapon_splatoonsweps_charger" }
+---@return string                 "_splatoonsweps_weapon_splatoonsweps_charger"
+---@return cvartree.CVarItem
 local function CreateCategory(nametable)
     local n, placeholder = "", cvarlist
     for _, s in ipairs(nametable) do
         n = string.format("%s%s%s", n, cvarseparator, s)
-        placeholder[s] = placeholder[s] or {iscvarlayer = true, options = {}}
-        placeholder = placeholder[s]
+        placeholder[s] = placeholder[s] or { iscvarlayer = true, options = {} }
+        placeholder = placeholder[s] ---@type cvartree.CVarItem
     end
 
     return n, placeholder
 end
 
-function GetCVarList() return cvarlist end
-function GetCVarPrefix() return cvarprefix end
-function SetCVarPrefix(p, options)
+---Retrieves ConVar list
+---@return cvartree.CVarItem
+function cvartree.GetCVarList() return cvarlist end
+
+---Retrieves current ConVar prefixes (i.e. current depth of the layer)
+---@return string[]
+function cvartree.GetCVarPrefix() return cvarprefix end
+
+---Sets ConVar prefixes by given parameters
+---@param prefix  string|string[]
+---@param options cvartree.CVarOption?
+---@return cvartree.AddCVarPrefixReturns
+function cvartree.SetCVarPrefix(prefix, options)
     table.Empty(cvarprefix)
-    return AddCVarPrefix(p, options)
+    return cvartree.AddCVarPrefix(prefix, options)
 end
 
-function AddCVarPrefix(p, options)
-    if isstring(p) then
-        cvarprefix[#cvarprefix + 1] = p:lower()
+---Adds a prefix to the current ConVar prefixes
+---@param prefix  string|string[] The name of prefix(es) to append
+---@param options cvartree.CVarOption?
+---@return cvartree.AddCVarPrefixReturns
+function cvartree.AddCVarPrefix(prefix, options)
+    if isstring(prefix) then --[[@cast prefix string]]
+        cvarprefix[#cvarprefix + 1] = prefix:lower()
         local placeholder = select(2, CreateCategory(cvarprefix))
-        if istable(options) then table.Merge(placeholder.options, options) end
-    elseif istable(p) then
-        for _, s in ipairs(p) do AddCVarPrefix(s) end
+        if istable(options) then --[[@cast options -?]]
+            table.Merge(placeholder.options, options)
+        end
+    elseif istable(prefix) then --[=[@cast prefix string[]]=]
+        for _, s in ipairs(prefix) do cvartree.AddCVarPrefix(s) end
     end
 
-    return AddCVarPrefix
+    return cvartree.AddCVarPrefix
 end
 
-function RemoveCVarPrefix(n)
+---Removes (pops) the last n prefix(es) from the current ConVar prefixes
+---@param n integer?
+---@return cvartree.RemoveCVarPrefixReturns
+function cvartree.RemoveCVarPrefix(n)
     for _ = 1, n or 1 do cvarprefix[#cvarprefix] = nil end
-    return RemoveCVarPrefix
+    return cvartree.RemoveCVarPrefix
 end
 
-function AddCVar(name, default, helptext, options)
-    local nametable = istable(name) and name or table.Copy(cvarprefix)
-    if isstring(name) then nametable[#nametable + 1] = name:lower() end
+---Adds a ConVar at current prefixes
+---@param name     string|string[]      The name of CVar.  Passing a string array for absolute path
+---@param default  boolean|number       Default value
+---@param helptext string               Help text on the console
+---@param options  cvartree.CVarOption? ConVar options
+function cvartree.AddCVar(name, default, helptext, options)
+    local nametable ---@type string[]
+    if istable(name) then ---@cast name string[]
+        nametable = name
+    else ---@cast name string
+        nametable = table.Copy(cvarprefix)
+        nametable[#nametable + 1] = name:lower()
+    end
 
-    options = options or {}
-    name, nametable[#nametable] = nametable[#nametable]
+    options = options or {} ---@type cvartree.CVarOption
+    name, nametable[#nametable] = nametable[#nametable], nil
     local n, placeholder = CreateCategory(nametable)
 
     if #n == 0 then return end
@@ -72,9 +159,17 @@ function AddCVar(name, default, helptext, options)
     placeholder[name] = cvartable
 end
 
-function GetCVarTable(cvar, root)
+---Retrieves a table of ConVars
+---@param cvar string|string[]?
+---@param root cvartree.CVarItem?
+---@return cvartree.CVarItem
+function cvartree.GetCVarTable(cvar, root)
     local t = root or cvarlist
-    if isstring(cvar) then cvar = {cvar} end
+    if isstring(cvar) then
+        cvar = { cvar --[[@as string]] }
+    end
+
+    ---@cast cvar -string
     for _, n in ipairs(cvar or {}) do
         t = assert(t[n:lower()], "GreatZenkakuMan's Module: preference is not found.")
     end
@@ -86,32 +181,55 @@ local TranslateType = {
     boolean = tobool,
     number = tonumber,
 }
-function GetValue(t, ply)
+---Retrieves current CVar value for given player
+---@param t   cvartree.CVarItem
+---@param ply Entity?
+---@return cvartree.PreferenceTypes
+function cvartree.GetValue(t, ply)
+    local isplayer = IsValid(ply) and ply--[[@as Entity]]:IsPlayer()
     local servervalue = t.sv and t.sv:GetString()
-    local override = tonumber(servervalue)
+    local clientvalue = t.cl and t.cl:GetString()
+    local override = tonumber(servervalue) ~= -1
     local translate = TranslateType[t.options.type] or t.options.typeconversion
-    if override and override ~= -1 or SERVER and not (IsValid(ply) and ply:IsPlayer()) then
-        return not translate and servervalue or translate(servervalue)
-    elseif not t.options.serverside then
-        local value = SERVER and ply:GetInfo(t.cl:GetName()) or t.cl:GetString()
-        if value == "" then value = t.cl:GetDefault() end -- For bots
-        return not translate and value or translate(value)
+    if t.cl and isplayer then ---@cast ply Player
+        clientvalue = ply:GetInfo(t.cl:GetName())
+        if clientvalue == "" then
+            clientvalue = t.cl:GetDefault()
+        end
     end
+    if translate then
+        if servervalue then servervalue = translate(servervalue) end
+        if clientvalue then clientvalue = translate(clientvalue) end
+    end
+    if t.options.clientside then return clientvalue end
+    if t.options.serverside then return servervalue end
+    if override then return servervalue end
+    return clientvalue
 end
 
-function GetPreference(cvar, ply, root)
-    local t = GetCVarTable(cvar, root)
+---Retrieves current CVar value from its name recursively for given player
+---@param cvar string|string[]
+---@param ply  Entity?
+---@param root cvartree.CVarItem?
+---@return cvartree.GetPreferenceReturns
+function cvartree.GetPreference(cvar, ply, root)
+    local t = cvartree.GetCVarTable(cvar, root)
     if not (t.cl or t.sv) then
-        return function(c, p) return GetPreference(c, p, t) end
+        return function(c, p) return cvartree.GetPreference(c, p, t) end
     end
 
-    return GetValue(t, ply)
+    return cvartree.GetValue(t, ply)
 end
 
-function SetPreference(cvar, value, root)
-    local t = GetCVarTable(cvar, root)
+---Sets CVar value from its name recursively
+---@param cvar string[]
+---@param value any
+---@param root cvartree.CVarItem?
+---@return cvartree.SetPreferenceReturns
+function cvartree.SetPreference(cvar, value, root)
+    local t = cvartree.GetCVarTable(cvar, root)
     if not (t.cl or t.sv) then
-        return function(c, v) return SetPreference(c, v, t) end
+        return function(c, v) return cvartree.SetPreference(c, v, t) end
     end
     if not t.options.clientside then
         t.sv:SetString(tostring(value))
@@ -131,17 +249,14 @@ function SetPreference(cvar, value, root)
     end
 end
 
-function SetPrintName(cvar, name)
-    local t = GetCVarTable(cvar)
-    if t.panel then t.panel:SetText(name) end
-    if t.paneladmin then t.paneladmin:SetText(name) end
-    t.printname = name
-end
-
-function IteratePreferences(root)
-    local t = root and GetCVarTable(root) or cvarlist
+---Iterates over defined preferences
+---@param root string|string[]?
+---@return fun(_table: cvartree.CVarItem): string, cvartree.CVarItem
+function cvartree.IteratePreferences(root)
+    local t = root and cvartree.GetCVarTable(root) or cvarlist
+    ---@param r cvartree.CVarItem?
     local function f(r)
-        for prefname, preftable in pairs(r or t) do
+        for prefname, preftable in pairs(r or t --[[@as table<string, cvartree.CVarItem>]]) do
             if istable(preftable) then
                 if preftable.iscvarlayer then
                     f(preftable)
@@ -168,14 +283,14 @@ if SERVER then
 
     net.Receive("greatzenkakuman.cvartree.sendchange", function(_, ply)
         local name = net.ReadString()
-        if not name:StartWith "cl_" then return end
+        if not name:StartsWith "cl_" then return end
         local cvar = GetConVar(name)
         if not cvar then return end
         cvar:SetString(net.ReadString())
     end)
 
     net.Receive("greatzenkakuman.cvartree.synchronizeconvars", function(_, ply)
-        for _, cvartable in IteratePreferences() do
+        for _, cvartable in cvartree.IteratePreferences() do
             if cvartable.options and cvartable.options.serverside then
                 local str = cvartable.sv:GetString() -- It's really hacky way
                 cvartable.sv:SetString(str .. "*") -- to synchronize CVars,
@@ -194,24 +309,33 @@ end)
 
 -- PreferenceTable -> pt, IsEnabledPanel -> e
 local idprefix = "GreatZenkakuMan's Module: CVarTree"
+
+---Enables or disables the Derma panel for given preference definition
+---@param panel     Panel
+---@param panelType string
+---@param enabled   boolean
+---@param func      fun(panel: Panel, enabled: boolean)?
 local function EnablePanel(panel, panelType, enabled, func)
     panel:SetEnabled(enabled)
-    for _, c in ipairs(panel:GetChildren()) do c:SetEnabled(enabled) end
-
-    if panelType == "number" then
-        local s = enabled and "Dark" or "Default"
-        local l, t = panel.Label, panel:GetTextArea()
-        l:SetTextColor(l:GetSkin().Colours.Label[s])
-        t:SetTextColor(t:GetSkin().Colours.Label[s])
-        for _, c in ipairs(panel:GetChildren()) do
-            c:SetMouseInputEnabled(enabled)
-            c:SetKeyboardInputEnabled(enabled)
+    for _, child in ipairs(panel:GetChildren()) do child:SetEnabled(enabled) end
+    if panelType == "number" then ---@cast panel DNumSlider
+        local label = panel.Label --[[@as DLabel]]
+        local skin = enabled and "Dark" or "Default"
+        local textentry = panel:GetTextArea()
+        label:SetTextColor(label:GetSkin().Colours.Label[skin])
+        textentry:SetTextColor(textentry:GetSkin().Colours.Label[skin])
+        for _, child in ipairs(panel:GetChildren()) do
+            child:SetMouseInputEnabled(enabled)
+            child:SetKeyboardInputEnabled(enabled)
         end
-    elseif isfunction(func) then
+    elseif isfunction(func) then ---@cast func -?
         func(panel, enabled)
     end
 end
 
+---Generates OnChange event for given prefernce definition
+---@param pt cvartree.CVarItem
+---@return fun(convar: string, old: string, new: string)
 local function GetCVarOnChange(pt)
     if pt.options.type == "boolean" then
         return function(convar, old, new)
@@ -227,212 +351,250 @@ local function GetCVarOnChange(pt)
         end
     elseif isfunction(pt.options.cvaronchange) then
         return pt.options.cvaronchange(pt)
+    else
+        error "GreatZenkakuMan's Module: Can't create CVar change callback."
     end
 end
 
+---Generates callback function called when the value is changed using Derma panel
+---@param pt cvartree.CVarItem
+---@return fun(self: Panel, value: string|number|boolean)?
 local function GetDermaPanelOnChange(pt)
-    if not pt.paneladmin then return end
+    local panel = pt.paneladmin
+    if not panel then return end
     if pt.options.type == "boolean" then
-        function pt.paneladmin:OnChange(value)
+        ---@cast panel DCheckBoxLabel
+        function panel:OnChange(value)
+            ---@cast self +cvartree.Panel
             net.Start "greatzenkakuman.cvartree.adminchange"
             net.WriteString(self.CVarName)
             net.WriteString(value and "1" or "0")
             net.SendToServer()
         end
 
-        return pt.paneladmin.OnChange
+        return panel.OnChange
     elseif pt.options.type == "number" then
-        function pt.paneladmin:OnValueChanged(value)
+        ---@cast panel DNumSlider
+        function panel:OnValueChanged(value)
             value = math.Round(value, self:GetDecimals())
+            ---@cast self +cvartree.Panel
             net.Start "greatzenkakuman.cvartree.adminchange"
             net.WriteString(self.CVarName)
             net.WriteString(tostring(value))
             net.SendToServer()
         end
 
-        return pt.paneladmin.OnValueChanged
+        return panel.OnValueChanged
     elseif isfunction(pt.options.dermaonchange) then
         return pt.options.dermaonchange(pt)
     end
 end
 
-local function MakeElement(p, admin, pt)
+---Make a Derma element on the panel for given preference definition
+---@param parent DForm
+---@param admin  boolean?
+---@param pt     cvartree.CVarItem
+local function MakeElement(parent, admin, pt)
     local cvar = Either(admin, pt.sv, pt.cl)
-    local panel = admin and "paneladmin" or "panel"
+    local panelname = admin and "paneladmin" or "panel"
     if not cvar or Either(admin, pt.options.clientside, pt.options.serverside) then return end
     if game.SinglePlayer() and admin and not pt.options.serverside then return end
+    local panel = nil
     if pt.options.type == "boolean" then
-        pt[panel] = vgui.Create("DCheckBoxLabel", p)
-        pt[panel]:SetTextColor(pt[panel]:GetSkin().Colours.Label.Dark)
-        pt[panel]:SetValue(cvar:GetBool())
+        panel = vgui.Create("DCheckBoxLabel", parent)
+        panel:SetTextColor(panel:GetSkin().Colours.Label.Dark)
+        panel:SetValue(cvar:GetBool())
     elseif pt.options.type == "number" then
-        pt[panel] = vgui.Create("DNumSlider", p)
-        pt[panel]:SetMinMax(pt.options.min, pt.options.max)
-        pt[panel]:SetDecimals(pt.options.decimals or 0)
-        pt[panel]:SetValue(cvar:GetInt())
-        pt[panel].Label:SetTextColor(pt[panel].Label:GetSkin().Colours.Label.Dark)
+        panel = vgui.Create("DNumSlider", parent)
+        panel:SetMinMax(pt.options.min, pt.options.max)
+        panel:SetDecimals(pt.options.decimals or 0)
+        panel:SetValue(cvar:GetInt())
+        ---@cast panel +cvartree.Panel
+        panel.Label:SetTextColor(panel.Label:GetSkin().Colours.Label.Dark)
     elseif isfunction(pt.options.makepanel) then
-        pt[panel] = pt.options.makepanel(p, pt, cvar, admin)
+        panel = pt.options.makepanel(parent, pt, cvar, admin)
+    else
+        error "GreatZenkakuMan's Module: Can't create VGUI element."
     end
 
-    pt[panel].CVarName = cvar:GetName()
-    pt[panel]:SetText(pt.printname)
+    ---@cast panel +cvartree.Panel
+    panel.CVarName = cvar:GetName()
+    panel:SetText(pt.options.printname)
 
-    local override
+    local override = nil
     if admin then
         local dermaonchange = GetDermaPanelOnChange(pt)
-        cvars.AddChangeCallback(pt[panel].CVarName, GetCVarOnChange(pt))
+        cvars.AddChangeCallback(panel.CVarName, GetCVarOnChange(pt))
 
         if not pt.options.serverside then
             local checked = cvar:GetInt() ~= -1
             EnablePanel(pt.paneladmin, pt.options.type, checked)
-            override = vgui.Create("DCheckBox", p)
-            override:SetTooltip(OverrideHelpText)
+            override = vgui.Create("DCheckBox", parent)
+            override:SetTooltip(cvartree.OverrideHelpText)
             override:SetValue(checked)
-            cvars.AddChangeCallback(pt[panel].CVarName, function(convar, old, new)
+            cvars.AddChangeCallback(panel.CVarName,
+            ---@param convar string
+            ---@param old string
+            ---@param new string
+            function(convar, old, new)
                 if not (IsValid(LocalPlayer()) and LocalPlayer():IsAdmin()) then return end
                 local chk = tonumber(new) ~= -1
                 override:SetChecked(chk)
                 EnablePanel(pt.paneladmin, pt.options.type, chk)
             end)
 
+            ---@param chk boolean
             function override:OnChange(chk)
                 EnablePanel(pt.paneladmin, pt.options.type, chk)
-                dermaonchange(pt.paneladmin, pt.cl:GetDefault())
+                if dermaonchange then dermaonchange(pt.paneladmin, pt.cl:GetDefault()) end
                 net.Start "greatzenkakuman.cvartree.adminchange"
-                net.WriteString(pt[panel].CVarName)
+                net.WriteString(panel.CVarName)
                 net.WriteString(chk and pt.cl:GetDefault() or "-1")
                 net.SendToServer()
             end
         end
-    elseif isfunction(pt[panel].SetConVar) then
-        pt[panel]:SetConVar(cvar:GetName())
+    elseif isfunction(panel.SetConVar) then
+        panel:SetConVar(cvar:GetName())
     end
 
     if not admin and pt.sv then
-        pt[panel].Think = function()
-            EnablePanel(pt[panel], pt.options.type, pt.sv:GetInt() == -1, pt.options.enablepanel)
+        ---@cast panel +PANEL
+        function panel:Think()
+            EnablePanel(self, pt.options.type, pt.sv:GetInt() == -1, pt.options.enablepanel)
         end
     end
-
-    p:AddItem(override or pt[panel], override and pt[panel])
+    pt[panelname] = panel ---@type Panel
+    parent:AddItem(override or panel, override and panel)
     if override then
-        local t = (pt[panel]:GetTall() - 15) / 2
+        local t = (panel:GetTall() - 15) / 2
         local b = t + (t > math.floor(t) and 1 or 0)
         override:DockMargin(0, math.floor(t), 0, b)
         override:SetWidth(15)
-        pt[panel].CheckBox = override
-        pt[panel]:Dock(TOP)
-        pt[panel]:DockMargin(10, 0, 0, 0)
+        panel.CheckBox = override
+        panel:Dock(TOP)
+        panel:DockMargin(10, 0, 0, 0)
     end
 
     if not pt.options.helptext then return end
-    pt[panel]:SetTooltip(pt.options.helptext)
+    panel:SetTooltip(pt.options.helptext)
 end
 
-local function MakeGUI(p, nametable, admin)
-    local categories, sorted, sortedlast, preferences = {}, {}, {}, {}
-    for name, pt in pairs(GetCVarTable(nametable)) do
-        if not name:StartWith "__" and istable(pt) then
-            pt.printname = pt.printname or pt.options and pt.options.printname or name
+---Make a group of Derma elements for given preference category
+---@param panel     DForm
+---@param nametable string[]
+---@param admin     boolean?
+local function MakeGUI(panel, nametable, admin)
+    local categories  = {} ---@type table<string, cvartree.CVarItem>
+    local preferences = {} ---@type table<string, cvartree.CVarItem>
+    local sorted      = {} ---@type cvartree.CVarItem[]
+    local sortedlast  = {} ---@type cvartree.CVarItem[]
+    ---@type table<string, cvartree.CVarItem>
+    local cvartable = cvartree.GetCVarTable(nametable)
+    for name, pt in pairs(cvartable) do
+        ---@cast name string
+        ---@cast pt cvartree.CVarItem
+        if not name:StartsWith "__" and istable(pt) then
             if pt.iscvarlayer then
                 categories[name] = pt
             elseif pt.options and not pt.options.hidden then
                 if pt.options.order then
-                    pt.order = pt.options.order
-                    sorted[name] = pt
+                    sorted[pt.options.order] = pt
                 elseif pt.options.bottomorder then
-                    pt.bottomorder = pt.options.bottomorder
-                    sortedlast[name] = pt
+                    sortedlast[pt.options.bottomorder] = pt
                 else
-                    preferences[name] = pt
+                    local printname = pt.options.printname or name
+                    pt.options.printname = printname
+                    preferences[printname] = pt
                 end
             end
         end
     end
 
-    for _, pt in SortedPairsByMemberValue(sorted, "order") do MakeElement(p, admin, pt) end
-    for _, pt in SortedPairsByMemberValue(preferences, "printname") do MakeElement(p, admin, pt) end
-    for _, pt in SortedPairsByMemberValue(sortedlast, "bottomorder", true) do MakeElement(p, admin, pt) end
+    for _, pt in SortedPairs(sorted) do
+        ---@cast pt cvartree.CVarItem
+        MakeElement(panel, admin, pt)
+    end
+    for _, pt in SortedPairs(preferences) do
+        ---@cast pt cvartree.CVarItem
+        MakeElement(panel, admin, pt)
+    end
+    for _, pt in SortedPairs(sortedlast, true) do
+        ---@cast pt cvartree.CVarItem
+        MakeElement(panel, admin, pt)
+    end
     for name, pt in SortedPairs(categories) do
+        ---@cast name string
+        ---@cast pt cvartree.CVarItem
         if pt.options.subcategory then
-            pt.panel = p
-            local l = p:Help(pt.printname)
-            l:DockMargin(0, 0, 8, 8)
-            l:SetTextColor(l:GetSkin().Colours.Tree.Hover)
+            pt.panel = panel
+            local label = panel:Help(pt.options.printname)
+            label:DockMargin(0, 0, 8, 8)
+            label:SetTextColor(label:GetSkin().Colours.Tree.Hover)
         else
-            pt.panel = vgui.Create("ControlPanel", p)
-            pt.panel:SetLabel(pt.printname)
-            if pt.options.closed then
-                pt.panel:SetExpanded(false)
-            end
-
-            p:AddPanel(pt.panel)
+            pt.panel = vgui.Create("ControlPanel", panel)
+            pt.panel:SetLabel(pt.options.printname)
+            if pt.options.closed then pt.panel:SetExpanded(false) end
+            panel:AddItem(pt.panel)
         end
 
         local nt = table.Copy(nametable)
         nt[#nt + 1] = name
-        MakeGUI(pt.panel, nt, admin)
+        MakeGUI(pt.panel --[[@as DForm]], nt, admin)
     end
 
-    for _, i in ipairs(p.Items) do
-        local c = i:GetChild(0)
-        if c and c:GetName() ~= "DLabel" then return end
+    for _, item in ipairs(panel:GetChildren()) do
+        local child = item:GetChild(0)
+        if child and child:GetName() ~= "DLabel" then return end
     end
 
-    p:Remove()
+    panel:Remove()
 end
 
-function AddGUI(name)
-    if isstring(name) then name = {name} end
-    local t = GetCVarTable(name)
-    local printname = t.printname or t.options and t.options.printname or name[#name]
+---Generates GUI panels for registered ConVars
+---@param name string|string[]
+function cvartree.AddGUI(name)
+    if isstring(name) then name = {name --[[@as string]]} end
+    ---@cast name -string
+    local t = cvartree.GetCVarTable(name)
+    local printname = t.options and t.options.printname or name[#name]
     hook.Add("PopulateToolMenu", idprefix .. printname, function()
         spawnmenu.AddToolMenuOption("Utilities", "User",
-        idprefix .. printname, printname, "", "", function(p)
-            p:ClearControls()
-            MakeGUI(p, name)
+        idprefix .. printname, printname, "", "",
+        ---@param panel DForm
+        function(panel)
+            panel:Clear()
+            MakeGUI(panel, name)
         end)
 
         spawnmenu.AddToolMenuOption("Utilities", "Admin",
-        "CVarTreeAdmin" .. printname, printname, "", "", function(p)
-            p:ClearControls()
-            MakeGUI(p, name, true)
-            local think = p.Think
-            function p:Think()
+        "CVarTreeAdmin" .. printname, printname, "", "",
+        ---@param panel DForm
+        function(panel)
+            panel:Clear()
+            MakeGUI(panel, name, true)
+            ---@cast panel +PANEL
+            local think = panel.Think
+            function panel:Think()
                 if not IsValid(LocalPlayer()) then return end
-                p.Think = think
+                panel.Think = think
                 if LocalPlayer():IsAdmin() then return end
-                p:Remove()
+                panel:Remove()
             end
         end)
     end)
 end
 
--- require "greatzenkakuman/cvartree"
--- print("Test>", greatzenkakuman)
--- if not greatzenkakuman then return end
--- print("Test>", greatzenkakuman.cvartree)
+return cvartree
 
--- local ct = greatzenkakuman.cvartree
--- ct.AddCVar({"greatzenkakuman", "tree", "preference1"}, 0, "Text Help")
--- ct.AddCVarPrefix "greatzenkakuman" "tree"
--- ct.AddCVar("preference2", 25, "Overridable/GZM/Tree/preference2", {type = "number", min = 0, max = 50})
--- ct.SetCVarPrefix "greatzenkakuman" "tree2"
--- ct.AddCVar("serveronly1", 1, "Serveronly/GZM/Tree2/Serveronly1", {serverside = true})
--- ct.AddCVar("clientonly1", 1, "Clientonly/GZM/Tree2/Clientonly1", {clientside = true})
--- ct.SetCVarPrefix()
--- ct.AddCVar({"greatzenkakuman", "tree3", "subtree1", "four_layers"}, 2, "Four layers test", {type = "number", min = 1, max = 3, decimals = 1})
+-- local cvartree = require "greatzenkakuman/cvartree"
+-- cvartree.AddCVar({"greatzenkakuman", "tree", "preference1"}, 0, "Text Help")
+-- cvartree.AddCVarPrefix "greatzenkakuman" "tree"
+-- cvartree.AddCVar("preference2", 25, "Overridable/GZM/Tree/preference2", {type = "number", min = 0, max = 50})
+-- cvartree.SetCVarPrefix "greatzenkakuman" "tree2"
+-- cvartree.AddCVar("serveronly1", 1, "Serveronly/GZM/Tree2/Serveronly1", {serverside = true})
+-- cvartree.AddCVar("clientonly1", 1, "Clientonly/GZM/Tree2/Clientonly1", {clientside = true})
+-- cvartree.SetCVarPrefix()
+-- cvartree.AddCVar({"greatzenkakuman", "tree3", "subtree1", "four_layers"}, 2, "Four layers test", {type = "number", min = 1, max = 3, decimals = 1})
 
--- ct.SetPrintName("greatzenkakuman", "GreatZenkakuMan's Preference")
--- ct.SetPrintName({"greatzenkakuman", "tree"}, "Tree1")
--- ct.SetPrintName({"greatzenkakuman", "tree2"}, "Tree2")
--- ct.SetPrintName({"greatzenkakuman", "tree", "preference1"}, "Preference 1")
--- ct.SetPrintName({"greatzenkakuman", "tree", "preference2"}, "Preference 2")
--- ct.SetPrintName({"greatzenkakuman", "tree2", "serveronly1"}, "Server")
--- ct.SetPrintName({"greatzenkakuman", "tree2", "clientonly1"}, "Client")
--- ct.SetPrintName({"greatzenkakuman", "tree3"}, "Tree3")
--- ct.SetPrintName({"greatzenkakuman", "tree3", "subtree1"}, "Sub-tree1")
--- ct.SetPrintName({"greatzenkakuman", "tree3", "subtree1", "four_layers"}, "Four layer test")
--- if CLIENT then ct.AddGUI "greatzenkakuman" end
--- PrintTable(ct.GetCVarList())
+-- if CLIENT then cvartree.AddGUI "greatzenkakuman" end
+-- PrintTable(cvartree.GetCVarList())

@@ -1,6 +1,7 @@
 
 -- util.AddNetworkString's
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -38,16 +39,17 @@ net.Receive("SplatoonSWEPs: Ready to splat", function(_, ply)
     net.Send(ply)
 end)
 
+local RedownloadProgress = {} ---@type table<Player, integer>
 net.Receive("SplatoonSWEPs: Redownload ink data", function(_, ply)
     local data = file.Read(string.format("splatoonsweps/%s.txt", game.GetMap()))
-    local startpos = ply.SendData or 1
+    local startpos = RedownloadProgress[ply] or 1
     local header, bool, uint, float = 3, 1, 2, 4
     local bps = 65536 - header - bool - uint - float
     local chunk = data:sub(startpos, startpos + bps - 1)
     local size = chunk:len()
     local current = math.floor(startpos / bps)
     local total = math.floor(data:len() / bps)
-    ply.SendData = startpos + size
+    RedownloadProgress[ply] = startpos + size
     net.Start "SplatoonSWEPs: Redownload ink data"
     net.WriteBool(size < bps or data:len() < startpos + bps)
     net.WriteUInt(size, 16)
@@ -72,7 +74,7 @@ net.Receive("SplatoonSWEPs: Strip weapon", function(_, ply)
 end)
 
 net.Receive("SplatoonSWEPs: Super jump", function(len, ply)
-    local ent = net.ReadEntity()
+    local ent = net.ReadEntity() --[[@as ENT.SquidBeakon]]
     if not IsValid(ent) then return end
     if not ent.IsSquidBeakon then return end
     ss.EnterSuperJumpState(ply, ent)

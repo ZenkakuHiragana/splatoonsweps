@@ -2,11 +2,6 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-EFFECT.Alpha = 255
-EFFECT.InitRatio = 32
-EFFECT.Ratio = EFFECT.InitRatio
-EFFECT.Rotated = false
-EFFECT.Rotation = 45
 local RotationInverseTime = 2 * ss.FrameToSec
 local FadeStartTime = 4 * ss.FrameToSec
 local LifeTime = 6 * ss.FrameToSec
@@ -15,6 +10,32 @@ local mdl = Model "models/props_junk/PopCan01a.mdl"
 local hitnormal = "SplatoonSWEPs.DealDamage"
 local hitcritical = "SplatoonSWEPs.DealDamageCritical"
 local critsglow = Material "sprites/animglow02"
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.OnHit
+---@class EFFECT.OnHit : EFFECT
+---@field Alpha      number
+---@field Animate    fun(self, t: number)
+---@field Color      Color
+---@field Flags      integer
+---@field InitRatio  number
+---@field InitSize   number
+---@field IsCritical boolean
+---@field LifeTime   number
+---@field Material   IMaterial
+---@field Ratio      number
+---@field Rotated    boolean
+---@field Rotation   number
+---@field Size       number
+---@field Time       number
+
+EFFECT.Alpha = 255
+EFFECT.InitRatio = 32
+EFFECT.Ratio = EFFECT.InitRatio
+EFFECT.Rotated = false
+EFFECT.Rotation = 45
+
+---@param self EFFECT.OnHit
+---@param t number
 local function AnimateCritical(self, t)
     if t > LifeTime then
         local f = math.EaseInOut(math.TimeFraction(LifeTime, LifeTimeCritical, t), 0, .75)
@@ -50,11 +71,11 @@ end
 function EFFECT:Init(e)
     local ping = ss.mp and bit.band(e:GetFlags(), 128) > 0 and LocalPlayer():Ping() / 1000 or 0
     local c = ss.GetColor(e:GetColor())
+    local cv = (c:ToVector() + ss.vector_one) / 2
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())
     self:SetPos(e:GetOrigin())
-    self.Color = (c:ToVector() + ss.vector_one) / 2
-    self.Color = self.Color:ToColor()
+    self.Color = cv:ToColor()
     self.Flags = e:GetFlags()
     self.InitSize = ScrH() / 40
     self.IsCritical = bit.band(self.Flags, 1) > 0
@@ -70,7 +91,6 @@ function EFFECT:Init(e)
 
     if not self.IsCritical then return end
     self.Animate = AnimateCritical
-    -- self.Color = c
     self.InitSize = self.InitSize * self.InitRatio / 2
     self.InitRatio = 1
     self.LifeTime = LifeTimeCritical

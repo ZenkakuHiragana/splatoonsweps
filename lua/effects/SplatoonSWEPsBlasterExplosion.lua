@@ -4,6 +4,15 @@ if not ss then return end
 local mat = Material "splatoonsweps/effects/explosion_ink"
 local mdl = Model "models/hunter/misc/sphere2x2.mdl"
 local numframes = 32
+
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.BlasterExplosion
+---@class EFFECT.BlasterExplosion : EFFECT
+---@field Frame    integer
+---@field InitTime number
+---@field MaxScale number
+---@field MinScale number
+
 function EFFECT:Init(e)
     local f = e:GetFlags()
     local hitwall = bit.band(f, 1) > 0

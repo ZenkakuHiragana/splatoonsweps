@@ -2,6 +2,11 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 local mdl = Model "models/props_junk/PopCan01a.mdl"
+
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.BlasterTrail
+---@class EFFECT.BlasterTrail : EFFECT
+
 function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())

@@ -1,6 +1,14 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local SWEP = SWEP
+---@cast SWEP SWEP.Blaster
+---@class SWEP.Blaster : SWEP.Shooter
+---@field BaseClass       SWEP.Shooter
+---@field Parameters      Parameters.Blaster
+---@field GetPreFireDelay fun(self): number
+
 SWEP.Base = "weapon_splatoonsweps_shooter"
 SWEP.IsBlaster = true
 
@@ -39,8 +47,9 @@ function SWEP:SharedPrimaryAttack(able)
     self:SetFireDelay(time)
 end
 
-function SWEP:Move(ply)
-    self:GetBase().Move(self, ply)
+function SWEP:Move(ply, mv)
+    local base = self:GetBase() --[[@as SWEP.Shooter]]
+    base.Move(self, ply, mv)
     if CurTime() < self:GetFireDelay() then return end
     if not self:CheckCanStandup() then return end
 
@@ -64,6 +73,10 @@ end
 
 function SWEP:UpdateAnimation(ply, min, max) end
 function SWEP:CustomDataTables()
+    ---@class SWEP.Blaster
+    ---@field GetFireDelay fun(self): number
+    ---@field SetFireDelay fun(self, value: number)
+    ---@field GetAimTimer  fun(self, org: boolean?): number
     self:GetBase().CustomDataTables(self)
     self:AddNetworkVar("Float", "FireDelay")
     self:SetFireDelay(math.huge)

@@ -1,7 +1,13 @@
 
+local ENT = ENT
+---@cast ENT ENT.SuctionBomb
+---@class ENT.SuctionBomb : ENT.SplatBomb
+---@field BaseClass ENT.SplatBomb
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_splatbomb"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.ExplosionOffset = 10

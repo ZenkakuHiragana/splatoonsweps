@@ -1,8 +1,11 @@
 
 -- Team Fortress 2 is required.
 if not IsMounted "tf" then return end
+local OldItemTintBind ---@type function
 
-local OldItemTintBind
+---@param self table
+---@param mat string
+---@param values table<string, any>
 local function ItemTintInit(self, mat, values)
     self.ResultTo = values.resultvar -- Store the name of the variable we want to set
 end
@@ -10,8 +13,9 @@ end
 for _, a in ipairs(engine.GetAddons()) do
     if a.wsid == "135491961" and a.mounted then
         include "matproxy/tf2itempaint.lua" -- Hat Painter & Crit Glow Tools conflicts
-        ItemTintInit = matproxy.ProxyList.ItemTintColor.init -- So take some workaround
-        OldItemTintBind = matproxy.ProxyList.ItemTintColor.bind
+        local ItemTintColor = matproxy.ProxyList.ItemTintColor --[[@as MatProxyData]]
+        ItemTintInit = ItemTintColor.init -- So take some workaround
+        OldItemTintBind = ItemTintColor.bind
     end
 end
 

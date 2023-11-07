@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.burstbomb = {
     Merge = {
         IsSubWeaponThrowable = true,
     },
+    ---@class SubParameters.BurstBomb
     Parameters = {
         BombDamage = 0.25,
         BringCloseRateCrossVec = 0.7,
@@ -95,6 +98,7 @@ ss.burstbomb = {
 
 ss.ConvertUnits(ss.burstbomb.Parameters, ss.burstbomb.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.burstbomb.Merge
 local p = ss.burstbomb.Parameters
 function module:CanSecondaryAttack()
@@ -112,7 +116,7 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    local e = ents.Create "ent_splatoonsweps_burstbomb"
+    local e = ents.Create "ent_splatoonsweps_burstbomb" --[[@as ENT.BurstBomb]]
     e:SetOwner(self:GetOwner())
     e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
     e:SetInkColorProxy(self:GetInkColorProxy())

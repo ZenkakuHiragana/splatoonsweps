@@ -1,4 +1,5 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -16,15 +17,26 @@ local GRID_SIZE = 128
 local MAX_COS_DIFF = ss.MAX_COS_DIFF
 local MAX_GRID_INDEX = 32768 / GRID_SIZE
 local MAX_GRID_INDEX_SQR = MAX_GRID_INDEX * MAX_GRID_INDEX
+---@param pos Vector
+---@return number
+---@return number
+---@return number
 local function posToGrid(pos)
     pos = (pos + vector_16384) / GRID_SIZE
     return floor(pos.x), floor(pos.y), floor(pos.z)
 end
 
+---@param x number
+---@param y number
+---@param z number
+---@return number
 local function gridToHash(x, y, z)
     return x + y * MAX_GRID_INDEX + z * MAX_GRID_INDEX_SQR
 end
 
+---@param mins Vector
+---@param maxs Vector
+---@return fun(): number
 local function hashpairs(mins, maxs)
     local x0, y0, z0 = posToGrid(mins)
     local x1, y1, z1 = posToGrid(maxs)
@@ -45,7 +57,7 @@ end
 function ss.GenerateHashTable()
     -- A hash table to represent grid
     -- = { [hash] = { i1, i2, i3, ... }, ... }
-    ss.SurfaceHash = {}
+    ss.SurfaceHash = {} ---@type table<integer, integer[]>
     for i, s in ipairs(ss.SurfaceArray) do
         for h in hashpairs(s.mins, s.maxs) do
             ss.SurfaceHash[h] = ss.SurfaceHash[h] or {}
@@ -54,6 +66,10 @@ function ss.GenerateHashTable()
     end
 end
 
+---@param mins Vector
+---@param maxs Vector
+---@param normal Vector
+---@return fun(): PaintableSurface
 function ss.CollectSurfaces(mins, maxs, normal)
     return wrap(function()
         for h in hashpairs(mins - vector_tenth, maxs + vector_tenth) do
@@ -65,6 +81,9 @@ function ss.CollectSurfaces(mins, maxs, normal)
     end)
 end
 
+---@param pos Vector
+---@return Vector
+---@return Vector
 function ss.GetGridBBox(pos)
     local mins = Vector(posToGrid(pos)) * GRID_SIZE - vector_16384
     local maxs = mins + vector_one * GRID_SIZE

@@ -1,5 +1,6 @@
 
 AddCSLuaFile()
+local SWEP = SWEP ---@cast SWEP SWEP.Charger
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 SWEP.ScopeAng = Angle()              -- Scoped viewmodel angles [deg]

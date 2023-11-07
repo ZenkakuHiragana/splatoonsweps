@@ -1,17 +1,30 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.LandingPoint
+---@class EFFECT.LandingPoint : EFFECT
+---@field Weapon    SplatoonWeaponBase
+---@field Positions Vector[]
+---@field Normal    Vector
 
 local TRACE_SIZE = 15
 local mat = Material "splatoonsweps/crosshair/landing_point"
 local mdl = Model "models/hunter/misc/sphere075x075.mdl"
+
+---@param self EFFECT.LandingPoint
+---@return boolean
 local function CheckVars(self)
-    if not IsValid(self.Weapon) then return end
-    if not IsValid(self.Weapon:GetOwner()) then return end
-    if self.Weapon:GetOwner():GetActiveWeapon() ~= self.Weapon then return end
+    if not IsValid(self.Weapon) then return false end
+    local Owner = self.Weapon:GetOwner()
+    if not IsValid(Owner) then return false end
+    if (Owner:IsPlayer() or Owner:IsNPC()) ---@cast Owner Player|NPC
+    and Owner:GetActiveWeapon() ~= self.Weapon then return false end
     return true
 end
 
+---@param self EFFECT.LandingPoint
+---@param pos Vector?
 local function RefreshPos(self, pos)
     local ang = self.Normal:Angle()
     ang:RotateAroundAxis(ang:Right(), 90)
@@ -22,7 +35,7 @@ local function RefreshPos(self, pos)
 end
 
 function EFFECT:Init(e)
-    self.Weapon = e:GetEntity()
+    self.Weapon = e:GetEntity() --[[@as SplatoonWeaponBase]]
     if not IsValid(self.Weapon) then return end
     self.Positions = {}
     self.Normal = Vector()

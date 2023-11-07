@@ -1,7 +1,33 @@
 
+local ENT = ENT
+---@cast ENT ENT.Throwable
+---@class ENT.Throwable : ENT
+---@field AirResist           number
+---@field AngleAirResist      number
+---@field BaseClass           ENT
+---@field CollisionGroup      integer
+---@field ContactEntity       Entity
+---@field ContactPhysObj      PhysObj
+---@field DragCoeffChangeTime number
+---@field FindBoneFromPhysObj fun(self, ent: Entity, physobj: PhysObj): integer
+---@field GetInkColorProxy    fun(self): Vector
+---@field Gravity             number
+---@field GravityDirection    Vector
+---@field IsSplatoonBomb      boolean
+---@field IsStuck             fun(self): boolean
+---@field Model               string
+---@field Owner               Entity
+---@field SetInkColorProxy    fun(self, Vector)
+---@field StraightFrame       number
+---@field SubWeaponName       string
+---@field UseSubWeaponFilter  boolean
+---@field WeaponClassName     string
+---@field Weld                fun(self)
+
 AddCSLuaFile()
 ENT.Type = "anim"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.CollisionGroup = COLLISION_GROUP_PASSABLE_DOOR
@@ -9,6 +35,10 @@ ENT.Model = Model "models/splatoonsweps/subs/splatbomb/splatbomb.mdl"
 ENT.UseSubWeaponFilter = true
 ENT.WeaponClassName = ""
 
+---Determine Splash Wall to be solid against given entity
+---@param e1 ENT.Throwable
+---@param e2 ENT.Throwable
+---@return boolean?
 local function SplashWallFilter(e1, e2)
     if e2.SubWeaponName == "splashwall" then e1, e2 = e2, e1 end
     local w = ss.IsValidInkling(e2)
@@ -17,7 +47,11 @@ local function SplashWallFilter(e1, e2)
     return not ss.IsAlly(e1, e2)
 end
 
-hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter", function(e1, e2)
+hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter",
+---@param e1 ENT.Throwable
+---@param e2 ENT.Throwable
+---@return boolean?
+function(e1, e2)
     if e1.SubWeaponName == "splashwall" or e2.SubWeaponName == "splashwall" then
         return SplashWallFilter(e1, e2)
     end

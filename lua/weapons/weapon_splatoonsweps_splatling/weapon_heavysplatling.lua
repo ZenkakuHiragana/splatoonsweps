@@ -1,5 +1,6 @@
 
 AddCSLuaFile()
+local SWEP = SWEP ---@cast SWEP SWEP.Splatling
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 SWEP.ChargeSound = {"SplatoonSWEPs.HeavySplatling", "SplatoonSWEPs.HeavySplatling2", "SplatoonSWEPs.HeavySplatlingFull"}

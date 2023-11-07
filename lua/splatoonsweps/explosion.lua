@@ -1,8 +1,11 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
--- Make splashes for the explosion and spread them around.
+---Make splashes for the explosion and spread them around.
+---@param data ss.Explosion
+---@param weapon SplatoonWeaponBase?
 local function MakeExplosionSplashes(data, weapon)
     if not weapon then return end
 
@@ -60,7 +63,41 @@ local function MakeExplosionSplashes(data, weapon)
     end
 end
 
+---@return ss.Explosion
 function ss.MakeExplosionStructure()
+    ---@class ss.Explosion
+    ---@field BombEntity             Entity
+    ---@field ClassName              string
+    ---@field DamageRadius           number
+    ---@field DoDamage               boolean
+    ---@field DoGroundPaint          boolean
+    ---@field EffectFlags            integer
+    ---@field EffectName             string
+    ---@field EffectRadius           number
+    ---@field GroundPaintRadius      number
+    ---@field GroundPaintType        integer
+    ---@field GetDamage              fun(distance: number, ent: Entity?): number
+    ---@field GetTracePaintRadius    fun(distance: number): number
+    ---@field HurtOwner              boolean
+    ---@field IgnorePrediction       boolean?
+    ---@field IsPredicted            boolean?
+    ---@field InkColor               integer
+    ---@field Origin                 Vector
+    ---@field Owner                  Entity
+    ---@field ProjectileID           integer
+    ---@field ShouldPerformEffect    boolean
+    ---@field SplashNum              integer
+    ---@field SplashAirResist        number?
+    ---@field SplashGravity          number?
+    ---@field SplashHeightOffset     number
+    ---@field SplashPaintRadius      number
+    ---@field SplashInitAng          Angle
+    ---@field SplashInitPitchLow     number
+    ---@field SplashInitPitchHigh    number
+    ---@field SplashInitVelocityLow  number
+    ---@field SplashInitVelocityHigh number
+    ---@field TraceLength            number
+    ---@field TraceYaw               number
     return {
         BombEntity = NULL,
         ClassName = "",
@@ -72,8 +109,8 @@ function ss.MakeExplosionStructure()
         EffectRadius = 0,
         GroundPaintRadius = 0,
         GroundPaintType = 13,
-        GetDamage = function(dist) return 0 end,
-        GetTracePaintRadius = function(dist) return 0 end,
+        GetDamage = function() return 0 end,
+        GetTracePaintRadius = function() return 0 end,
         HurtOwner = false,
         IgnorePrediction = nil,
         IsPredicted = nil,
@@ -95,6 +132,7 @@ function ss.MakeExplosionStructure()
     }
 end
 
+---@param data ss.Explosion
 function ss.MakeExplosion(data)
     local origin = data.Origin
     local owner = data.Owner
@@ -123,11 +161,12 @@ function ss.MakeExplosion(data)
             for i, dir in pairs {
                 x = e:GetForward(), y = e:GetRight(), z = e:GetUp()
             } do
+                local s = size[i] ---@type number
                 local segment = dir:Dot(origin - center)
                 local sign = segment == 0 and 0 or segment > 0 and 1 or -1
                 segment = math.abs(segment)
-                if segment > size[i] then
-                    dist = dist + sign * (size[i] - segment) * dir
+                if segment > s then
+                    dist = dist + dir * sign * (s - segment)
                 end
             end
 
@@ -231,8 +270,13 @@ function ss.MakeExplosion(data)
     MakeExplosionSplashes(data, weapon)
 end
 
+---@param org Vector
+---@param normal Vector
+---@param ent ENT.Inkmine|ENT.Throwable
+---@param color integer
+---@param subweapon string
 function ss.MakeBombExplosion(org, normal, ent, color, subweapon)
-    local sub = ss[subweapon]
+    local sub = ss[subweapon] ---@type ISubWeaponDef
     if not sub then return end
     local params = sub.Parameters
     if not params then return end
@@ -270,6 +314,9 @@ function ss.MakeBombExplosion(org, normal, ent, color, subweapon)
     }))
 end
 
+---@param org Vector
+---@param attacker Entity
+---@param color integer
 function ss.MakeDeathExplosion(org, attacker, color)
     sound.Play("SplatoonSWEPs_Player.DeathExplosion", org)
     ss.MakeExplosion(table.Merge(ss.MakeExplosionStructure(), {
@@ -289,8 +336,9 @@ function ss.MakeDeathExplosion(org, attacker, color)
     }))
 end
 
+---@param ink InkQueue
 function ss.MakeBlasterExplosion(ink)
-    local data, p = ink.Data, ink.Parameters
+    local data, p = ink.Data, ink.Parameters --[[@as Parameters.Blaster]]
     local dmul = ink.BlasterHitWall and p.mShotCollisionHitDamageRate or 1
     local dnear = p.mDamageNear * dmul
     local dmid = p.mDamageMiddle * dmul
@@ -307,6 +355,8 @@ function ss.MakeBlasterExplosion(ink)
         EffectFlags = (IsLP and 128 or 0) + (ink.BlasterHitWall and 1 or 0),
         EffectName = "SplatoonSWEPsBlasterExplosion",
         EffectRadius = p.mCollisionRadiusFar * rmul,
+        ---@param dist number
+        ---@return number
         GetDamage = function(dist)
             if dist > rmid then
                 return math.Remap(dist, rmid, rfar, dmid, dfar)
@@ -316,6 +366,8 @@ function ss.MakeBlasterExplosion(ink)
 
             return dnear
         end,
+        ---@param dist number
+        ---@return number
         GetTracePaintRadius = function(dist)
             local frac = dist / p.mBoundPaintMinDistanceXZ
             return Lerp(frac, p.mBoundPaintMaxRadius, p.mBoundPaintMinRadius)

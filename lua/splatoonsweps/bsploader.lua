@@ -1,8 +1,34 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local LUMP = { -- Lump names. most of these are unused in SplatoonSWEPs.
+---@class ss.BSPRawInit
+---@class ss.BSPRaw : ss.BSPRawInit
+---@field header                    BSP.Header
+---@field ENTITIES                  string[]
+---@field PLANES                    BSP.Plane[]
+---@field VERTEXES                  Vector[]
+---@field EDGES                     integer[][]
+---@field SURFEDGES                 integer[]
+---@field FACES                     BSP.Face[]
+---@field FACES_HDR                 BSP.Face[]
+---@field LEAFS                     BSP.Leaf[]
+---@field TEXINFO                   BSP.TexInfo[]
+---@field TEXDATA                   BSP.TexData[]
+---@field TEXDATA_STRING_TABLE      integer[]
+---@field TEXDATA_STRING_DATA       string[]
+---@field MODELS                    BSP.Model[]
+---@field DISPINFO                  BSP.DispInfo[]
+---@field DISP_VERTS                BSP.DispVerts[]
+---@field DISP_TRIS                 integer[]
+---@field LIGHTING                  string
+---@field LIGHTING_HDR              string
+---@field GAME_LUMP                 BSP.GameLump
+---@field TexDataStringTableToIndex integer[]
+---@field [string]                  BSP.DefinedStructures
+
+local LUMP = { ---@type table<integer, string> Lump names. most of these are unused in SplatoonSWEPs.
     [1]  = "ENTITIES",
     [2]  = "PLANES",
     [3]  = "TEXDATA",
@@ -88,12 +114,22 @@ local StructureDefinitions = {
         "Long       version",
         "LumpHeader lumps 64",
         "Long       mapRevision",
+        ---@class BSP.Header
+        ---@field identifier  integer
+        ---@field version     integer
+        ---@field lumps       BSP.LumpHeader[]
+        ---@field mapRevision integer
     },
     LumpHeader = {
         "Long fileOffset",
         "Long fileLength",
         "Long version",
         "Long fourCC",
+        ---@class BSP.LumpHeader
+        ---@field fileOffset integer
+        ---@field fileLength integer
+        ---@field version    integer
+        ---@field fourCC     integer
     },
     CDispSubNeighbor = {
         "UShort neighbor",            -- Index into DISPINFO, 0xFFFF for no neighbor
@@ -101,14 +137,26 @@ local StructureDefinitions = {
         "Byte   span",                -- Where the neighbor fits onto this side of our displacement
         "Byte   neighborSpan",        -- Where we fit onto our neighbor
         "Byte   padding",
+        ---@class CDispSubNeighbor
+        ---@field neighbor            integer
+        ---@field neighborOrientation integer
+        ---@field span                integer
+        ---@field neighborSpan        integer
+        ---@field padding             integer
     },
     CDispNeighbor = {
         "CDispSubNeighbor subneighbors 2",
+        ---@class CDispNeighbor
+        ---@field subneighbors CDispSubNeighbor[]
     },
     CDispCornerNeighbors = {
         "UShort neighbors 4", -- Indices of neighbors
         "Byte   numNeighbors",
         "Byte   padding",
+        ---@class CDispCornerNeighbor
+        ---@field neighbors    integer[]
+        ---@field numNeighbors integer
+        ---@field padding      integer
     },
     dgamelump_t = {
         "Long   id",
@@ -116,6 +164,12 @@ local StructureDefinitions = {
         "UShort version",
         "Long   fileOffset",
         "Long   fileLength",
+        ---@class dgamelunp_t
+        ---@field id         integer
+        ---@field flags      integer
+        ---@field version    integer
+        ---@field fileOffset integer
+        ---@field fileLength integer
     },
     StaticProp4 = { -- version == 4
         size = 56,
@@ -171,7 +225,7 @@ local StructureDefinitions = {
         "UShort firstLeaf",
         "UShort leafCount",
         "Byte   solid",
-        "Byte   padding",
+        "Byte   padding", -- flags, every version except v7*
         "Long   skin",
         "Float  fadeMinDist",
         "Float  fadeMaxDist",
@@ -282,6 +336,27 @@ local StructureDefinitions = {
         -- "Bool   disableX360",         -- v9, v10
         "ULong  flagsEx",             -- since v10
         "Float uniformScale",         -- since v11
+        ---@class BSP.StaticProp
+        ---@field origin             Vector
+        ---@field angle              Angle
+        ---@field propType           integer
+        ---@field firstLeaf          integer
+        ---@field leafCount          integer
+        ---@field solid              integer
+        ---@field flags              integer    every version except v7*
+        ---@field padding            integer?   v7*
+        ---@field skin               integer
+        ---@field fadeMinDist        number
+        ---@field fadeMaxDist        number
+        ---@field lightingOrigin     Vector
+        ---@field forcedFadeScale    number?    since v5
+        ---@field minDXLevel         integer?   v6, v7, and v7*
+        ---@field maxDXLevel         integer?   v6, v7, and v7*
+        ---@field cpugpuLevels       integer[]? since v8
+        ---@field diffuseModulation  integer[]? since v7
+        ---@field disableX360        boolean?   v9 and v10
+        ---@field flagsEx            integer?   since v10
+        ---@field uniformScale       number?    since v11
     },
     ENTITIES = "String",
     PLANES = {
@@ -289,6 +364,10 @@ local StructureDefinitions = {
         "Vector normal",
         "Float  dist",
         "Long   axisType"
+        ---@class BSP.Plane
+        ---@field normal   Vector
+        ---@field dist     number
+        ---@field axisType integer
     },
     VERTEXES  = "Vector",
     EDGES     = { size = 2 + 2, "UShort", "UShort" },
@@ -312,6 +391,24 @@ local StructureDefinitions = {
         "UShort numPrimitives",
         "UShort firstPrimitiveID",
         "ULong  smoothingGroups",
+        ---@class BSP.Face
+        ---@field planeNum                    integer
+        ---@field side                        integer
+        ---@field onNode                      integer
+        ---@field firstEdge                   integer
+        ---@field numEdges                    integer
+        ---@field texInfo                     integer
+        ---@field dispInfo                    integer
+        ---@field surfaceFogVolumeID          integer
+        ---@field styles                      integer[]
+        ---@field lightOffset                 integer
+        ---@field area                        number
+        ---@field lightmapTextureMinsInLuxels integer[]
+        ---@field lightmapTextureSizeInLuxels integer[]
+        ---@field originalFace                integer
+        ---@field numPrimitives               integer
+        ---@field firstPrimitiveID            integer
+        ---@field smoothingGroups             integer
     },
     FACES_HDR = "FACES",
     -- ORIGINALFACES = "FACES",
@@ -354,6 +451,18 @@ local StructureDefinitions = {
         -- Also need the following when version <= 19
         -- "CompressedLightCube ambientLighting", -- 24 bytes
         "Short       padding",
+        ---@class BSP.Leaf
+        ---@field contents         integer
+        ---@field cluster          integer
+        ---@field areaAndFlags     integer
+        ---@field mins             Vector
+        ---@field maxs             Vector
+        ---@field firstLeafFace    integer
+        ---@field numLeafFaces     integer
+        ---@field firstLeafBrush   integer
+        ---@field numLeafBrush     integer
+        ---@field leafWaterDataID  integer
+        ---@field padding          integer
     },
     -- LEAFFACES = "UShort",
     -- LEAFBRUSHES = "UShort",
@@ -369,6 +478,17 @@ local StructureDefinitions = {
         "Float  lightmapOffsetT",
         "Long   flags",
         "Long   texData",
+        ---@class BSP.TexInfo
+        ---@field textureVecS     Vector
+        ---@field textureOffsetS  number
+        ---@field textureVecT     Vector
+        ---@field textureOffsetT  number
+        ---@field lightmapVecS    Vector
+        ---@field lightmapOffsetS number
+        ---@field lightmapVecT    Vector
+        ---@field lightmapOffsetT number
+        ---@field flags           integer
+        ---@field texData         integer
     },
     TEXDATA = {
         size = 4 * 3 + 4 + 4 + 4 + 4 + 4,
@@ -378,6 +498,13 @@ local StructureDefinitions = {
         "Long   height",
         "Long   viewWidth",
         "Long   viewHeight",
+        ---@class BSP.TexData
+        ---@field reflectivity      Vector
+        ---@field nameStringTableID integer
+        ---@field width             integer
+        ---@field height            integer
+        ---@field viewWidth         integer
+        ---@field viewHeight        integer
     },
     TEXDATA_STRING_TABLE = "Long",
     TEXDATA_STRING_DATA = "String",
@@ -389,6 +516,13 @@ local StructureDefinitions = {
         "Long   headNode",
         "Long   firstFace",
         "Long   numFaces",
+        ---@class BSP.Model
+        ---@field mins      Vector
+        ---@field maxs      Vector
+        ---@field origin    Vector
+        ---@field headNode  integer
+        ---@field firstFace integer
+        ---@field numFaces  integer
     },
     DISPINFO = {
         size = 176,
@@ -406,12 +540,31 @@ local StructureDefinitions = {
         "CDispNeighbor        edgeNeighbors   4", -- Probably these are
         "CDispCornerNeighbors cornerNeighbors 4", -- not correctly parsed
         "ULong                allowedVerts    10",
+        ---@class BSP.DispInfo
+        ---@field startPosition               Vector
+        ---@field dispVertStart               integer
+        ---@field dispTriStart                integer
+        ---@field power                       integer
+        ---@field minTesselation              integer
+        ---@field smoothingAngle              number
+        ---@field contents                    integer
+        ---@field mapFace                     integer
+        ---@field padding                     integer
+        ---@field lightmapAlphaTest           integer
+        ---@field lightmapSamplePositionStart integer
+        ---@field edgeNeighbors               CDispNeighbor[]
+        ---@field cornerNeighbors             CDispCornerNeighbor[]
+        ---@field allowedVerts                integer[]
     },
     DISP_VERTS = {
         size = 20,
         "Vector vec",
         "Float  dist",
         "Float  alpha",
+        ---@class BSP.DispVerts
+        ---@field vec   Vector
+        ---@field dist  number
+        ---@field alpha number
     },
     DISP_TRIS = "UShort",
     LIGHTING = "Raw",
@@ -425,6 +578,9 @@ local StructureDefinitions = {
         size = -1, -- Negative size means this is a single lump
         "Long        lumpCount",
         "dgamelump_t nil lumpCount",
+        ---@class BSP.GameLump
+        ---@field lumpCount integer
+        ---@field [integer] dgamelunp_t
     }
 }
 local GameLumpContents = {
@@ -435,42 +591,83 @@ local GameLumpContents = {
         "UShort     leaf leafEntries",
         "Long            propEntries",
         "StaticProp prop propEntries", -- Size depends on game lump version
+        ---@class BSP.sprp
+        ---@field dictEntries integer
+        ---@field name        string[]
+        ---@field leafEntries integer
+        ---@field leaf        integer[]
+        ---@field propEntries integer
+        ---@field prop        BSP.StaticProp[]
     },
 }
 
--- Read a value or structure from bsp file.
--- The offset should correctly be set before call.
--- arg should be one of the following:
---   - String for one of these:
---     - a call of File:Read%s(), e.g. "Long", "Float"
---     - Additional built-in types: "Vector", "ShortVector", "LongVector", "Angle", or "SByte" (signed byte)
---     - "String" for null-terminated string
---     - "String%d" for a null-terminated string but padded to %d bytes.
---     - Structure name defined at StructureDefinitions
---   - Table representing a structure
---     Table containing a sequence of strings formatted as
---     "<type> <fieldname> <array amount (optional)>"
---     e.g. "Vector normal", "Byte fourCC 4"
---     Array amount can be a field name previously defined in the same structure.
---     e.g. { "Long edgeCount", "UShort edgeIndices edgeCount" }
---   - Number for File:Read(%d)
---   - Function for custom procedure, passing (bsp, currentTable, ...)
+---@alias BSP.DefinedStructures
+---| BSP.DispInfo
+---| BSP.DispVerts
+---| BSP.Face
+---| BSP.GameLump
+---| BSP.Header
+---| BSP.Leaf
+---| BSP.Model
+---| BSP.Plane
+---| BSP.sprp
+---| BSP.StaticProp
+---| BSP.TexData
+---| BSP.TexInfo
+---| CDispNeighbor
+---| CDispCornerNeighbor
+---| dgamelunp_t
+---| Angle
+---| boolean
+---| number
+---| string
+---| Vector
+
+---Read a value or structure from bsp file.
+---The offset should correctly be set before call.
+---arg should be one of the following:
+---  - String for one of these:
+---    - a call of File:Read%s(), e.g. "Long", "Float"
+---    - Additional built-in types: "Vector", "ShortVector", "LongVector", "Angle", or "SByte" (signed byte)
+---    - "String" for null-terminated string
+---    - "String%d" for a null-terminated string but padded to %d bytes.
+---    - Structure name defined at StructureDefinitions
+---  - Table representing a structure
+---    Table containing a sequence of strings formatted as
+---    "<type> <fieldname> <array amount (optional)>"
+---    e.g. "Vector normal", "Byte fourCC 4"
+---    Array amount can be a field name previously defined in the same structure.
+---    e.g. { "Long edgeCount", "UShort edgeIndices edgeCount" }
+---  - Number for File:Read(%d)
+---  - Function for custom procedure, passing (bsp, currentTable, ...)
+---@param bsp File
+---@param arg integer|string|string[]|fun(bsp: File, ...): BSP.DefinedStructures
+---@param ... any
+---@return BSP.DefinedStructures?
 local function read(bsp, arg, ...)
-    if isfunction(arg) then return arg(bsp, ...) end
-    if isnumber(arg) then return bsp:Read(arg) end
-    if istable(arg) then
-        local structure = {}
+    if isfunction(arg) then ---@cast arg fun(bsp: File, ...): BSP.DefinedStructures
+        return arg(bsp, ...)
+    end
+    if isnumber(arg) then ---@cast arg integer
+        return bsp:Read(arg)
+    end
+    if istable(arg) then ---@cast arg string[]
+        local structure = {} ---@type BSP.DefinedStructures[]
         for _, varstring in ipairs(arg) do
+            ---@type string?, integer|string?, integer|string?
             local vartype, varname, arraysize = unpack(string.Explode(" +", varstring, true))
             if varname == nil or varname == "" or varname == "nil" then varname = #structure + 1 end
             if arraysize == nil or arraysize == "" then arraysize = 1 end
+            ---@cast vartype -?
             if isstring(arraysize) and structure[arraysize] or tonumber(arraysize) > 1 then
-                arraysize = structure[arraysize] or tonumber(arraysize)
+                arraysize = structure[arraysize] --[[@as integer]] or tonumber(arraysize)
                 for i = 1, arraysize do
                     if isstring(varname) then
+                        ---@cast varname string
+                        ---@cast structure table<string, BSP.DefinedStructures[]>
                         structure[varname] = structure[varname] or {}
                         structure[varname][i] = read(bsp, vartype, structure, ...)
-                    else
+                    else ---@cast varname integer
                         structure[varname] = read(bsp, vartype, structure, ...)
                         varname = varname + 1
                     end
@@ -480,7 +677,9 @@ local function read(bsp, arg, ...)
             end
         end
         return structure
-    elseif arg == "Angle" then
+    end
+    ---@cast arg string
+    if arg == "Angle" then
         local pitch = bsp:ReadFloat()
         local yaw   = bsp:ReadFloat()
         local roll  = bsp:ReadFloat()
@@ -498,7 +697,7 @@ local function read(bsp, arg, ...)
         local y = bsp:ReadLong()
         local z = bsp:ReadLong()
         return Vector(x, y, z)
-    elseif arg:StartWith "String" then
+    elseif arg:StartsWith "String" then
         local str = ""
         local chr = read(bsp, 1)
         local minlen = tonumber(arg:sub(#"String" + 1)) or 0
@@ -530,6 +729,10 @@ local function read(bsp, arg, ...)
 end
 
 local sprpInvalidSize = false
+---@param bsp File
+---@param struct BSP.sprp
+---@param header BSP.LumpHeader
+---@return BSP.DefinedStructures?
 function StructureDefinitions.StaticProp(bsp, struct, header)
     local offset = struct.dictEntries * 128 + struct.leafEntries * 2 + 4 * 3
     local nextlump = header.fileOffset + header.fileLength
@@ -558,6 +761,8 @@ function StructureDefinitions.StaticProp(bsp, struct, header)
     return data
 end
 
+---@param id integer
+---@return string
 local function getGameLumpStr(id)
     local a = bit.band(0xFF, bit.rshift(id, 24))
     local b = bit.band(0xFF, bit.rshift(id, 16))
@@ -566,34 +771,52 @@ local function getGameLumpStr(id)
     return string.char(a, b, c, d)
 end
 
+---@param bsp File
+---@return string
+---@return integer
 local function decompress(bsp)
     local current       = bsp:Tell()
-    local actualSize    = read(bsp, 4)
+    local actualSize    = read(bsp, 4)        --[[@as string]]
     bsp:Seek(current)
-    local actualSizeNum = read(bsp, "Long")
-    local lzmaSize      = read(bsp, "Long")
-    local props         = read(bsp, 5)
-    local contents      = read(bsp, lzmaSize)
+    local actualSizeNum = read(bsp, "Long")   --[[@as integer]]
+    local lzmaSize      = read(bsp, "Long")   --[[@as integer]]
+    local props         = read(bsp, 5)        --[[@as string]]
+    local contents      = read(bsp, lzmaSize) --[[@as string]]
     local formatted     = props .. actualSize .. "\0\0\0\0" .. contents
     return util.Decompress(formatted) or "", actualSizeNum
 end
 
+---@param bsp File
+---@return File
+---@return integer
 local function getDecompressed(bsp)
     local decompressed, length = decompress(bsp)
     file.Write("splatoonsweps/temp.txt", decompressed)
     return file.Open("splatoonsweps/temp.txt", "rb", "DATA"), length
 end
 
+---@param tmp File
 local function closeDecompressed(tmp)
     tmp:Close()
     file.Delete "splatoonsweps/temp.txt"
 end
 
-local LUMP_INV = table.Flip(LUMP)
+local LUMP_INV = table.Flip(LUMP) ---@type table<string, integer>
+
+---@param name string
+---@return integer
 function ss.LookupLump(name) return LUMP_INV[name] end
-function ss.ReadHeader(bsp) return read(bsp, "BSPHeader") end
+
+---@param bsp table
+---@return BSP.Header
+function ss.ReadHeader(bsp) return read(bsp, "BSPHeader") --[[@as BSP.Header]] end
+
+---@param bsp table
+---@param headers BSP.LumpHeader[]
+---@param lumpname string
+---@return BSP.DefinedStructures?
 function ss.ReadLump(bsp, headers, lumpname)
-    local t = {}
+    local t = {} ---@type BSP.DefinedStructures|BSP.DefinedStructures[]?
     local header = headers[ss.LookupLump(lumpname)]
     local offset = header.fileOffset
     local length = header.fileLength
@@ -601,9 +824,9 @@ function ss.ReadLump(bsp, headers, lumpname)
 
     -- get length per struct
     local strlen = istable(struct) and struct.size or length
-    if StructureDefinitions[struct] then
+    if StructureDefinitions[struct] then ---@cast struct string
         strlen = StructureDefinitions[struct].size
-    elseif BuiltinTypeSizes[struct] then
+    elseif BuiltinTypeSizes[struct] then ---@cast struct string
         strlen = BuiltinTypeSizes[struct]
     end
 
@@ -619,7 +842,7 @@ function ss.ReadLump(bsp, headers, lumpname)
     if struct == "Raw" then
         t = read(bsp, length)
     elseif struct == "String" then
-        local all = read(bsp, length)
+        local all = read(bsp, length) --[[@as string]]
         t = all:Split "\0"
     elseif numElements > 0 then
         for i = 1, numElements do
@@ -639,8 +862,9 @@ function ss.LoadBSP()
     if not bsp then return end
 
     print "Loading BSP file..."
-    ss.BSP = { Raw = { header = ss.ReadHeader(bsp), TexDataStringTableToIndex = {} } }
-    local t = ss.BSP.Raw
+
+    ---@type ss.BSPRaw|ss.BSPRawInit
+    local t = { header = ss.ReadHeader(bsp), TexDataStringTableToIndex = {} }
     print("    BSP file version: " .. t.header.version)
     for i = 1, #LUMP do
         local lumpname = LUMP[i]
@@ -689,6 +913,9 @@ function ss.LoadBSP()
             ss.MinimapAreaBounds[area].maxs = ss.MaxVector(ss.MinimapAreaBounds[area].maxs, leaf.maxs)
         end
     end
+
+    ---@type { Raw: ss.BSPRaw }
+    ss.BSP = { Raw = t --[[@as ss.BSPRaw]] }
 
     local elapsed = math.Round((SysTime() - t0) * 1000, 2)
     print("Done.  Elapsed time: " .. elapsed .. " ms.")

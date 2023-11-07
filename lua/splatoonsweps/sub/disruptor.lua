@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.disruptor = {
     Merge = {
         IsSubWeaponThrowable = true,
     },
+    ---@class SubParameters.Disruptor
     Parameters = {
         Burst_Radius = 50,
         EffectShakeRange = 70,
@@ -42,6 +45,7 @@ ss.disruptor = {
 
 ss.ConvertUnits(ss.disruptor.Parameters, ss.disruptor.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.disruptor.Merge
 local p = ss.disruptor.Parameters
 function module:CanSecondaryAttack()
@@ -59,7 +63,7 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    local e = ents.Create "ent_splatoonsweps_disruptor"
+    local e = ents.Create "ent_splatoonsweps_disruptor" --[[@as ENT.Disruptor]]
     e:SetOwner(self:GetOwner())
     e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
     e:SetInkColorProxy(self:GetInkColorProxy())

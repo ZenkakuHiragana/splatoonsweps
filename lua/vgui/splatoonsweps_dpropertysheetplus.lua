@@ -1,128 +1,26 @@
 
--- SplatoonSWEPs.DTabPlus
-local PANEL = {}
-function PANEL:GetTabHeight(Active)
-    local fix = self.Image and 4 or 8
-    local h = self.Image and self.Image:GetTall() or select(2, self:GetContentSize())
-    if Either(Active ~= nil, Active, self:IsActive()) then
-        return fix + h + 8
-    else
-        return fix + h
-    end
-end
-
-function PANEL:Setup(label, pPropertySheet, pPanel, strMaterial)
-    self:SetText(label)
-    self:SetPropertySheet(pPropertySheet)
-    self:SetPanel(pPanel)
-    if strMaterial then
-        self.Image = vgui.Create("DImage", self)
-        self.Image:SetImage(strMaterial)
-        self.Image:SizeToContents()
-        self:InvalidateLayout(true)
-    end
-end
-
-function PANEL:PerformLayout()
-    self:ApplySchemeSettings()
-    if not self.Image then return end
-    local y = 3
-    local PropertySheet = self:GetPropertySheet()
-    local Max = PropertySheet:GetMaxTabSize()
-    local Min = PropertySheet:GetMinTabSize()
-    local Width = math.Clamp(self.Image:GetWide(), Min, Max > 0 and Max or 32768)
-    local Height = math.Clamp(self.Image:GetTall(), Min, Max > 0 and Max or 32768)
-    if PropertySheet:GetTabDock() == BOTTOM then
-        y = 1 + (self:IsActive() and PropertySheet:GetPadding() or 0)
-    end
-
-    self.Image:SetPos(7, y)
-    self.Image:SetSize(Width, Height)
-
-    if self:GetText():len() == 0 then
-        self.Image:CenterHorizontal()
-    end
-
-    if self:IsActive() then
-        self.Image:SetImageColor(color_white)
-    else
-        self.Image:SetImageColor(ColorAlpha(color_white, 155))
-    end
-end
-
-function PANEL:ApplySchemeSettings()
-    local PropertySheet = self:GetPropertySheet()
-    local TabHeight = PropertySheet:GetTabHeight()
-    local Padding = PropertySheet:GetPadding()
-    local ExtraInset = 10
-    local InsetY = -4
-    if self.Image then
-        ExtraInset = ExtraInset + self.Image:GetWide()
-    end
-
-    if PropertySheet:GetTabDock() == TOP and self:IsActive() then
-        InsetY = InsetY - Padding
-    end
-
-    self:SetTextInset(ExtraInset, InsetY)
-    self:SetSize(self:GetContentSize() + 10, self:GetTabHeight())
-    self:SetContentAlignment(1)
-
-    if TabHeight then
-        local y = TabHeight - self:GetTabHeight(true)
-        if PropertySheet:GetTabDock() == BOTTOM then
-            y = self:IsActive() and 0 or Padding
-        end
-
-        self:SetPos(self:GetPos(), y)
-    end
-
-    DLabel.ApplySchemeSettings(self)
-end
-
-function PANEL:Paint(w, h)
-    local skin = derma.GetDefaultSkin()
-    local PropertySheet = self:GetPropertySheet()
-    local dock = PropertySheet:GetTabDock()
-    local y = 0
-    local func = {
-        [TOP] = {
-            [true] = {skin.tex.TabT_Active, 0, h},
-            [false] = {skin.tex.TabT_Inactive, 0, h},
-        },
-        [BOTTOM] = {
-            [true] = {skin.tex.TabB_Active, 0, h},
-            [false] = {skin.tex.TabB_Inactive, 0, h},
-        },
-        [LEFT] = {
-            [true] = {skin.tex.TabL_Active, 0, h},
-            [false] = {skin.tex.TabL_Inactive, 0, h},
-        },
-        [RIGHT] = {
-            [true] = {skin.tex.TabR_Active, 0, h},
-            [false] = {skin.tex.TabR_Inactive, 0, h},
-        },
-    }
-
-    local paint = (func[dock] or {})[self:IsActive()]
-    paint, y, h = unpack(paint or {})
-    if not isfunction(paint) then return end
-    paint(0, y, w, h)
-end
-
-function PANEL:PaintActiveTab(skin, w, h)
-    skin.tex.TabT_Active(0, 0, w, h)
-end
-
-
-derma.DefineControl("SplatoonSWEPs.DTabPlus", "", PANEL, "DTab")
-
 -- SplatoonSWEPs.DPropertySheetPlus
-PANEL = {}
+local PANEL = {}
 AccessorFunc(PANEL, "m_iTabDock", "TabDock", FORCE_NUMBER)
 AccessorFunc(PANEL, "m_iTabHeight", "TabHeight", FORCE_NUMBER)
 AccessorFunc(PANEL, "m_iMaxTabSize", "MaxTabSize", FORCE_NUMBER)
 AccessorFunc(PANEL, "m_iMinTabSize", "MinTabSize", FORCE_NUMBER)
+
+---@cast PANEL PANEL.DPropertySheetPlus
+---@class PANEL.DPropertySheetPlus : DPropertySheet, PANEL
+---@field SetMaxTabSize fun(self, value: number)
+---@field SetMinTabSize fun(self, value: number)
+---@field SetTabHeight  fun(self, value: number)
+---@field SetTabDock    fun(self, value: number)
+---@field GetMaxTabSize fun(self): number
+---@field GetMinTabSize fun(self): number
+---@field GetTabHeight  fun(self): number
+---@field GetTabDock    fun(self): number
+---@field tabScroller   DHorizontalScroller
+---@field Items         { Name: string, Tab: PANEL.DTabPlus, Panel: DPanel.DPropertySheetPlus }[]
+---@field animFade      table
+---@field Weapon        { Panel: DPanel, List: ContentContainer, Tab: PANEL.DTabPlus }
+---@field Preference    table
 
 function PANEL:Init()
     self:SetMaxTabSize(-1)
@@ -133,16 +31,21 @@ function PANEL:Init()
 end
 
 function PANEL:AddSheet(label, panel, material, NoStretchX, NoStretchY, Tooltip)
+    ---@cast panel DPanel.DPropertySheetPlus
+    ---@class DPanel.DPropertySheetPlus : DPanel
+    ---@field NoStretchX boolean?
+    ---@field NoStretchY boolean?
+
     if not IsValid(panel) then
         ErrorNoHalt("SplatoonSWEPs.DPropertySheetPlus: AddSheet tried to add invalid panel!")
         debug.Trace()
-        return
+        return {}
     end
 
     local Sheet = {}
     Sheet.Name = label
 
-    Sheet.Tab = vgui.Create("SplatoonSWEPs.DTabPlus", self)
+    Sheet.Tab = vgui.Create("SplatoonSWEPs.DTabPlus", self) --[[@as PANEL.DTabPlus]]
     Sheet.Tab:SetTooltip(Tooltip)
     Sheet.Tab:Setup(label, self, panel, material)
 
@@ -171,7 +74,7 @@ function PANEL:PerformLayout()
     local Padding = self:GetPadding()
     if not IsValid(ActiveTab) then return end
 
-    local ActivePanel = ActiveTab:GetPanel()
+    local ActivePanel = ActiveTab:GetPanel() --[[@as DPanel.DPropertySheetPlus]]
     local TabHeight = self:GetTabHeight()
     self.tabScroller:SetTall(TabHeight)
 
@@ -225,6 +128,7 @@ function PANEL:Paint(w, h)
 
     local dx, dy, dw, dh = unpack(Pos[self:GetTabDock()] or {})
     skin.tex.Tab_Control(assert(dx), dy, w - dw, h - dh)
+    return false
 end
 
 derma.DefineControl("SplatoonSWEPs.DPropertySheetPlus", "", PANEL, "DPropertySheet")

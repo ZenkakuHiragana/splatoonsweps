@@ -1,13 +1,16 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.suctionbomb = {
     Merge = {
         IsSubWeaponThrowable = true,
     },
 
-    -- Parameters are from Splatoon 2 ver. 5.2.0, https://leanny.github.io/splat2new/parameters.html
+    ---Parameters are from Splatoon 2 ver. 5.2.0, https://leanny.github.io/splat2new/parameters.html
+    ---@class SubParameters.SuctionBomb
     Parameters = {
         BringCloseRateCrossVec = 0.7,
         BringCloseRateMoveVec = 0.7,
@@ -111,6 +114,7 @@ ss.suctionbomb = {
 
 ss.ConvertUnits(ss.suctionbomb.Parameters, ss.suctionbomb.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.suctionbomb.Merge
 local p = ss.suctionbomb.Parameters
 function module:CanSecondaryAttack()
@@ -128,7 +132,8 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    local e = ents.Create "ent_splatoonsweps_suctionbomb"
+    ---@cast self SplatoonWeaponBase
+    local e = ents.Create "ent_splatoonsweps_suctionbomb" --[[@as ENT.SuctionBomb]]
     e:SetOwner(self:GetOwner())
     e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
     e:SetInkColorProxy(self:GetInkColorProxy())

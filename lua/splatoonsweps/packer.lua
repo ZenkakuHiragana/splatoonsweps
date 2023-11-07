@@ -1,36 +1,58 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
 local TOLERANCE = 1e-9 -- Relative tolerance
+---@param a number
+---@param b number
+---@return boolean
 function ss.isclose(a, b)
     return math.abs(a - b) <= math.max(
         TOLERANCE * math.max(math.abs(a), math.abs(b)), 0)
 end
 
--- An implementation of "A New Placement Heuristic
--- for the Orthogonal Stock-Cutting Problem", but having two skylines.
+---An implementation of "A New Placement Heuristic
+---for the Orthogonal Stock-Cutting Problem", but having two skylines.
+---@param rectangles ss.Rectangle[]
+---@return ss.RectanglePacker
 function ss.MakeRectanglePacker(rectangles)
-    -- Baseline (or skyline) definition to manage free space.
-    -- It has origin (x = offset, y = height),
-    -- length, and rectangle touching it.
-    -- 
-    --   offset   <----length---->
-    -- ---------->|===baseline===|
-    --            ^
-    --            | height
-    --            |
-    --
-    -- Rectangle packer has a list of baseline
-    -- and it looks like the following:
-    -- +--------+
-    --          |          +--------
-    --          |          |
-    -- height-> @----------+
-    --          <--length-->
-    --          ^
-    --        offset
+    ---@class ss.LinkedListCell
+    ---@field value ss.RectanglePackerBaseline
+
+    ---Baseline (or skyline) definition to manage free space.  
+    ---It has origin (x = offset, y = height),
+    ---length, and rectangle touching it.
+    ---```log
+    ---  offset   <----length---->
+    ------------->|===baseline===|
+    ---           ^
+    ---           | height
+    ---           |
+    ---```
+    ---Rectangle packer has a list of baseline
+    ---and it looks like the following:
+    ---```log
+    ---+--------+
+    ---         |          +--------
+    ---         |          |
+    ---height-> @----------+
+    ---         <--length-->
+    ---         ^
+    ---       offset
+    ---```
+    ---@param offset number
+    ---@param length number
+    ---@param height number
+    ---@param rectangle integer?
+    ---@return ss.RectanglePackerBaseline
     local function Baseline(offset, length, height, rectangle)
+        ---@class ss.RectanglePackerBaseline
+        ---@field offset    number
+        ---@field length    number
+        ---@field height    number
+        ---@field rectangle integer?
+        ---@field __type    "SplatoonSWEPsRectanglePackerBaseline"
         return setmetatable({
             offset = offset,
             length = length,
@@ -43,6 +65,7 @@ function ss.MakeRectanglePacker(rectangles)
         end})
     end
 
+    ---@param rects ss.Rectangle[]
     local function sortinputs(rects)
         for _, r in ipairs(rects) do
             if r.istall then r:rotate() end
@@ -50,8 +73,10 @@ function ss.MakeRectanglePacker(rectangles)
         table.SortDesc(rects)
     end
 
+    ---@param rects ss.Rectangle[]
+    ---@return integer[]
     local function generateRotatedIndices(rects)
-        local rotatedIndices = {}
+        local rotatedIndices = {} ---@type integer[]
         for i = 1, #rects do rotatedIndices[i] = i end
         table.sort(rotatedIndices, function(i, j)
             if rects[i].height ~= rects[j].height then
@@ -65,9 +90,34 @@ function ss.MakeRectanglePacker(rectangles)
         return rotatedIndices
     end
 
-    local t = {}
-    local meta = {}
-    function meta:__index(key)
+    sortinputs(rectangles)
+
+    ---@class ss.RectanglePacker
+    ---@field results      integer[]
+    ---@field optimized    boolean[]
+    ---@field rects        ss.Rectangle[]
+    ---@field queue        ss.AVLTree
+    ---@field queueRotated ss.AVLTree
+    ---@field xbase        ss.LinkedList
+    ---@field ybase        ss.LinkedList
+    ---@field width        number
+    ---@field height       number
+    ---@field maxsize      number
+    ---@field framesize    { [1]: number, [2]: number }
+    ---@field __type       "SplatoonSWEPsRectanglePacker"
+    local t = {
+        results      = {},
+        optimized    = {},
+        rects        = rectangles,
+        queue        = ss.MakeAVL(),
+        queueRotated = ss.MakeAVL(),
+        xbase        = ss.LinkedList(),
+        ybase        = ss.LinkedList(),
+    }
+    ---@param self ss.RectanglePacker
+    ---@param key "width"|"height"|"framesize"|"maxsize"|string
+    ---@return number|{ width: number, height: number }|any
+    local function __index(self, key)
         local sum = 0
         if key == "width" then
             for _, v in self.xbase() do sum = math.max(sum, v.value.height) end
@@ -84,48 +134,50 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    sortinputs(rectangles)
-    t.results      = {}
-    t.optimized    = {}
-    t.rects        = rectangles
-    t.queue        = ss.MakeAVL()
-    t.queueRotated = ss.MakeAVL()
-    t.xbase        = ss.LinkedList()
-    t.ybase        = ss.LinkedList()
-
     local rrects = generateRotatedIndices(t.rects)
     for i, r in ipairs(t.rects) do t.queue:insert(-r.width, i) end
     for _, i in ipairs(rrects) do t.queueRotated:insert(-t.rects[i].height, i) end
     t.xbase:append(Baseline(0, t.rects[1].width, 0))
     t.ybase:append(Baseline(0, t.rects[1].height, 0))
 
-    -- Returns the smallest baseline, with respect to larger positional components.
-    -- That means to select the following using a line y = x:
-    -- 1. For ones in the area between y = x and x-axis, pick the leftmost one.
-    -- 2. For ones in the area between y = x and y-axis, pick the lowest one.
-    -- If these two choises have the same score, prefer_y is used to decide one.
-    -- 
-    -- y
-    -- ^
-    -- |  returns
-    -- |  lowest one       /
-    -- |---  v  ------  / y = x
-    -- |   =====     /
-    -- |          /  ||
-    -- |       /     ||
-    -- |    /      ||<= returns
-    -- | /         ||   leftmost one
-    -- +----------------------------> x
+    ---@param a ss.LinkedListCell?
+    ---@param b ss.LinkedListCell?
+    ---@return ss.LinkedListCell
     local function pickLowest(a, b)
-        if not a then return b end
-        if not b then return a end
+        if not a then return b --[[@as ss.LinkedListCell]] end
+        if not b then return a --[[@as ss.LinkedListCell]] end
         local A = math.max(a.value.offset, a.value.height)
         local B = math.max(b.value.offset, b.value.height)
         return A < B and a or b
     end
 
+    ---Returns the smallest baseline, with respect to larger positional components.  
+    ---That means to select the following using a line y = x:
+    ---
+    ---1. For ones in the area between y = x and x-axis, pick the leftmost one.
+    ---2. For ones in the area between y = x and y-axis, pick the lowest one.
+    ---
+    ---If these two choises have the same score, `prefer_y` is used to decide one.
+    ---```log
+    ---y
+    ---^
+    ---|  returns
+    ---|  lowest one       /
+    ---|---  v  ------  / y = x
+    ---|   =====     /
+    ---|          /  ||
+    ---|       /     ||
+    ---|    /      ||<= returns
+    ---| /         ||   leftmost one
+    ---+----------------------------> x
+    ---```
+    ---@param prefer_y boolean
+    ---@return ss.LinkedListCell
+    ---@return boolean
+    ---@return boolean
     function t:getlowest(prefer_y)
-        local xmin, ymin -- Calculated in O(N = # of baseline segments)
+        ---@type ss.LinkedListCell?, ss.LinkedListCell? Calculated in O(N = # of baseline segments)
+        local xmin, ymin
         for _, v in self.xbase() do xmin = pickLowest(xmin, v) end
         for _, v in self.ybase() do ymin = pickLowest(ymin, v) end
 
@@ -141,24 +193,29 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    -- Changes the given baseline "origin" to that of adjacent one to fill the gap.
-    -- For x-baseline:
-    --        Fills this baseline
-    --     ------+     v
-    --           |==========+---------
-    --           |          |
-    --           +----------+
-    --           ^
-    --         origin
-    -- For y-baseline:
-    --                         |
-    --              +----------+
-    --              |    ||
-    --              |    || <= Fill this
-    --              |    ||       baseline
-    --    origin -> +-----+
-    --                    |
-    --                    |
+    ---Changes the given baseline `origin` to that of adjacent one to fill the gap.  
+    ---For x-baseline:
+    ---```log
+    ---       Fills this baseline
+    ---    ------+     v
+    ---          |==========+---------
+    ---          |          |
+    ---          +----------+
+    ---          ^
+    ---        origin
+    ---```
+    ---For y-baseline:
+    ---```log
+    ---                        |
+    ---             +----------+
+    ---             |    ||
+    ---             |    || <= Fill this
+    ---             |    ||       baseline
+    ---   origin -> +-----+
+    ---                   |
+    ---                   |
+    ---```
+    ---@param origin ss.LinkedListCell
     function t:fillline(origin)
         -- If the previous one exists,
         -- and it is higher than the current,
@@ -174,7 +231,7 @@ function ss.MakeRectanglePacker(rectangles)
         local hbefore = before and before.value.height
         local hafter = after and after.value.height
         if hbefore and hbefore >= hbase and not (
-            hafter and hbefore >= hafter and hafter >= hbase) then
+            hafter and hbefore >= hafter and hafter >= hbase) then ---@cast before -?
             before.value.length = before.value.length + origin.value.length
             before.value.height = hbefore
             origin:remove()
@@ -184,7 +241,7 @@ function ss.MakeRectanglePacker(rectangles)
         --         |        |
         --         +--------+
         elseif hafter and hafter >= hbase and not (
-            hbefore and hafter >= hbefore and hbefore >= hbase) then
+            hbefore and hafter >= hbefore and hbefore >= hbase) then ---@cast after -?
             after.value.offset = after.value.offset - origin.value.length
             after.value.length = after.value.length + origin.value.length
             after.value.height = hafter
@@ -195,20 +252,24 @@ function ss.MakeRectanglePacker(rectangles)
         -- +-------+        +----------
         --         |        |
         --         +--------+
-        if hafter and hbefore and ss.isclose(hafter, hbefore) then
+        if hafter and hbefore and ss.isclose(hafter, hbefore) then --[[@cast before -?]] ---@cast after -?
             before.value.length = before.value.length + after.value.length
             before.value.height = hbefore
             after:remove()
         end
     end
 
-    -- Finds the best-fit rectangle for given length.
-    -- y is set to true if this forcuses along y-baseline.
-    -- Returns two values: index of the rectangle, rotation flag
+    ---Finds the best-fit rectangle for given length.  
+    ---`y` is set to true if this forcuses along y-baseline.  
+    ---Returns two values: index of the rectangle, rotation flag
+    ---@param length number
+    ---@param y boolean
+    ---@return integer
+    ---@return boolean
     function t:findrect(length, y)
         local i = self.queue:lowerbound(-length)
         local j = self.queueRotated:lowerbound(-length)
-        local width, height
+        local width, height ---@type number, number
         if i then
             width = self.rects[i.value].width
         end
@@ -220,14 +281,18 @@ function ss.MakeRectanglePacker(rectangles)
             end
         end
 
-        if width then
+        if width then ---@cast i -?
             return i.value, y
         else
             return -1, false
         end
     end
 
-    -- Find the next rectangle to be placed
+    ---Find the next rectangle to be placed
+    ---@return ss.LinkedListCell
+    ---@return integer
+    ---@return boolean
+    ---@return boolean
     function t:findbestlocation()
         local prefer_y = false -- Which axis do we prefer if both are considered as candidate?
         while true do
@@ -244,26 +309,27 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    -- Place given rectangle and apply changes to baselines
-    -- ri:    Index of the rectangle
-    -- xline: Baseline to be placed on
-    -- is_y:  Is the baseline along y-axis?
-    -- n:     Baseline that is prependicular to xline
-    --     <-----rw---->     n
-    --   ^ +-----------+     v
-    --   | |           |     |
-    --  rh | rectangle |      
-    --   | |           |     |
-    --   v +-----------+-----+-^- --- <- xline.parent
-    --   ^ <-------Lx------->| |
-    --   | ^                 | Ly
-    --   | x                 | |
-    --   |              y -> + v
-    --   | hx                ^
-    --   |                   hy
+    ---Place given rectangle and apply changes to baselines
+    ---```log
+    ---    <-----rw---->     n
+    ---  ^ +-----------+     v
+    ---  | |           |     |
+    --- rh | rectangle |      
+    ---  | |           |     |
+    ---  v +-----------+-----+-^- --- <- xline.parent
+    ---  ^ <-------Lx------->| |
+    ---  | ^                 | Ly
+    ---  | x                 | |
+    ---  |              y -> + v
+    ---  | hx                ^
+    ---  |                   hy
+    ---```
+    ---@param ri    integer           Index of the rectangle
+    ---@param xline ss.LinkedListCell Baseline to be placed on
+    ---@param is_y  boolean           Is the baseline along y-axis?
     function t:placebox(ri, xline, is_y)
         local r  = self.rects[ri]
-        local n  = is_y and self.xbase or self.ybase
+        local n  = is_y and self.xbase or self.ybase -- Baseline that is prependicular to xline
         local rw = is_y and r.height or r.width
         local rh = is_y and r.width or r.height
         local x  = xline.value.offset
@@ -454,7 +520,10 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    -- Find the best-fit baseline to place given rectangle index ri.
+    ---Find the best-fit baseline to place given rectangle index ri.
+    ---@param ri integer
+    ---@return ss.LinkedListCell
+    ---@return boolean
     function t:findbaseline(ri)
         local prefer_y = false -- Which axis do we prefer if both are considered as candidate?
         local rect = self.rects[ri]
@@ -472,15 +541,17 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    -- Optimization around edges after packing (actual part).
-    -- is_y is set to true if this attempt forcuses y-baseline.
+    ---Optimization around edges after packing (actual part).
+    ---is_y is set to true if this attempt forcuses y-baseline.
+    ---@param is_y boolean
+    ---@return boolean
     function t:replace(is_y)
         local xbackup = self.xbase
         local ybackup = self.ybase
         self.xbase = ss.LinkedList(self.xbase)
         self.ybase = ss.LinkedList(self.ybase)
 
-        local line
+        local line ---@type ss.LinkedListCell
         local lines = is_y and self.ybase or self.xbase
         for _, v in lines() do
             if not line then line = v end
@@ -503,7 +574,7 @@ function ss.MakeRectanglePacker(rectangles)
             local offset = newline.value.offset
             local height = newline.value.height
             if new_y ~= is_y then r:rotate() end
-            if new_y then offset, height = height, offset end
+            if new_y then offset, height = height --[[@as number]], offset --[[@as number]] end
             r:place(offset, height)
             self:placebox(i, newline, new_y)
             return true
@@ -515,17 +586,19 @@ function ss.MakeRectanglePacker(rectangles)
         end
     end
 
-    -- Optimization around edges after packing.
-    -- Remove rectangles touching the baselines
-    -- and place them again with no-rotation constraint.
-    -- If the attempt actually makes better result, it will be approved.
+    ---Optimization around edges after packing.  
+    ---Remove rectangles touching the baselines
+    ---and place them again with no-rotation constraint.  
+    ---If the attempt actually makes better result, it will be approved.
+    ---@return boolean
     function t:optimize()
         local xreplaced = self:replace(false)
         local yreplaced = xreplaced or self:replace(true)
         return not yreplaced
     end
 
-    -- Entry point of rectangle packing.
+    ---Entry point of rectangle packing.
+    ---@return boolean
     function t:pack()
         if self.queue.root then
             local lowest, best, istall, is_y = self:findbestlocation()
@@ -536,7 +609,7 @@ function ss.MakeRectanglePacker(rectangles)
             if istall then r:rotate() end
             local offset = lowest.value.offset
             local height = lowest.value.height
-            if is_y then offset, height = height, offset end
+            if is_y then offset, height = height --[[@as number]], offset --[[@as number]] end
             r:place(offset, height)
             self.results[#self.results + 1] = best
             self:placebox(best, lowest, is_y)
@@ -553,5 +626,5 @@ function ss.MakeRectanglePacker(rectangles)
     end
 
     t.__type = "SplatoonSWEPsRectanglePacker"
-    return setmetatable(t, meta)
+    return setmetatable(t, { __index = __index })
 end

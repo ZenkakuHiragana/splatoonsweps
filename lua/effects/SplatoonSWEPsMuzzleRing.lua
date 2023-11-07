@@ -2,6 +2,25 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.MuzzleRing
+---@class EFFECT.MuzzleRing : EFFECT
+---@field Weapon        SWEP.Shooter|SWEP.Charger|SWEP.Roller
+---@field Color         Color
+---@field deg           number
+---@field rad           number
+---@field LifeTime      number
+---@field initang       Angle
+---@field endang        Angle
+---@field IsRollerSwing boolean
+---@field IsBrushSwing  boolean
+---@field UseRefract    boolean
+---@field curl          number
+---@field tmax          number
+---@field tmin          number
+---@field radmin        number
+---@field InitTime      number
+
 local MinRadius = 3
 local Division = 16
 local DegStep = 90 / Division
@@ -9,6 +28,13 @@ local drawviewmodel = GetConVar "r_drawviewmodel"
 local mdl = Model "models/props_junk/PopCan01a.mdl"
 local inkringtranslucent = Material "splatoonsweps/effects/inkring"
 local inkring = Material "splatoonsweps/effects/inkring_alphatest"
+
+---@param self EFFECT.MuzzleRing
+---@param pos Vector
+---@param norm Vector
+---@param u number
+---@param v number
+---@param a number
 local function AdvanceVertex(self, pos, norm, u, v, a)
     mesh.Color(self.Color.r, self.Color.g, self.Color.b, a)
     mesh.Normal(norm)
@@ -20,7 +46,7 @@ end
 function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())
-    self.Weapon = e:GetEntity()
+    self.Weapon = e:GetEntity() --[[@as SWEP.Shooter|SWEP.Charger|SWEP.Roller]]
     if not IsValid(self.Weapon) then return end
     local f = e:GetFlags()
     local lag = bit.band(f, 128) > 0
@@ -38,13 +64,14 @@ function EFFECT:Init(e)
     self.radmin = MinRadius
     self.InitTime = CurTime() - ping
     local pos, ang = self.Weapon:GetMuzzlePosition()
-    if IsValid(self.Weapon:GetOwner()) then
-        local forward = self.Weapon:GetOwner():GetForward()
-        local right = self.Weapon:GetOwner():GetRight()
-        local up = self.Weapon:GetOwner():GetUp()
-        local yaw = self.Weapon:GetOwner():GetAngles().yaw
-        if self.Weapon:GetOwner():IsPlayer() then
-            yaw = self.Weapon:GetOwner():GetAimVector():Angle().yaw
+    local Owner = self.Weapon:GetOwner()
+    if IsValid(Owner) then
+        local forward = Owner:GetForward()
+        local right   = Owner:GetRight()
+        local up      = Owner:GetUp()
+        local yaw     = Owner:GetAngles().yaw
+        if Owner:IsPlayer() then ---@cast Owner Player
+            yaw = Owner:GetAimVector():Angle().yaw
         end
 
         if self.IsRollerSwing then
@@ -161,5 +188,6 @@ function EFFECT:Think()
     and CurTime() < self.InitTime + self.LifeTime
     and (self.Weapon:IsTPS() or drawviewmodel:GetBool())
     and IsValid(self.Weapon:GetOwner())
-    and self.Weapon:GetOwner():GetActiveWeapon() == self.Weapon
+    and self.Weapon:GetOwner():IsPlayer()
+    and self.Weapon:GetOwner() --[[@as Player]]:GetActiveWeapon() == self.Weapon
 end

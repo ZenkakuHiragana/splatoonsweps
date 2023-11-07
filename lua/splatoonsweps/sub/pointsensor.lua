@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.pointsensor = {
     Merge = {
         IsSubWeaponThrowable = true,
     },
+    ---@class SubParameters.PointSensor
     Parameters = {
         Burst_Radius = 70,
         EffectShakeRange = 70,
@@ -40,6 +43,7 @@ ss.pointsensor = {
 
 ss.ConvertUnits(ss.pointsensor.Parameters, ss.pointsensor.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.pointsensor.Merge
 local p = ss.pointsensor.Parameters
 function module:CanSecondaryAttack()
@@ -57,7 +61,7 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    local e = ents.Create "ent_splatoonsweps_pointsensor"
+    local e = ents.Create "ent_splatoonsweps_pointsensor" --[[@as ENT.PointSensor]]
     e:SetOwner(self:GetOwner())
     e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
     e:SetInkColorProxy(self:GetInkColorProxy())

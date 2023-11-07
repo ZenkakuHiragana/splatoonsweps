@@ -1,7 +1,26 @@
 
+local ENT = ENT
+---@cast ENT ENT.SplatBomb
+---@class ENT.SplatBomb : ENT.Throwable
+---@field BaseClass ENT.Throwable
+---@field BurstTotalFrame        number
+---@field CollisionSeSilentFrame number
+---@field ContactStartTime       number
+---@field ContactTotalTime       number
+---@field Detonate               fun(self)
+---@field ExplosionOffset        number
+---@field GetContactTime         fun(self): number
+---@field HitNormal              Vector
+---@field HitSound               string
+---@field NextPlayHitSE          number
+---@field Parameters             SubParameters.SplatBomb
+---@field WarnSound              CSoundPatch
+---@field WarnSoundPlayed        boolean
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_throwable"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.ContactTotalTime = 0
@@ -19,7 +38,7 @@ function ENT:OnRemove()
 end
 
 function ENT:Initialize()
-    local p = ss[self.SubWeaponName].Parameters
+    local p = ss[self.SubWeaponName].Parameters ---@type SubParameters.SplatBomb
     self.Parameters = p
     self.StraightFrame = p.Fly_AirFrm or 0
     self.AirResist = (p.Fly_VelKd or 1) - 1
@@ -28,8 +47,7 @@ function ENT:Initialize()
     self.BurstTotalFrame = (p.Burst_WaitFrm or 0) + (p.Burst_WarnFrm or 0)
     self.HitNormal = vector_up
     self.CollisionSeSilentFrame = p.CollisionSeSilentFrame or math.huge
-
-    local base = self.BaseClass
+    local base = self.BaseClass ---@type ENT|ENT.Throwable
     while base.ClassName ~= "ent_splatoonsweps_throwable" do base = base.BaseClass end
     base.Initialize(self)
     if CLIENT then return end

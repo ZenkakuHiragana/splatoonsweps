@@ -1,6 +1,40 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local mInkRecoverStop   = 20 * ss.FrameToSec
+local mDrawRadius       = 2.5 * ss.ToHammerUnits
+local mSplashDrawRadius = 3 * ss.ToHammerUnits
+local SWEP = SWEP
+---@cast SWEP SWEP.Charger
+---@class SWEP.Charger : SWEP.Shooter
+---@field AirTimeFraction    number
+---@field CrosshairFlashTime number
+---@field DelayAfterShot     number
+---@field FlashDuration      number
+---@field FullChargeFlag     boolean
+---@field MinChargeDeg       number
+---@field NotEnoughInk       boolean
+---@field Parameters         Parameters.Charger
+---@field RTAttachment       integer?
+---@field RTMaterial         IMaterial?
+---@field RTName             string?
+---@field RTScope            ITexture?
+---@field RTScopeNum         integer?
+---@field ScopeAng           Angle
+---@field Scoped             boolean
+---@field ScopeOrigin        Vector
+---@field ScopePos           Vector
+---@field ShootSound2        string
+---@field GetChargeProgress  fun(self, ping: boolean?): number
+---@field GetDamage          fun(self, ping: boolean?): number
+---@field GetInkVelocity     fun(self): number
+---@field GetScopedProgress  fun(self, ping: boolean?): number
+---@field HideRTScope        fun(self, alpha: number)?
+---@field PlayChargeSound    fun(self)
+---@field ResetCharge        fun(self)
+---@field ShouldChargeWeapon fun(self): boolean
+
 SWEP.Base = "weapon_splatoonsweps_shooter"
 SWEP.IsCharger = true
 SWEP.FlashDuration = .25
@@ -93,8 +127,9 @@ function SWEP:PlayChargeSound()
 end
 
 function SWEP:ShouldChargeWeapon()
-    if self:GetOwner():IsPlayer() then
-        return self:GetOwner():KeyDown(IN_ATTACK)
+    local Owner = self:GetOwner()
+    if Owner:IsPlayer() then ---@cast Owner Player
+        return Owner:KeyDown(IN_ATTACK)
     else
         return CurTime() - self:GetCharge() < self.Parameters.mMaxChargeFrame * 2
     end
@@ -102,7 +137,7 @@ end
 
 function SWEP:SharedInit()
     local p = self.Parameters
-    self.LoopSounds.AimSound = {SoundName = ss.ChargerAim}
+    self.LoopSounds.AimSound = { SoundName = ss.ChargerAim }
     self.AirTimeFraction = 1 - 1 / p.mEmptyChargeTimes
     self:SetAimTimer(CurTime())
     self:ResetCharge()
@@ -129,7 +164,7 @@ function SWEP:SharedInit()
     table.Merge(self.Projectile, {
         AirResist = 1,
         Gravity = ss.InkDropGravity,
-        SplashColRadius = p.mSplashColRadius,
+        SplashColRadius = 1,
     })
 end
 
@@ -137,7 +172,7 @@ function SWEP:SharedPrimaryAttack()
     local p = self.Parameters
     if not IsValid(self:GetOwner()) then return end
 
-    self:SetReloadDelay(p.mInkRecoverStop)
+    self:SetReloadDelay(mInkRecoverStop)
     if self:GetCharge() < math.huge then -- Hold +attack to charge
         local prog = self:GetChargeProgress()
         self:SetAimTimer(CurTime() + ss.AimDuration)
@@ -190,7 +225,7 @@ end
 
 function SWEP:Move(ply)
     local p = self.Parameters
-    if ply:IsPlayer() then
+    if ply:IsPlayer() then ---@cast ply Player
         if self:GetNWBool "toggleads" then
             if ply:KeyPressed(IN_USE) then
                 self:SetADS(not self:GetADS())
@@ -274,12 +309,12 @@ function SWEP:Move(ply)
         local e = EffectData()
         ss.SetEffectColor(e, proj.Color)
         ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-        ss.SetEffectDrawRadius(e, p.mDrawRadius) -- Shooter's default value
+        ss.SetEffectDrawRadius(e, mDrawRadius) -- Shooter's default value
         ss.SetEffectEntity(e, self)
         ss.SetEffectFlags(e, self)
         ss.SetEffectInitPos(e, proj.InitPos)
         ss.SetEffectInitVel(e, proj.InitVel)
-        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, p.mSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
+        ss.SetEffectSplash(e, Angle(proj.SplashColRadius, mSplashDrawRadius, proj.SplashLength / ss.ToHammerUnits))
         ss.SetEffectSplashInitRate(e, Vector(proj.SplashInitRate))
         ss.SetEffectSplashNum(e, proj.SplashNum)
         ss.SetEffectStraightFrame(e, proj.StraightFrame)
@@ -308,6 +343,17 @@ function SWEP:Move(ply)
 end
 
 function SWEP:CustomDataTables()
+    ---@class SWEP.Charger
+    ---@field GetADS           fun(self, org: boolean?): boolean
+    ---@field GetAimTimer      fun(self): number
+    ---@field GetCharge        fun(self): number
+    ---@field GetFireAt        fun(self): number
+    ---@field GetSplashInitMul fun(self): integer
+    ---@field SetADS           fun(self, value: boolean)
+    ---@field SetAimTimer      fun(self, value: number)
+    ---@field SetCharge        fun(self, value: number)
+    ---@field SetFireAt        fun(self, value: number)
+    ---@field SetSplashInitMul fun(self, value: integer)
     self:AddNetworkVar("Bool", "ADS")
     self:AddNetworkVar("Float", "AimTimer")
     self:AddNetworkVar("Float", "Charge")

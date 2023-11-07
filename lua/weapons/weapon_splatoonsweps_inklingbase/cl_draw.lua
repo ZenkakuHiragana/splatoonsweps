@@ -2,6 +2,67 @@
 -- The way to draw ink tank comes from SWEP Construction Kit.
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local SWEP = SWEP
+---@cast SWEP SplatoonWeaponBase
+---@class SplatoonWeaponBase
+---@field CreateModels                 fun(self, models: table<string, SWEP.ModelElement>)
+---@field CustomCalcView               fun(self, ply: Player, pos: Vector, ang: Angle, fov: number): number?
+---@field DrawOnSubTriggerDown         fun(self)
+---@field GetBoneOrientation           fun(self, basetab: table<string, SWEP.ModelElement>, tab: SWEP.ModelElement, ent: Entity, bone_override: string?): Vector?, Angle?
+---@field GetCameraFade                fun(self): number
+---@field GetSubWeaponInkConsume       fun(self): number
+---@field PreDrawWorldModel            fun(self): boolean?
+---@field PreDrawWorldModelElements    fun(self, model: CSEnt, bone_ent: Entity, pos: Vector, ang: Angle, v: SWEP.ModelElement, matrix: VMatrix)
+---@field PreDrawWorldModelTranslucent fun(self): boolean?
+---@field PreViewModelDrawn            fun(self, vm: Entity, weapon: Weapon, ply: Player)
+---@field RecreateModel                fun(self, v: table, modelname: string?): boolean?
+---@field ResetBonePositions           fun(self, vm: Entity)
+---@field ShouldDrawSquid              fun(self): boolean
+---@field UpdateBonePositions          fun(self, vm: Entity)
+---@field AmmoDisplay                  { Draw: boolean, PrimaryClip: number, PrimaryAmmo: number, SecondaryAmmo: number? }
+---@field Cursor                       { x: number, y: number }
+---@field EnoughSubWeapon              boolean
+---@field PreviousInk                  boolean
+---@field VElements                    table<string, SWEP.ModelElement>
+---@field ViewModelBoneMods            table<string, SWEP.ModelElementManip>
+---@field ViewPunch                    Angle
+---@field ViewPunchVel                 Angle
+---@field vRenderOrder                 string[]
+---@field WElements                    table<string, SWEP.ModelElement>
+---@field wRenderOrder                 string[]
+
+---@class SWEP.ModelElementManip
+---@field scale          Vector
+---@field pos            Vector
+---@field angle          Angle
+
+---@class CSEnt.ModelEnt : CSEnt
+---@field GetInkColorProxy fun(self): Vector
+
+---@class SWEP.ModelElement : SWEP.ModelElementManip
+---@field sprite            string?
+---@field createdSprite     string?
+---@field createdModel      string?
+---@field material          string?
+---@field model             string?
+---@field modelEnt          CSEnt|CSEnt.ModelEnt
+---@field spriteMaterial    IMaterial?
+---@field type              string?
+---@field rel               string?
+---@field bone              string?
+---@field size              { x: number, y: number }?
+---@field hide              boolean?
+---@field surpresslightning boolean?
+---@field skin              integer?
+---@field bodygroup         integer[]?
+---@field color             Color?
+---@field is2d              boolean?
+---@field draw_func         fun(self)
+---@field inktank           boolean?
+
+---Resets bone manipulations of given view model
+---@param vm Entity The view model to reset
 function SWEP:ResetBonePositions(vm)
     if not (IsValid(vm) and vm:GetBoneCount()) then return end
     for i = 0, vm:GetBoneCount() do
@@ -12,13 +73,15 @@ function SWEP:ResetBonePositions(vm)
 end
 
 local hasGarryFixedBoneScalingYet = false
+---Updates bone manipulations for given view model
+---@param vm Entity The view model to update
 function SWEP:UpdateBonePositions(vm)
     if IsValid(vm) and self.ViewModelBoneMods then
         if not vm:GetBoneCount() then return end
 
         -- !! WORKAROUND !! --
         -- We need to check all model names :/
-        local allbones = {}
+        local allbones = {} ---@type table<string, SWEP.ModelElementManip>
         local loopthrough = self.ViewModelBoneMods
         if not hasGarryFixedBoneScalingYet then
             for i = 0, vm:GetBoneCount() do
@@ -72,16 +135,22 @@ function SWEP:UpdateBonePositions(vm)
     end
 end
 
+---@param basetab table<string, SWEP.ModelElement>
+---@param tab SWEP.ModelElement
+---@param ent Entity
+---@param bone_override string
+---@return Vector
+---@return Angle
 function SWEP:GetBoneOrientation(basetab, tab, ent, bone_override)
-    local bone, pos, ang
+    local bone, pos, ang ---@type integer, Vector?, Angle?
     if tab.rel and tab.rel ~= "" then
-        local v = basetab[tab.rel]
+        local v = basetab[tab.rel --[[@as string]]]
         if not v then return end
 
         -- Technically, if there exists an element with the same name as a bone
         -- you can get in an infinite loop. Let's just hope nobody's that stupid.
         pos, ang = self:GetBoneOrientation(basetab, v, ent)
-        if not pos then return end
+        if not (pos and ang) then return end
 
         pos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
         ang:RotateAroundAxis(ang:Up(), v.angle.y)
@@ -101,6 +170,9 @@ function SWEP:GetBoneOrientation(basetab, tab, ent, bone_override)
     return pos, ang
 end
 
+---@param v SWEP.ModelElement
+---@param modelname string
+---@return boolean?
 function SWEP:RecreateModel(v, modelname)
     modelname = modelname or v.model ~= "" and v.model
     if not (modelname and util.IsModelLoaded(modelname)) then return end
@@ -126,13 +198,14 @@ function SWEP:RecreateModel(v, modelname)
     return IsValid(v.modelEnt)
 end
 
+---@param t table<string, SWEP.ModelElement>
 function SWEP:CreateModels(t)
     if not t then return end
 
     -- Create the clientside models here because Garry says we can't do it in the render hook
     local errormodelshown, errormaterialshown = false, false
     for k, v in pairs(t) do
-        local modelname = k == "weapon" and self.WeaponModelName or v.model ~= "" and v.model
+        local modelname = k == "weapon" and nil or v.model ~= "" and v.model
         if v.type == "Model" and modelname and (not IsValid(v.modelEnt) or v.createdModel ~= modelname) then
             if file.Exists(modelname, "GAME") then
                 self:RecreateModel(v, modelname)
@@ -150,7 +223,7 @@ function SWEP:CreateModels(t)
                 local tocheck = {"nocull", "additive", "vertexalpha", "vertexcolor", "ignorez"}
                 for _, j in ipairs(tocheck) do
                     if v[j] then
-                        params["$" .. j] = 1
+                        params["$" .. j] = "1"
                         name = name .. "1"
                     else
                         name = name .. "0"
@@ -228,8 +301,8 @@ function SWEP:DrawWorldModelTranslucent()
         end
         if v.hide then continue end
 
-        local pos, ang = self:GetBoneOrientation(self.WElements, v, bone_ent, not v.bone and "ValveBiped.Bip01_R_Hand")
-        if not pos then continue end
+        local pos, ang = self:GetBoneOrientation(self.WElements, v, bone_ent, not v.bone and "ValveBiped.Bip01_R_Hand" or nil)
+        if not (pos and ang) then continue end
 
         local sprite = v.spriteMaterial
         if v.type == "Model" then
@@ -329,7 +402,7 @@ function SWEP:DrawWorldModelTranslucent()
             ang:RotateAroundAxis(ang:Right(), v.angle.p)
             ang:RotateAroundAxis(ang:Forward(), v.angle.r)
 
-            if v.is2d then cam.Start3D2D(drawpos, ang, v.size) end
+            if v.is2d then cam.Start3D2D(drawpos, ang, v.size.x) end
             ss.ProtectedCall(v.draw_func, self)
             if v.is2d then cam.End3D2D() end
         end
@@ -364,18 +437,20 @@ function SWEP:DrawWeaponSelection(x, y, wide, tall, alpha)
 end
 
 function SWEP:DoDrawCrosshair(x, y)
-    self.Cursor = self:GetOwner():GetEyeTrace().HitPos:ToScreen()
-    if not ss.GetOption "drawcrosshair" then return end
-    if self:GetThrowing() then return end
+    local Owner = self:GetOwner()
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return false end ---@cast Owner Player
+    self.Cursor = Owner:GetEyeTrace().HitPos:ToScreen()
+    if not ss.GetOption "drawcrosshair" then return false end
+    if self:GetThrowing() then return false end
     x, y = self.Cursor.x, self.Cursor.y
 
-    return ss.ProtectedCall(self.DrawCrosshair, self, x, y)
+    return ss.ProtectedCall(self.CustomDrawCrosshair, self, x, y)
 end
 
 local PUNCH_DAMPING = 9.0
 local PUNCH_SPRING_CONSTANT = 65.0
 function SWEP:CalcView(ply, pos, ang, fov)
-    local f = ss.ProtectedCall(self.CustomCalcView, self, ply, pos, ang, fov)
+    local f = ss.ProtectedCall(self.CustomCalcView, self, ply, pos, ang, fov) ---@type number?
     if ply:ShouldDrawLocalPlayer() then return pos, ang, f or fov end
     if not isangle(self.ViewPunch) then return pos, ang, f or fov end
     if math.abs(self.ViewPunch.p + self.ViewPunch.y + self.ViewPunch.r) > 0.001
@@ -395,11 +470,15 @@ function SWEP:CalcView(ply, pos, ang, fov)
     return pos, ang + self.ViewPunch, f or fov
 end
 
+---Returns transparency of the player in case the camera is too close
+---@return number The transparency from 0 to 1
 function SWEP:GetCameraFade()
     if not ss.GetOption "translucentnearbylocalplayer" then return 1 end
     return math.Clamp(self:GetPos():DistToSqr(EyePos()) / ss.CameraFadeDistance, 0, 1)
 end
 
+---Returns if the squid model should be drawn
+---@return boolean True # if the squid model should be drawn
 function SWEP:ShouldDrawSquid()
     if not IsValid(self:GetOwner()) then return false end
     if not self:Crouching() then return false end

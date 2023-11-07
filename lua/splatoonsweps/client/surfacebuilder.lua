@@ -1,13 +1,17 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@param surf PaintableSurface
+---@return Vector[]?
+---@return Vector[]?
 local function calculateTangents(surf)
     if surf.IsSmallProp then return end
 
     -- Straightly taken from https://github.com/CapsAdmin/pac3/pull/578/commits/43fa75c262cde661713cdaa9d1b09bc29ec796b4
     -- Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”. Terathon Software, 2001. http://terathon.com/code/tangent.html
-    local tan1, tan2 = {}, {}
+    local tan1, tan2 = {}, {} ---@type Vector[], Vector[]
     for i = 1, #surf.Triangles * 3 do
         tan1[i] = Vector()
         tan2[i] = Vector()
@@ -66,7 +70,7 @@ end
 local rt = ss.RenderTarget
 local MAX_TRIANGLES = math.floor(32768 / 3) -- mesh library limitation
 function ss.BuildInkMesh()
-    local rects = {}
+    local rects = {} ---@type ss.Rectangle[]
     local NumMeshTriangles = 0
     for i, surf in ipairs(ss.SurfaceArray) do
         rects[i] = ss.MakeRectangle(surf.Boundary2D.x + 1, surf.Boundary2D.y + 1, 0, 0, surf)
@@ -111,7 +115,7 @@ function ss.BuildInkMesh()
 
     for _, index in ipairs(packer.results) do
         local r = packer.rects[index]
-        local surf = r.tag
+        local surf = r.tag ---@type PaintableSurface
         local v3 = surf.Vertices3D
         local textureUV = surf.Vertices2D
         local lightmapUV = surf.LightmapInfo.Vertices2D
@@ -143,7 +147,7 @@ function ss.BuildInkMesh()
             for vertex_index, i in ipairs(tri) do
                 local j = (triangle_index - 1) * 3 + vertex_index
                 local tan, bitan, w = Vector(), Vector(), 1
-                if not surf.IsSmallProp then
+                if not surf.IsSmallProp then --[[@cast tan1 -?]] ---@cast tan2 -?
                     local s, t = tan2[j], tan1[j]
                     tan = (t - n * n:Dot(t)):GetNormalized()
                     bitan = (s - n * n:Dot(s)):GetNormalized()
@@ -173,7 +177,7 @@ function ss.BuildInkMesh()
             ContinueMesh()
         end
 
-        surf.Triangles, surf.Vertices3D, surf.Vertices2D = nil
+        surf.Triangles, surf.Vertices3D, surf.Vertices2D = nil, nil, nil
     end
     mesh.End()
 end
@@ -217,24 +221,25 @@ function ss.BuildWaterMesh()
     ss.WaterSurfaces = nil
 end
 
+---@param data ss.Transferrable
 function ss.PrepareInkSurface(data)
     util.TimerCycle()
 
     ss.Lightmap = data.Lightmap
     ss.MinimapAreaBounds = data.MinimapAreaBounds
-    local ldr = data.SurfaceArrayLDR
-    local hdr = data.SurfaceArrayHDR
+    local ldr = data.SurfaceArrayLDR ---@type PaintableSurface[]?
+    local hdr = data.SurfaceArrayHDR ---@type PaintableSurface[]?
     local details = data.SurfaceArrayDetails
     local isusinghdr = false
     if render.GetHDREnabled() then
-        isusinghdr = #hdr > 0 and ss.Lightmap.hdr and #ss.Lightmap.hdr > 0
+        isusinghdr = #hdr > 0 and ss.Lightmap.hdr and #ss.Lightmap.hdr > 0 or false
     else
         isusinghdr = not (#ldr > 0 and ss.Lightmap.ldr and #ss.Lightmap.ldr > 0)
     end
 
-    if isusinghdr then
+    if isusinghdr then ---@cast hdr -?
         ss.SurfaceArray, hdr, ldr = hdr, nil, nil
-    else
+    else ---@cast ldr -?
         ss.SurfaceArray, hdr, ldr = ldr, nil, nil
     end
     table.Add(ss.SurfaceArray, details)
@@ -242,16 +247,17 @@ function ss.PrepareInkSurface(data)
     ss.WaterSurfaces = data.WaterSurfaces
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
 
-    local lightmap = render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr
+    local lightmapmat ---@type IMaterial
+    local lightmap = render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr or ""
     file.Write("splatoonsweps/lightmap.png", lightmap)
     if lightmap and #lightmap > 0 then
-        lightmap = Material("../data/splatoonsweps/lightmap.png", "smooth")
+        lightmapmat = Material("../data/splatoonsweps/lightmap.png", "smooth")
     else
-        lightmap = Material "grey"
+        lightmapmat = Material "grey"
     end
 
-    if not lightmap:IsError() then
-        rt.Lightmap = lightmap:GetTexture "$basetexture"
+    if not lightmapmat:IsError() then
+        rt.Lightmap = lightmapmat:GetTexture "$basetexture"
         rt.Lightmap:Download()
     end
 

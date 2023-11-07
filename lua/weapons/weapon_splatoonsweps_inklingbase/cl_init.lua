@@ -6,64 +6,51 @@ include "baseinfo.lua"
 include "cl_draw.lua"
 include "ai_translations.lua"
 
+local SWEP = SWEP
+---@cast SWEP SplatoonWeaponBase
+---@class SplatoonWeaponBase
+---@field PopupError               fun(self, msg: string)
+---@field IsTPS                    fun(self): boolean
+---@field TranslateToViewmodelPos  fun(self, pos: Vector): Vector
+---@field TranslateToWorldmodelPos fun(self, pos: Vector): Vector
+---@field JustUsableTime           number
+---@field HullDuckMaxs             Vector
+---@field HullDuckMins             Vector
+---@field ViewOffsetDucked         Vector
+
 local inktank = {
-    type = "Model",
-    model = ss.InkTankModel,
-    bone = "ValveBiped.Bip01_Spine4",
-    rel = "",
-    pos = Vector(-20, 3, 0),
-    angle = Angle(0, 75, 90),
-    size = Vector(1, 1, 1),
-    color = Color(255, 255, 255, 255),
-    surpresslightning = false,
-    material = "",
-    skin = 0,
+    type      = "Model",
+    model     = ss.InkTankModel,
+    bone      = "ValveBiped.Bip01_Spine4",
+    rel       = "",
+    pos       = Vector(-20, 3, 0),
+    angle     = Angle(0, 75, 90),
+    size      = Vector(1, 1, 1),
+    color     = Color(255, 255, 255, 255),
+    material  = "",
+    skin      = 0,
     bodygroup = {},
-    inktank = true,
+    inktank   = true,
 }
 local subweaponusable = {
-    type = "Sprite",
-    sprite = "sprites/flare1",
-    bone = "ValveBiped.Bip01_Spine4",
-    rel = "inktank",
-    pos = Vector(0, 0, 25.5),
-    size = {x = 12, y = 12},
-    color = Color(255, 255, 255, 255),
-    nocull = true,
+    type     = "Sprite",
+    sprite   = "sprites/flare1",
+    bone     = "ValveBiped.Bip01_Spine4",
+    rel      = "inktank",
+    pos      = Vector(0, 0, 25.5),
+    size     = {x = 12, y = 12},
+    color    = Color(255, 255, 255, 255),
+    nocull   = true,
     additive = true,
-    ignorez = false,
+    ignorez  = false,
 }
 
+---Pops up error notification on the player's screen
+---@param msg string
 function SWEP:PopupError(msg)
-    msg = ss.Text.Error[msg]
+    msg = ss.Text.Error[msg] --[[@as string]]
     if not msg then return end
     notification.AddLegacy(msg, NOTIFY_ERROR, 10)
-end
-
--- Fully copies the table, meaning all tables inside this table are copied too and so on
--- (normal table.Copy copies only their reference).
--- Does not copy entities of course, only copies their reference.
-local function FullCopy(t)
-    if not istable(t) then return t end
-
-    local res = {}
-    for k, v in pairs(t) do
-        if istable(v) then
-            if v == t then
-                res[k] = res
-            else
-                res[k] = FullCopy(v)
-            end
-        elseif isvector(v) then
-            res[k] = Vector(v)
-        elseif isangle(v) then
-            res[k] = Angle(v)
-        else
-            res[k] = v
-        end
-    end
-
-    return res
 end
 
 function SWEP:Initialize()
@@ -89,16 +76,16 @@ function SWEP:Initialize()
     end
 
     -- Create a new table for every weapon instance
-    self.VElements = FullCopy(self.VElements)
-    self.WElements = FullCopy(self.WElements)
-    self.ViewModelBoneMods = FullCopy(self.ViewModelBoneMods)
+    self.VElements = ss.deepcopy(self.VElements)
+    self.WElements = ss.deepcopy(self.WElements)
+    -- self.ViewModelBoneMods = ss.deepcopy(self.ViewModelBoneMods)
     self:CreateModels(self.VElements) -- create viewmodels
     self:CreateModels(self.WElements) -- create worldmodels
 
     -- Our initialize code
     self.EnoughSubWeapon = true
     self.PreviousInk = true
-    self.Cursor = {x = ScrW() / 2, y = ScrH() / 2}
+    self.Cursor = { x = ScrW() / 2, y = ScrH() / 2 }
     self.JustUsableTime = CurTime() - 1 -- For animation of ink tank light
     self:MakeSquidModel()
     self:SharedInitBase()
@@ -107,10 +94,11 @@ function SWEP:Initialize()
 end
 
 function SWEP:Deploy()
-    if not IsValid(self:GetOwner()) then return end
-    if self:GetOwner():IsPlayer() then
-        self.HullDuckMins, self.HullDuckMaxs = self:GetOwner():GetHullDuck()
-        self.ViewOffsetDucked = self:GetOwner():GetViewOffsetDucked()
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return true end
+    if Owner:IsPlayer() then ---@cast Owner Player
+        self.HullDuckMins, self.HullDuckMaxs = Owner:GetHullDuck()
+        self.ViewOffsetDucked = Owner:GetViewOffsetDucked()
         self:UpdateBonePositions(self:GetViewModel())
     end
 
@@ -121,17 +109,19 @@ end
 
 function SWEP:Holster()
     if self:GetInFence() then return false end
-    if not IsValid(self:GetOwner()) then return true end
-    if self:GetOwner():IsPlayer() then
+
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return true end
+    if Owner:IsPlayer() then ---@cast Owner Player
         local vm = self:GetViewModel()
         if IsValid(vm) then self:ResetBonePositions(vm) end
         if self:GetNWBool "becomesquid" and self.HullDuckMins then
-            self:GetOwner():SetHullDuck(self.HullDuckMins, self.HullDuckMaxs)
-            self:GetOwner():SetViewOffsetDucked(self.ViewOffsetDucked)
+            Owner:SetHullDuck(self.HullDuckMins, self.HullDuckMaxs)
+            Owner:SetViewOffsetDucked(self.ViewOffsetDucked)
         end
     end
 
-    self:GetOwner():SetHealth(self:GetOwner():Health() * self:GetNWInt "BackupHumanMaxHealth" / self:GetNWInt "BackupInklingMaxHealth")
+    Owner:SetHealth(Owner:Health() * self:GetNWInt "BackupHumanMaxHealth" / self:GetNWInt "BackupInklingMaxHealth")
     ss.ProtectedCall(self.ClientHolster, self)
     return self:SharedHolsterBase()
 end
@@ -171,22 +161,31 @@ function SWEP:Think()
     ss.ProtectedCall(self.ClientThink, self)
 end
 
+---Returns if the owner is seeing third person view
+---@return boolean # True if the camera is third person view
 function SWEP:IsTPS()
-    return not self:IsCarriedByLocalPlayer() or self:GetOwner():ShouldDrawLocalPlayer()
+    local Owner = self:GetOwner() --[[@as Player]]
+    return not self:IsCarriedByLocalPlayer() or Owner:ShouldDrawLocalPlayer()
 end
 
+---Translates given world position to view model position
+---@param pos Vector The world position
+---@return Vector # Translated view model position
 function SWEP:TranslateToViewmodelPos(pos)
     if self:IsTPS() then return pos end
     local dir = pos - EyePos() dir:Normalize()
     local aim = EyeAngles():Forward()
-    dir = aim + self:GetFOV() / self.ViewModelFOV * (dir - aim)
+    dir = aim + (dir - aim) * self:GetFOV() / self.ViewModelFOV
     return EyePos() + dir * pos:Distance(EyePos())
 end
 
+---Translates given view model position to world position
+---@param pos Vector The view model position
+---@return Vector # Translated world position
 function SWEP:TranslateToWorldmodelPos(pos)
     if self:IsTPS() then return pos end
     local dir = pos - EyePos() dir:Normalize()
     local aim = EyeAngles():Forward()
-    dir = aim + self.ViewModelFOV / self:GetFOV() * (dir - aim)
+    dir = aim + (dir - aim) * self.ViewModelFOV / self:GetFOV()
     return EyePos() + dir * pos:Distance(EyePos())
 end

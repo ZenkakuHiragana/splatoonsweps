@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.splashwall = {
     Merge = {
         IsSubWeaponThrowable = false,
     },
+    ---@class SubParameters.SplashWall
     Parameters = {
         mMaxHp = 6.00000000,
         mLength = Vector "45.00000000 39.00000000 10.00000000",
@@ -64,6 +67,7 @@ ss.splashwall = {
 
 ss.ConvertUnits(ss.splashwall.Parameters, ss.splashwall.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.splashwall.Merge
 local p = ss.splashwall.Parameters
 function module:CanSecondaryAttack()
@@ -85,8 +89,7 @@ end
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
     if IsValid(self.ExistingSplashWall) then return end
-    local e = ents.Create "ent_splatoonsweps_splashwall"
-    e.Weapon = self
+    local e = ents.Create "ent_splatoonsweps_splashwall" --[[@as ENT.SplashWall]]
     e:SetOwner(self:GetOwner())
     e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
     e:SetInkColorProxy(self:GetInkColorProxy())

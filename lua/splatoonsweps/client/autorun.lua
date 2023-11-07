@@ -1,30 +1,27 @@
 
 -- Clientside SplatoonSWEPs structure
 
-SplatoonSWEPs = SplatoonSWEPs or {
-    AreaBound = 0,
-    AspectSum = 0,  -- Sum of aspect ratios for each surface
-    AspectSumX = 0, -- Sum of widths for each surface
-    AspectSumY = 0, -- Sum of heights for each surface
-    ClassDefinitions = {},
-    CrosshairColors = {},
-    EntityFilters = {},
-    IMesh = {},
-    InkColors = {},
-    InkShotMaterials = {},
-    InkQueue = {},
-    LastHitID = {},
-    MinimapAreaBounds = {},
-    Models = {},
-    PaintQueue = {},
-    PaintSchedule = {},
-    PlayerHullChanged = {},
-    PlayerShouldResetCamera = {},
-    RenderTarget = {},
-    SurfaceArray = {},
-    WaterMesh = {},
-    WaterSurfaces = {},
-    WeaponRecord = {},
+---@class ss
+SplatoonSWEPs = {
+    ClassDefinitions        = {}, ---@type table<string, table>
+    CrosshairColors         = {}, ---@type integer[]
+    EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
+    IMesh                   = {}, ---@type IMesh[]
+    InkColors               = {}, ---@type Color[]
+    InkShotMaterials        = {}, ---@type { width: integer, height: integer, [integer]: boolean[] }[]
+    InkQueue                = {}, ---@type table<number, InkQueue[]>
+    LastHitID               = {}, ---@type table<Entity, integer>
+    Lightmap                = {}, ---@type ss.Lightmap
+    MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
+    PaintQueue              = {}, ---@type table<integer, ss.PaintQueue>
+    PaintSchedule           = {}, ---@type table<table, true>
+    PlayerHullChanged       = {}, ---@type table<Player, boolean>
+    PlayerShouldResetCamera = {}, ---@type table<Player, boolean>
+    RenderTarget            = {}, ---@type ss.RenderTarget
+    SurfaceArray            = {}, ---@type PaintableSurface[]
+    WaterMesh               = {}, ---@type IMesh[]
+    WaterSurfaces           = {}, ---@type PaintableSurface[]
+    WeaponRecord            = {}, ---@type table<Entity, ss.WeaponRecord>
 }
 
 include "splatoonsweps/const.lua"
@@ -36,9 +33,10 @@ include "network.lua"
 include "surfacebuilder.lua"
 include "userinfo.lua"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss.GetOption "enabled" then
-    for h, t in pairs(hook.GetTable()) do
+    for h, t in pairs(hook.GetTable() --[[@as table<string, {[string]: function}>]]) do
         for name in pairs(t) do
             if ss.ProtectedCall(name.find, name, "SplatoonSWEPs") then
                 hook.Remove(h, name)
@@ -47,19 +45,20 @@ if not ss.GetOption "enabled" then
     end
 
     table.Empty(SplatoonSWEPs)
-    SplatoonSWEPs = nil
+    ---@diagnostic disable-next-line: global-element
+    SplatoonSWEPs = nil ---@type nil
     return
 end
 
-local rt = ss.RenderTarget
 local crashpath = "splatoonsweps/crashdump.txt" -- Existing this means the client crashed before.
 hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function()
     gameevent.Listen "entity_killed"
+    local rt = ss.RenderTarget
     if not file.Exists("splatoonsweps", "DATA") then file.CreateDir "splatoonsweps" end
     if file.Exists(crashpath, "DATA") then -- If the client has crashed before, RT shrinks.
         local res = ss.GetConVar "rtresolution"
         if res then res:SetInt(rt.RESOLUTION.MINIMUM) end
-        notification.AddLegacy(ss.Text.Error.CrashDetected, NOTIFY_GENERIC, 15)
+        notification.AddLegacy(ss.Text.Error.CrashDetected --[[@as string]], NOTIFY_GENERIC, 15)
     end
 
     file.Write(crashpath, "")
@@ -138,33 +137,45 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
     ss.PrepareInkSurface(dataTable)
 end)
 
--- Local player isn't considered by Trace.  This is a poor workaround.
+---Local player isn't considered by Trace.  This is a poor workaround.
+---@param start Vector
+---@param dir Vector
+---@return Vector?
 function ss.TraceLocalPlayer(start, dir)
     local lp = LocalPlayer()
-    return util.IntersectRayWithOBB(start, dir, lp:GetPos(), lp:GetRenderAngles(), lp:OBBMins(), lp:OBBMaxs())
+    local pos = util.IntersectRayWithOBB(start, dir, lp:GetPos(), lp:GetRenderAngles(), lp:OBBMins(), lp:OBBMaxs())
+    return pos
 end
 
 local Water80 = Material "effects/flicker_128"
 local Water90 = Material "effects/water_warp01"
+---@return IMaterial
 function ss.GetWaterMaterial()
     return render.GetDXLevel() < 90 and Water80 or Water90
 end
-
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@return boolean
 local function ShouldHidePlayer(w, ply)
     return Either(w:GetNWBool "becomesquid" and IsValid(w:GetNWEntity "Squid"), ply:Crouching(), w:GetInInk())
 end
-
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@return boolean
 local function ShouldChangePlayerAlpha(w, ply)
     return w:IsCarriedByLocalPlayer() and not (vrmod and vrmod.IsPlayerInVR(ply))
 end
-
+---@param w SplatoonWeaponBase
+---@param ply Player
 function ss.PostPlayerDraw(w, ply)
     if ShouldHidePlayer(w, ply) then return end
     if ShouldChangePlayerAlpha(w, ply) then
         render.SetBlend(1)
     end
 end
-
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@return boolean?
 function ss.PrePlayerDraw(w, ply)
     if ShouldHidePlayer(w, ply) then return true end
     if ShouldChangePlayerAlpha(w, ply) then
@@ -172,6 +183,7 @@ function ss.PrePlayerDraw(w, ply)
     end
 end
 
+---@param w SWEP.Charger
 function ss.RenderScreenspaceEffects(w)
     ss.ProtectedCall(w.RenderScreenspaceEffects, w)
     if not w:GetInInk() or LocalPlayer():ShouldDrawLocalPlayer() or not ss.GetOption "drawinkoverlay" then return end
@@ -182,6 +194,7 @@ function ss.RenderScreenspaceEffects(w)
     surface.DrawRect(0, 0, ScrW(), ScrH())
 end
 
+---@param w SWEP.Charger
 function ss.PostRender(w)
     if ss.RenderingRTScope then return end
     if not (w.Scoped and w.RTScope) then return end
@@ -203,7 +216,7 @@ function ss.PostRender(w)
     if a then
         render.PushRenderTarget(w.RTScope)
         render.RenderView {
-            origin = w.ScopeOrigin or a.Pos, angle = a.Ang,
+            origin = w.ScopeOrigin or a.Pos, angles = a.Ang,
             x = 0, y = 0, w = 512, h = 512, aspectratio = 1,
             fov = w.Parameters.mSniperCameraFovy,
             drawviewmodel = false,
@@ -214,17 +227,21 @@ function ss.PostRender(w)
     ss.RenderingRTScope = nil
 end
 
--- Draws V-shaped crosshair used by Rollers, Sloshers, etc
--- The weapon needs these fields:
--- table self.Crosshair ... a table of CurTime()-based times
--- number self.Parameters.mTargetEffectScale -- a scale for width
--- number self.Parameters.mTargetEffectVelRate -- a scale for depth
 local EaseInOut = math.EaseInOut
 local duration = 72 * ss.FrameToSec
 local max = math.max
 local mat = Material "debug/debugtranslucentvertexcolor"
 local Remap = math.Remap
 local vector_one = ss.vector_one
+
+---Draws V-shaped crosshair used by Rollers, Sloshers, etc
+---The weapon needs these fields:
+---table self.Crosshair ... a table of CurTime()-based times
+---number self.Parameters.mTargetEffectScale -- a scale for width
+---number self.Parameters.mTargetEffectVelRate -- a scale for depth
+---@param self SWEP.Roller
+---@param dodraw boolean
+---@param isfirstperson boolean?
 function ss.DrawVCrosshair(self, dodraw, isfirstperson)
     local aim = self:GetAimVector()
     local ang = aim:Angle()
@@ -269,6 +286,9 @@ end
 
 local PreventRecursive = false
 local BlurX, BlurY, BlurStep = 0.08, 0.08, 0.16
+
+---@param ent Entity
+---@param color Color
 function ss.DrawSolidHalo(ent, color)
     if PreventRecursive then return end
     render.SetStencilEnable(true)
@@ -330,7 +350,7 @@ hook.Add("PostDrawEffects", "SplatoonSWEPs: Draw marked enemies", function()
     local lpw = ss.IsValidInkling(lp)
     if not lpw then return end
 
-    local marked = {}
+    local marked = {} ---@type Entity[]
     local c = ss.GetColor(lpw:GetNWInt "inkcolor")
     if not c then return end
     local additive = c:ToVector():Dot(ss.GrayScaleFactor) > 0.5
@@ -386,9 +406,10 @@ hook.Add("entity_killed", "SplatoonSWEPs: Remove ragdolls on death", function(da
     local attacker = Entity(data.entindex_attacker)
     local victim = Entity(data.entindex_killed)
     if not IsValid(victim) then return end
-    if not victim:IsPlayer() then return end
+    if not victim:IsPlayer() then return end ---@cast victim Player
     local w = ss.IsValidInkling(attacker)
     if not w then return end
+
     if IsValid(victim:GetRagdollEntity()) then
         victim:GetRagdollEntity():SetNoDraw(true)
         victim.IsSplattedBySplatoonSWEPs = nil
@@ -397,7 +418,10 @@ hook.Add("entity_killed", "SplatoonSWEPs: Remove ragdolls on death", function(da
     end
 end)
 
-hook.Add("CreateClientsideRagdoll", "SplatooNSWEPs: Remove ragdolls on death", function(ply, rag)
+hook.Add("CreateClientsideRagdoll", "SplatooNSWEPs: Remove ragdolls on death",
+---@param ply Player
+---@param rag Entity
+function(ply, rag)
     if not ply.IsSplattedBySplatoonSWEPs then return end
     rag:SetNoDraw(true)
     ply.IsSplattedBySplatoonSWEPs = nil

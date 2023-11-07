@@ -1,6 +1,7 @@
 
 -- Seems to be unreadable, huh?
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -18,6 +19,38 @@ local RenderFuncs = {
     weapon_splatoonsweps_sloshingmachine     = "RenderSloshingMachine",
     weapon_splatoonsweps_sloshingmachine_neo = "RenderSloshingMachine",
 }
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.ShooterInk
+---@class EFFECT.ShooterInk : EFFECT
+---@field ApparentInitPos       Vector
+---@field Color                 Color
+---@field ColorVector           Vector
+---@field DrawRadius            number
+---@field Frame                 integer
+---@field GetRenderColor        fun(self): Color
+---@field HitEffect             fun(self, tr: TraceResult)
+---@field Ink                   InkQueue
+---@field IsBlaster             boolean?
+---@field IsCharger             boolean?
+---@field IsDrop                boolean
+---@field IsFromEntity          boolean
+---@field IsRoller              boolean?
+---@field IsSlosher             boolean?
+---@field Material              IMaterial
+---@field Normal                Vector
+---@field RenderBlaster         fun(self)
+---@field RenderGeneral         fun(self)
+---@field RenderSlosher         fun(self)
+---@field RenderSloshingMachine fun(self)
+---@field RenderSplash          fun(self)
+---@field SpiralTime            number
+---@field SpiralCount           integer
+---@field TrailPos              Vector
+---@field TrailInitPos          Vector
+---@field TrailInitVel          Vector
+---@field UseCustomGravity      boolean
+
+---@param self EFFECT.ShooterInk
 local function CreateSpiralEffects(self)
     if self.IsDrop then return end
     if self.DrawRadius == 0 then return end
@@ -57,7 +90,7 @@ end
 -- +1   Normal drop
 function EFFECT:Init(e)
     self:SetModel(mdl)
-    local Weapon = ss.GetEffectEntity(e)
+    local Weapon = ss.GetEffectEntity(e) --[[@as SWEP.Shooter]]
     if not IsValid(Weapon) then return end
     if not IsValid(Weapon:GetOwner()) then return end
     local ApparentPos, ApparentAng = Weapon:GetMuzzlePosition()
@@ -201,7 +234,7 @@ end
 function EFFECT:Think()
     if not self.Ink then return false end
     if not self.Ink.Data then return false end
-    local Weapon = self.Ink.Data.Weapon
+    local Weapon = self.Ink.Data.Weapon --[[@as SWEP.Shooter]]
     if not IsValid(Weapon) then return false end
     if not IsValid(Weapon:GetOwner()) then return false end
     if not ss.IsInWorld(self.Ink.Trace.endpos) then return false end
@@ -211,9 +244,9 @@ function EFFECT:Think()
     self.Ink.Trace.filter = ss.MakeAllyFilter(Weapon)
     local tr = util.TraceHull(self.Ink.Trace)
     local trlp = Weapon:GetOwner() ~= LocalPlayer()
-    local start, endpos = self.Ink.Trace.start, self.Ink.Trace.endpos
+    local start, endpos = self.Ink.Trace.start, self.Ink.Trace.endpos ---@type Vector, Vector
     local t = self.Ink.Trace.LifeTime
-    if trlp then trlp = ss.TraceLocalPlayer(start, endpos - start) end
+    if trlp then trlp = tobool(ss.TraceLocalPlayer(start, endpos - start)) end
     if tr.HitWorld and self.Ink.Trace.LifeTime > ss.FrameToSec then self:HitEffect(tr) end
     if (tr.Hit or trlp) and not (tr.StartSolid and t < ss.FrameToSec) then return false end
 

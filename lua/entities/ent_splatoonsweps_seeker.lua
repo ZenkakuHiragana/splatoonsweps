@@ -1,7 +1,34 @@
 
+local ENT = ENT
+---@cast ENT ENT.Seeker
+---@class ENT.Seeker : ENT.Throwable
+---@field BaseClass ENT.Throwable
+---@field AlertSoundPlayed           boolean
+---@field AlertSoundTime             number
+---@field DesiredSpeed               number
+---@field Explode                    fun(self)
+---@field ExplodeTime                number
+---@field ExplosionOffset            number
+---@field GravityHold                number
+---@field HitNormal                  Vector
+---@field InitMoveDirection          Vector
+---@field InitTime                   number
+---@field MoveDirection              Vector
+---@field NextTracePaintTime         number
+---@field Parameters                 table
+---@field SeekerFarSound             CSoundPatch
+---@field SeekerNearSound            CSoundPatch
+---@field SeekSoundDistanceThreshold number
+---@field SeekStartTime              number
+---@field Target                     Entity?
+---@field TracePaint                 fun(self)
+---@field TracePaintInterval         number
+---@field TracePaintRadius           number
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_throwable"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.Model = Model "models/splatoonsweps/subs/seekers/seeker.mdl"
@@ -18,7 +45,7 @@ ENT.TracePaintInterval = 2 * ss.FrameToSec
 ENT.TracePaintRadius = 10 * ss.ToHammerUnits
 
 function ENT:Initialize()
-    local p = ss[self.SubWeaponName].Parameters
+    local p = ss[self.SubWeaponName].Parameters ---@type SubParameters.Seeker
     self.Parameters = p
     self.StraightFrame = p.Fly_AirFrm
     self.AirResist = p.Fly_VelKd - 1
@@ -26,7 +53,6 @@ function ENT:Initialize()
     self.GravityHold = p.Fly_Gravity
     self.Gravity = p.Fly_Gravity
     self.HitNormal = vector_up
-    self.CollisionSeSilentFrame = p.CollisionSeSilentFrame or math.huge
     self.DragCoeffChangeTime = CurTime() + self.StraightFrame
     self.BaseClass.Initialize(self)
     self.InitMoveDirection = self:GetAngles():Forward()

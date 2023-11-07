@@ -1,12 +1,15 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.squidbeakon = {
     Merge = {
         IsSubWeaponThrowable = false,
         NumBeakons = 0,
     },
+    ---@class SubParameters.SquidBeakon
     Parameters = {
         Burst_Damage_Far = 0.3,
         Burst_Damage_Near = 1.8,
@@ -74,6 +77,7 @@ ss.squidbeakon = {
 
 ss.ConvertUnits(ss.squidbeakon.Parameters, ss.squidbeakon.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.squidbeakon.Merge
 local p = ss.squidbeakon.Parameters
 function module:CanSecondaryAttack()
@@ -104,11 +108,12 @@ function module:ServerSecondaryAttack(throwable)
     if not tr.Hit then return end
 
     for _, e in ipairs(ents.FindInSphere(tr.HitPos, 10)) do
+        ---@cast e ENT.SquidBeakon
         if e.IsSquidBeakon then return end
     end
 
     local inkcolor = self:GetNWInt "inkcolor"
-    local e = ents.Create "ent_splatoonsweps_squidbeakon"
+    local e = ents.Create "ent_splatoonsweps_squidbeakon" --[[@as ENT.SquidBeakon]]
     local ang = Angle()
     ang.yaw = self:GetOwner():GetAngles().yaw
     e.Weapon = self

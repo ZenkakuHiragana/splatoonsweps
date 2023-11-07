@@ -1,5 +1,6 @@
 
 AddCSLuaFile()
+local SWEP = SWEP ---@cast SWEP SWEP.Blaster
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 SWEP.ADSAngOffset = Angle(-2, 1.5, -45)

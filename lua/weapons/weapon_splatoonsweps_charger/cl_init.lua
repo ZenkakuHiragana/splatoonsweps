@@ -3,6 +3,13 @@ local ss = SplatoonSWEPs
 if not ss then return end
 include "shared.lua"
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Charger
+---@class SWEP.Charger
+---@field Crosshair table
+---@field DrawCrosshairFlash fun(self, t: table)
+---@field RenderScreenspaceEffects fun(self)
+
 local crosshairalpha = 64
 SWEP.Crosshair = {
     color_circle = ColorAlpha(color_black, crosshairalpha),
@@ -32,12 +39,13 @@ function SWEP:ClientInit()
     end)
 end
 
-function SWEP:Holster()
-    self:GetBase().Holster(self)
-    if not self.RTScope then return end
+function SWEP:Holster(weapon)
+    self:GetBase().Holster(self, weapon)
+    if not self.RTScope then return true end
     local vm = self:GetViewModel()
-    if not IsValid(vm) then return end
+    if not IsValid(vm) then return true end
     ss.SetSubMaterial_Workaround(vm, self.RTScopeNum - 1)
+    return true
 end
 
 function SWEP:DisplayAmmo()
@@ -133,7 +141,7 @@ function SWEP:RenderScreenspaceEffects()
     MatRefScope:SetFloat("$refractamount", MatRefDefault)
 end
 
-function SWEP:DrawCrosshair(x, y)
+function SWEP:CustomDrawCrosshair(x, y)
     if self:GetCharge() == math.huge then return end
     local t = self:SetupDrawCrosshair()
     local p = self.Parameters
@@ -157,7 +165,7 @@ function SWEP:DrawCrosshair(x, y)
 end
 
 function SWEP:TranslateFOV(fov)
-    if not self.Scoped or self:GetNWBool "usertscope" then return end
+    if not self.Scoped or self:GetNWBool "usertscope" then return fov end
     return Lerp(self:GetScopedProgress(true), fov, self.Parameters.mSniperCameraFovy)
 end
 

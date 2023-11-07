@@ -9,33 +9,88 @@ include "shared.lua"
 include "baseinfo.lua"
 include "ai_translations.lua"
 
+---@class SWEP.BackupPlayerInfo
+---@field Color            Color
+---@field Flags            integer
+---@field HullMaxs         Vector
+---@field HullMins         Vector
+---@field JumpPower        number
+---@field Material         string
+---@field Playermodel      SWEP.PlayerModelDefinition
+---@field RenderMode       integer
+---@field Speed            SWEP.BackupPlayerSpeed
+---@field SubMaterial      string[]
+---@field ViewOffsetDucked Vector
+
+---@class SWEP.BackupPlayerSpeed
+---@field Crouched number
+---@field Duck     number
+---@field Max      number
+---@field Run      number
+---@field UnDuck   number
+---@field Walk     number
+
+---@class SWEP.PlayerModelDefinition
+---@field BodyGroups  BodyGroupData[]?
+---@field Model       string
+---@field PlayerColor Vector
+---@field Skin        integer
+
+local SWEP = SWEP
+---@cast SWEP SplatoonWeaponBase
+---@class SplatoonWeaponBase
+---@field BackupHumanMaxHealth   integer
+---@field BackupInklingMaxHealth integer
+---@field BackupPlayerInfo       SWEP.BackupPlayerInfo
+---@field NPCDelay               number
+---@field PMTable                SWEP.PlayerModelDefinition|nil
+---@field Ragdoll                Entity
+---@field SafeOwner              Entity
+---@field BackupInfo             fun(self)
+---@field ChangePlayermodel      fun(self, data: SWEP.PlayerModelDefinition)
+---@field CreateRagdoll          fun(self)
+---@field GetNPCBurstSettings    fun(self): number, number, number
+---@field GetNPCRestTimes        fun(self): number, number
+---@field RemoveRagdoll          fun(self)
+---@field RestoreInfo            fun(self)
+
+---Returns if the owner is invalid; it's a real player and is not ready to paint
+---@param Owner Entity
+---@return boolean result True if the owner is invalid
 local function InvalidPlayer(Owner)
-    return not IsValid(Owner) or Owner:IsPlayer() and
-    not Owner:IsBot() and not table.HasValue(ss.PlayersReady, Owner)
+    if not IsValid(Owner) then return true end
+    if not Owner:IsPlayer() then return false end
+    ---@cast Owner Player
+    return not Owner:IsBot() and not table.HasValue(ss.PlayersReady, Owner)
 end
 
+---Changes player model using given table
+---@param data SWEP.PlayerModelDefinition
 function SWEP:ChangePlayermodel(data)
-    if not self:GetOwner():IsPlayer() then return end
-    self:GetOwner():SetModel(data.Model)
-    self:GetOwner():SetSkin(data.Skin)
-    local numgroups = self:GetOwner():GetNumBodyGroups()
+    local Owner = self:GetOwner()
+    if not Owner:IsPlayer() then return end
+    ---@cast Owner Player
+    Owner:SetModel(data.Model)
+    Owner:SetSkin(data.Skin)
+    local numgroups = Owner:GetNumBodyGroups()
     if isnumber(numgroups) then
         for k = 0, numgroups - 1 do
             local v = data.BodyGroups[k + 1]
-            v = istable(v) and isnumber(v.num) and v.num or 0
-            self:GetOwner():SetBodygroup(k, v)
+            local n = istable(v) and isnumber(v.num) and v.num or 0
+            Owner:SetBodygroup(k, n)
         end
     end
 
-    ss.SetSubMaterial_Workaround(self:GetOwner())
-    self:GetOwner():SetPlayerColor(data.PlayerColor)
+    ss.SetSubMaterial_Workaround(Owner)
+    Owner:SetPlayerColor(data.PlayerColor)
     if self:GetNWInt "playermodel" <= ss.PLAYER.BOY then
-        ss.ProtectedCall(self:GetOwner().SplatColors, self:GetOwner())
+        ss.ProtectedCall(Owner.SplatColors, Owner)
     end
 
-    local hands = self:GetOwner():GetHands()
+    local hands = Owner:GetHands()
     if not IsValid(hands) then return end
     local mdl = player_manager.TranslateToPlayerModelName(data.Model)
+    ---@type { model: string?, skin: number?, body: string? }
     local info = player_manager.TranslatePlayerHands(mdl)
     if not info then return end
     hands:SetModel(info.model)
@@ -47,15 +102,16 @@ local UseRagdoll = {
     weapon_splatoonsweps_roller = true,
     weapon_splatoonsweps_splatling = true,
 }
+---Creates a ragdoll for the weapon physics when no owner is there.
 function SWEP:CreateRagdoll()
     if not UseRagdoll[self.Base] then return end
     local ragdoll = self.Ragdoll
     if IsValid(ragdoll) then ragdoll:Remove() end
-    ragdoll = ents.Create "prop_ragdoll"
+    ragdoll = ents.Create "prop_ragdoll" --[[@as ENT]]
     ragdoll:SetModel(self.WorldModel)
     ragdoll:SetPos(self:GetPos())
     ragdoll:SetAngles(self:GetAngles())
-    ragdoll:SetMaterial(ss.Materials.Effects.Invisible:GetName(), true)
+    ragdoll:SetMaterial(ss.Materials.Effects.Invisible:GetName())
     ragdoll:DeleteOnRemove(self)
     ragdoll:Spawn()
     ragdoll:SetCollisionGroup(COLLISION_GROUP_WEAPON)
@@ -86,6 +142,7 @@ function SWEP:CreateRagdoll()
     end)
 end
 
+---Removes ragdoll for weapons with multiple PhysObj
 function SWEP:RemoveRagdoll()
     if not UseRagdoll[self.Base] then return end
     local ragdoll = self.Ragdoll
@@ -98,13 +155,22 @@ function SWEP:RemoveRagdoll()
     ragdoll:Remove()
 end
 
+---Returns fire rates for NPCs
+---@return number min   Minimum rest time between burst-shots
+---@return number max   Maximum rest time between burst-shots
+---@return number delay Interval between shots
 function SWEP:GetNPCBurstSettings()
+    ---@type number?, number?, number?
     local min, max, delay = ss.ProtectedCall(self.NPCBurstSettings, self)
     return min or 3, max or 8, delay or self.NPCDelay
 end
 
+---Returns rest times between burst shots for NPCs
+---@return number min Minimum rest time
+---@return number max Maximum rest time
 function SWEP:GetNPCRestTimes()
-    local min, max = ss.ProtectedCall(self.NPCRestTime, self)
+    ---@type number?, number?
+    local min, max = ss.ProtectedCall(self.NPCRestTimes, self)
     return min or self.NPCDelay, max or self.NPCDelay * 3
 end
 
@@ -129,78 +195,85 @@ function SWEP:Initialize()
     ss.ProtectedCall(self.ServerInit, self)
 end
 
+---Stores player info for later use
 function SWEP:BackupInfo()
+    local Owner = self:GetOwner()
     self.BackupInklingMaxHealth = ss.GetMaxHealth()
-    self.BackupHumanMaxHealth = self:GetOwner():GetMaxHealth()
+    self.BackupHumanMaxHealth = Owner:GetMaxHealth()
     self:SetNWInt("BackupInklingMaxHealth", self.BackupInklingMaxHealth)
     self:SetNWInt("BackupHumanMaxHealth", self.BackupHumanMaxHealth)
-    if not self:GetOwner():IsPlayer() then return end
+    if not Owner:IsPlayer() then return end
+    ---@cast Owner Player
+    local mins, maxs = Owner:GetHullDuck()
     self.BackupPlayerInfo = {
-        Color = self:GetOwner():GetColor(),
-        Flags = self:GetOwner():GetFlags(),
-        JumpPower = self:GetOwner():GetJumpPower(),
-        Material = self:GetOwner():GetMaterial(),
+        Color      = Owner:GetColor(),
+        Flags      = Owner:GetFlags(),
+        JumpPower  = Owner:GetJumpPower(),
+        Material   = Owner:GetMaterial(),
         RenderMode = self:GetRenderMode(),
         Speed = {
-            Crouched = self:GetOwner():GetCrouchedWalkSpeed(),
-            Duck = self:GetOwner():GetDuckSpeed(),
-            Max = self:GetOwner():GetMaxSpeed(),
-            Run = self:GetOwner():GetRunSpeed(),
-            Walk = self:GetOwner():GetWalkSpeed(),
-            UnDuck = self:GetOwner():GetUnDuckSpeed(),
+            Crouched = Owner:GetCrouchedWalkSpeed(),
+            Duck     = Owner:GetDuckSpeed(),
+            Max      = Owner:GetMaxSpeed(),
+            Run      = Owner:GetRunSpeed(),
+            Walk     = Owner:GetWalkSpeed(),
+            UnDuck   = Owner:GetUnDuckSpeed(),
         },
         SubMaterial = {},
         Playermodel = {
-            Model = self:GetOwner():GetModel(),
-            Skin = self:GetOwner():GetSkin(),
-            BodyGroups = self:GetOwner():GetBodyGroups(),
-            SetOffsets = table.HasValue(SplatoonTable or {}, self:GetOwner():GetModel()),
-            PlayerColor = self:GetOwner():GetPlayerColor(),
+            Model       = Owner:GetModel(),
+            Skin        = Owner:GetSkin(),
+            BodyGroups  = Owner:GetBodyGroups(),
+            PlayerColor = Owner:GetPlayerColor(),
         },
-        ViewOffsetDucked = self:GetOwner():GetViewOffsetDucked()
+        ViewOffsetDucked = Owner:GetViewOffsetDucked(),
+        HullMins = mins,
+        HullMaxs = maxs,
     }
-    self.BackupPlayerInfo.HullMins, self.BackupPlayerInfo.HullMaxs = self:GetOwner():GetHullDuck()
     for _, v in pairs(self.BackupPlayerInfo.Playermodel.BodyGroups) do
-        v.num = self:GetOwner():GetBodygroup(v.id)
+        v.num = Owner:GetBodygroup(v.id)
+        v.submodels = nil
     end
 
     for i = 0, 31 do
         local submat = self:GetOwner():GetSubMaterial(i)
-        if submat == "" then submat = nil end
         self.BackupPlayerInfo.SubMaterial[i] = submat
     end
 end
 
+---Restores player info on holster
 function SWEP:RestoreInfo()
-    self:GetOwner():SetMaxHealth(self.BackupHumanMaxHealth)
-    self:GetOwner():SetHealth(self:GetOwner():Health() * self.BackupHumanMaxHealth / self.BackupInklingMaxHealth)
+    local Owner = self:GetOwner()
+    Owner:SetMaxHealth(self.BackupHumanMaxHealth)
+    Owner:SetHealth(Owner:Health() * self.BackupHumanMaxHealth / self.BackupInklingMaxHealth)
 
-    if not self:GetOwner():IsPlayer() then return end
-    self:GetOwner():SetDSP(1)
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return end
+    ---@cast Owner Player
+    Owner:SetDSP(1, false)
     if istable(self.BackupPlayerInfo) then -- Restores owner's information.
         self:ChangePlayermodel(self.BackupPlayerInfo.Playermodel)
-        self:GetOwner():SetColor(self.BackupPlayerInfo.Color)
-        -- self:GetOwner():RemoveFlags(self:GetOwner():GetFlags()) -- Restores no target flag and something.
-        -- self:GetOwner():AddFlags(self.BackupPlayerInfo.Flags)
-        self:GetOwner():SetJumpPower(self.BackupPlayerInfo.JumpPower)
-        self:GetOwner():SetRenderMode(self.BackupPlayerInfo.RenderMode)
-        self:GetOwner():SetCrouchedWalkSpeed(self.BackupPlayerInfo.Speed.Crouched)
-        self:GetOwner():SetDuckSpeed(self.BackupPlayerInfo.Speed.Duck)
-        self:GetOwner():SetMaxSpeed(self.BackupPlayerInfo.Speed.Max)
-        self:GetOwner():SetRunSpeed(self.BackupPlayerInfo.Speed.Run)
-        self:GetOwner():SetWalkSpeed(self.BackupPlayerInfo.Speed.Walk)
-        self:GetOwner():SetUnDuckSpeed(self.BackupPlayerInfo.Speed.UnDuck)
-        self:GetOwner():SetHullDuck(self.BackupPlayerInfo.HullMins, self.BackupPlayerInfo.HullMaxs)
-        self:GetOwner():SetViewOffsetDucked(self.BackupPlayerInfo.ViewOffsetDucked)
-        self:GetOwner():SetMaterial(self.BackupPlayerInfo.Material)
+        Owner:SetColor(self.BackupPlayerInfo.Color)
+        -- Owner:RemoveFlags(self:GetOwner():GetFlags()) -- Restores no target flag and something.
+        -- Owner:AddFlags(self.BackupPlayerInfo.Flags)
+        Owner:SetJumpPower(self.BackupPlayerInfo.JumpPower)
+        Owner:SetRenderMode(self.BackupPlayerInfo.RenderMode)
+        Owner:SetCrouchedWalkSpeed(self.BackupPlayerInfo.Speed.Crouched)
+        Owner:SetDuckSpeed(self.BackupPlayerInfo.Speed.Duck)
+        Owner:SetMaxSpeed(self.BackupPlayerInfo.Speed.Max)
+        Owner:SetRunSpeed(self.BackupPlayerInfo.Speed.Run)
+        Owner:SetWalkSpeed(self.BackupPlayerInfo.Speed.Walk)
+        Owner:SetUnDuckSpeed(self.BackupPlayerInfo.Speed.UnDuck)
+        Owner:SetHullDuck(self.BackupPlayerInfo.HullMins, self.BackupPlayerInfo.HullMaxs)
+        Owner:SetViewOffsetDucked(self.BackupPlayerInfo.ViewOffsetDucked)
+        Owner:SetMaterial(self.BackupPlayerInfo.Material)
         for i = 0, 31 do
-            ss.SetSubMaterial_Workaround(self:GetOwner(), i, self.BackupPlayerInfo.SubMaterial[i])
+            ss.SetSubMaterial_Workaround(Owner, i, self.BackupPlayerInfo.SubMaterial[i])
         end
     end
 end
 
-function SWEP:Equip(newowner)
-    self:SetOwner(newowner)
+function SWEP:Equip(newOwner)
+    self:SetOwner(newOwner)
     if InvalidPlayer(self:GetOwner()) then return end
     self:RemoveRagdoll()
     self:PlayLoopSound()
@@ -236,12 +309,16 @@ function SWEP:Equip(newowner)
     self:BackupInfo()
 end
 
+---Deploy hook
+---@return boolean allowSwitch True to allow switching away from this weapon using lastinv command
+---@diagnostic disable-next-line: duplicate-set-field
 function SWEP:Deploy()
-    if not IsValid(self:GetOwner()) then return true end
-    if InvalidPlayer(self:GetOwner()) then
-        ss.SendError("LocalPlayerNotReadyToSplat", self:GetOwner())
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return true end
+    if InvalidPlayer(Owner) then ---@cast Owner Player
+        ss.SendError("LocalPlayerNotReadyToSplat", Owner)
         self:Remove()
-        return
+        return true
     end
 
     self:GetOptions()
@@ -249,47 +326,51 @@ function SWEP:Deploy()
     self:SetInInk(false)
     self:SetOnEnemyInk(false)
     self:BackupInfo()
-    self.SafeOwner = self:GetOwner()
-    self:GetOwner():SetMaxHealth(self:GetNWInt "BackupInklingMaxHealth") -- NPCs also have inkling's standard health.
-    if self:GetOwner():IsPlayer() then
+    self.SafeOwner = Owner
+    Owner:SetMaxHealth(self:GetNWInt "BackupInklingMaxHealth") -- NPCs also have inkling's standard health.
+    if Owner:IsPlayer() then ---@cast Owner Player
         local PMPath = ss.Playermodel[self:GetNWInt "playermodel"]
         if PMPath then
             if file.Exists(PMPath, "GAME") then
                 self.PMTable = {
-                    Model = PMPath,
-                    Skin = 0,
-                    BodyGroups = {},
-                    SetOffsets = true,
+                    BodyGroups  = {},
+                    Model       = PMPath,
                     PlayerColor = self:GetInkColorProxy(),
+                    Skin        = 0,
                 }
                 self:ChangePlayermodel(self.PMTable)
             else
-                ss.SendError("WeaponPlayermodelNotFound", self:GetOwner())
+                ss.SendError("WeaponPlayermodelNotFound", Owner)
             end
         else
-            self:GetOwner():SetPlayerColor(self:GetInkColorProxy())
+            Owner:SetPlayerColor(self:GetInkColorProxy())
         end
 
-        ss.ProtectedCall(self:GetOwner().SplatColors, self:GetOwner())
+        ss.ProtectedCall(Owner.SplatColors, Owner)
     end
 
     ss.ProtectedCall(self.ServerDeploy, self)
     return self:SharedDeployBase()
 end
 
+---Called on removing this weapon from the world
+---@diagnostic disable-next-line: duplicate-set-field
 function SWEP:OnRemove()
     self:RemoveRagdoll()
     self:StopLoopSound()
     self:EndRecording()
     ss.ProtectedCall(self.ServerOnRemove, self)
     if self:GetHolstering() then return end
-    self:Holster()
+    self:Holster(NULL)
 end
 
+---Called when weapon is dropped
 function SWEP:OnDrop()
     self:SetOwner(self.SafeOwner)
     self.PMTable = nil
-    if self:GetOwner():GetActiveWeapon() == self then
+    local Owner = self:GetOwner()
+    if IsValid(Owner) and Owner:IsPlayer()
+    and Owner--[[@as Player]]:GetActiveWeapon() == self then
         self:RestoreInfo()
     end
 
@@ -298,19 +379,24 @@ function SWEP:OnDrop()
     self:CreateRagdoll()
 end
 
+---Called after duplicator finishes saving the entity
+---@param data EntityCopyData|table<string, any>
 function SWEP:OnEntityCopyTableFinish(data)
     table.Empty(data.DT)
     for key, value in pairs(data) do
         if self.RestrictedFieldsToCopy[key] then data[key] = nil end
-        if TypeID(value) == TYPE_SOUND then data[key] = nil end
-        if TypeID(value) == TYPE_ENTITY then data[key] = nil end
+        if TypeID(value) == TYPE_SOUND      then data[key] = nil end
+        if TypeID(value) == TYPE_ENTITY     then data[key] = nil end
     end
 end
 
+---Holster hook
+---@return boolean allowHolster True to allow weapon to holster
+---@diagnostic disable-next-line: duplicate-set-field
 function SWEP:Holster()
-    if self:GetInFence() then return false end
-    if self:GetSuperJumpState() >= 0 then return false end
-    if not IsValid(self:GetOwner()) then return true end
+    if self:GetInFence()              then return false end
+    if self:GetSuperJumpState() >= 0  then return false end
+    if not IsValid(self:GetOwner())   then return true end
     if InvalidPlayer(self:GetOwner()) then return true end
     self.PMTable = nil
     self:RestoreInfo()
@@ -318,70 +404,75 @@ function SWEP:Holster()
     return self:SharedHolsterBase()
 end
 
+---@diagnostic disable-next-line: duplicate-set-field
 function SWEP:Think()
-    if not IsValid(self:GetOwner()) or self:GetHolstering() then return end
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) or self:GetHolstering() then return end
     self:ProcessSchedules()
     self:UpdateInkState()
     self:SharedThinkBase()
     ss.ProtectedCall(self.ServerThink, self)
-    if ss.GetOption "candrown" and self:GetOwner():WaterLevel() > 1 then
+    if ss.GetOption "candrown" and Owner:WaterLevel() > 1 then
         local d = DamageInfo()
         d:SetAttacker(game.GetWorld())
-        d:SetDamage(self:GetOwner():GetMaxHealth() * 10000)
+        d:SetDamage(Owner:GetMaxHealth() * 10000)
         d:SetDamageForce(vector_origin)
-        d:SetDamagePosition(self:GetOwner():GetPos())
+        d:SetDamagePosition(Owner:GetPos())
         d:SetDamageType(DMG_DROWN)
         d:SetInflictor(game.GetWorld())
         d:SetMaxDamage(d:GetDamage())
-        d:SetReportedPosition(self:GetOwner():GetPos())
-        self:GetOwner():TakeDamageInfo(d)
+        d:SetReportedPosition(Owner:GetPos())
+        Owner:TakeDamageInfo(d)
     end
 
-    if not self:GetOwner():IsPlayer() then
-        self:SetAimVector(ss.ProtectedCall(self:GetOwner().GetAimVector, self:GetOwner()) or self:GetOwner():GetForward())
-        self:SetShootPos(ss.ProtectedCall(self:GetOwner().GetShootPos, self:GetOwner()) or self:GetOwner():WorldSpaceCenter())
-        if self:GetOwner():IsNPC() then
-            local target = self:GetOwner():GetTarget()
-            if not IsValid(target) then target = self:GetOwner():GetEnemy() end
+    if not Owner:IsPlayer() then
+        if Owner:IsNPC() then ---@cast Owner NPC
+            local target = Owner:GetTarget()
+            if not IsValid(target) then target = Owner:GetEnemy() end
             if IsValid(target) then self:SetNPCTarget(target) end
+            self:SetAimVector(Owner:GetAimVector())
+            self:SetShootPos(Owner:GetShootPos())
+        else
+            self:SetAimVector(Owner:GetForward())
+            self:SetShootPos(Owner:WorldSpaceCenter())
         end
 
         return
     end
 
+    ---@cast Owner Player
     if self:GetOnEnemyInk() and CurTime() > self.NextEnemyInkDamage then
         local delay = 200 / ss.GetMaxHealth() * ss.FrameToSec
         self.NextEnemyInkDamage = CurTime() + delay
         self.HealSchedule:SetDelay(ss.HealDelay)
-        if self:GetOwner():Health() > self:GetOwner():GetMaxHealth() / 2 then
+        if Owner:Health() > Owner:GetMaxHealth() / 2 then
             local d = DamageInfo()
             d:SetAttacker(game.GetWorld())
             d:SetDamage(1)
             d:SetInflictor(self)
-            self:GetOwner():TakeDamageInfo(d) -- Enemy ink damage
+            Owner:TakeDamageInfo(d) -- Enemy ink damage
         end
     end
 
     local PMPath = ss.Playermodel[self:GetNWInt "playermodel"]
     if PMPath then
-        if (not self.PMTable or PMPath ~= self:GetOwner():GetModel()) and file.Exists(PMPath, "GAME") then
+        if (not self.PMTable or PMPath ~= Owner:GetModel()) and file.Exists(PMPath, "GAME") then
             self.PMTable = {
-                Model = PMPath,
-                Skin = 0,
-                BodyGroups = {},
-                SetOffsets = true,
+                BodyGroups  = {},
+                Model       = PMPath,
                 PlayerColor = self:GetInkColorProxy(),
+                Skin        = 0,
             }
             self:ChangePlayermodel(self.PMTable)
         end
     else
         local mdl = self.BackupPlayerInfo.Playermodel
-        if mdl.Model ~= self:GetOwner():GetModel() then
+        if mdl.Model ~= Owner:GetModel() then
             self:ChangePlayermodel(mdl)
         end
     end
 
-    if self:GetOwner():GetPlayerColor() ~= self:GetInkColorProxy() then
-        self:GetOwner():SetPlayerColor(self:GetInkColorProxy())
+    if Owner:GetPlayerColor() ~= self:GetInkColorProxy() then
+        Owner:SetPlayerColor(self:GetInkColorProxy())
     end
 end

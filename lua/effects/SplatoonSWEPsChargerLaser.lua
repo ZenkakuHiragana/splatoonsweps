@@ -1,7 +1,6 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
-
 local interp = 30
 local beam = Material "trails/smoke"
 local beamlight = Material "sprites/physbeama"
@@ -12,10 +11,14 @@ local cubic = Matrix {
     {0, 0, 1, 0},
     {1, 0, 0, 0},
 }
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.ChargerLaser
+---@class EFFECT.ChargerLaser : EFFECT
+---@field Weapon SWEP.Charger
 
 function EFFECT:Init(e)
     self:SetPos(GetViewEntity():GetPos())
-    self.Weapon = e:GetEntity()
+    self.Weapon = e:GetEntity() --[[@as SWEP.Charger]]
 end
 
 function EFFECT:Render()
@@ -38,7 +41,7 @@ function EFFECT:Render()
     local color = ColorAlpha(c, 255 - scprog)
     local shootpos, dir = w:GetFirePosition(true)
     local pos, ang = w:GetMuzzlePosition()
-    local col = ss.vector_one * w:GetColRadius(true)
+    local col = ss.vector_one * w:GetColRadius()
     local range = w:GetRange(true)
     local tb = ss.SquidTrace
     if w:GetOwner():IsNPC() then
@@ -61,12 +64,12 @@ function EFFECT:Render()
     tr.HitPos = trlp or tr.HitPos
     local length = tr.HitPos:Distance(pos)
 
-    ang = ang:Forward() * length / 5
     dir = dir * length
+    local vec = ang:Forward() * length / 5
     local p, q, mpos = pos, dp, Matrix {
         {pos.x, pos.y, pos.z, 0},
         {tr.HitPos.x, tr.HitPos.y, tr.HitPos.z, 0},
-        {ang.x, ang.y, ang.z, 0},
+        {vec.x, vec.y, vec.z, 0},
         {dir.x, dir.y, dir.z, 0},
     }
 

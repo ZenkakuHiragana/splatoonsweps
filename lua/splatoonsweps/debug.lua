@@ -2,12 +2,13 @@
 -- do return end -- Uncomment this to disable debugging
 
 AddCSLuaFile()
+
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
 ss.Debug = {}
-require "greatzenkakuman/debug"
-local d = greatzenkakuman.debug
+local d = require "greatzenkakuman/debug" or greatzenkakuman.debug
 local sd = ss.Debug
 
 function d.DLoop() end
@@ -53,7 +54,7 @@ function sd.ShowInkChecked(r, s)
     end
 end
 
-function sd.ShowInkDrawn(s, c, b, surf, q)
+function sd.ShowInkDrawn(s, c, b, surf)
     if not ShowInkDrawn then return end
     d.DShort()
     d.DColor()
@@ -66,6 +67,9 @@ local gridsize = 12 -- [Hammer Units]
 local ShowInkStatePos = Vector()
 local ShowInkStateID = 0
 local ShowInkStateSurf = {}
+---@param pos Vector
+---@param id integer
+---@param surf PaintableSurface
 function sd.ShowInkStateMesh(pos, id, surf)
     if not ShowInkStateMesh then return end
     ShowInkStatePos = pos
@@ -86,7 +90,7 @@ if ShowBlasterRadius then
     function d.DLoop() -- Show blaster explosion radius
         local ply = player.GetByID(1)
         if not IsValid(ply) then return end
-        local w = ss.IsValidInkling(ply)
+        local w = ss.IsValidInkling(ply) --[[@as SWEP.Blaster]]
         if not w then return end
         if not w.IsBlaster then return end
         local firePos, fireDirection = w:GetFirePosition()
@@ -113,26 +117,26 @@ if ShowBlasterRadius then
             local origin = e:LocalToWorld(e:OBBCenter())
             d.DABox(e:GetPos(), mins, maxs, e:GetAngles())
             local size = (maxs - mins) / 2
-            for i, dir in pairs {x = e:GetForward(), y = e:GetRight(), z = e:GetUp()} do
+            for i, dir in pairs { x = e:GetForward(), y = e:GetRight(), z = e:GetUp() } do
                 local segment = dir:Dot(ink.endpos - origin)
                 local sign = segment == 0 and 0 or segment > 0 and 1 or -1
                 segment = math.abs(segment)
                 if segment <= size[i] then continue end
-                dist = dist + sign * (size[i] - segment) * dir
+                dist = dist + dir * sign * (size[i] --[[@as number]] - segment)
             end
             d.DVector(ink.endpos, dist)
 
-            dist = dist:Length()
-            if dist > ink.ColRadiusMiddle then
+            local length = dist:Length()
+            if length > ink.ColRadiusMiddle then
                 d.DColor(0, 255, 0)
                 d.DSphere(ink.endpos, ink.ColRadiusMiddle, false)
-                dmg = math.Remap(dist, ink.ColRadiusMiddle, ink.ColRadiusFar, ink.DamageMiddle, ink.DamageFar)
-            elseif dist > ink.ColRadiusClose then
+                dmg = math.Remap(length, ink.ColRadiusMiddle, ink.ColRadiusFar, ink.DamageMiddle, ink.DamageFar)
+            elseif length > ink.ColRadiusClose then
                 d.DColor(255, 255, 0, 16)
                 d.DSphere(ink.endpos, ink.ColRadiusMiddle, false)
                 d.DColor(255, 255, 0)
                 d.DSphere(ink.endpos, ink.ColRadiusClose, false)
-                dmg = math.Remap(dist, ink.ColRadiusClose, ink.ColRadiusMiddle, ink.DamageClose, ink.DamageMiddle)
+                dmg = math.Remap(length, ink.ColRadiusClose, ink.ColRadiusMiddle, ink.DamageClose, ink.DamageMiddle)
             end
 
             d.DSText(.01, .01, dmg)
@@ -147,7 +151,7 @@ if CLIENT then
             if not c:KeyDown(IN_SPEED) then return end
             if CurTime() < t then return end
             local p = LocalPlayer()
-            local w = ss.IsValidInkling(p)
+            local w = ss.IsValidInkling(p) --[[@as SWEP.Charger]]
             if not (w and w.GetChargeProgress) then return end
             local r = w:GetChargeProgress(true)
             if r < .25 then
@@ -172,7 +176,7 @@ if CLIENT then
             d.DColor(0, 255, 0)
             d.DVector(Vector(0, c), Vector(0, c))
             for _, s in ipairs(ss.SurfaceArray) do
-                local t = {}
+                local t = {} ---@type Vector[]
                 for i, v in ipairs(s.Vertices2D or {}) do t[i] = v * c end
 
                 d.DColor()
@@ -212,7 +216,7 @@ if ShowInkSurface then
         local p = ply:GetPos()
         local mins, maxs = p - ss.vector_one, p + ss.vector_one
         for s in ss.CollectSurfaces(mins, maxs, vector_up) do
-            local v = {}
+            local v = {} ---@type Vector[]
             for i, w in ipairs(s.Vertices3D) do v[i] = w end
             d.DPoint(s.Origin)
             d.DPoly(v)
@@ -229,7 +233,7 @@ if ShowInkStateMesh then
         if not ShowInkStatePos then return end
         local pos = ShowInkStatePos
         local id = ShowInkStateID
-        local surf = ShowInkStateSurf
+        local surf = ShowInkStateSurf ---@type PaintableSurface
         local ink = surf.InkColorGrid
         if not ink then return end
         local colorid = ink[pos.x * 32768 + pos.y]

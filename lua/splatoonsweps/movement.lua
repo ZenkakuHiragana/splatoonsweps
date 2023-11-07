@@ -1,66 +1,69 @@
 
 -- Player movement emulation for the ability of passing through fences.
 -- Source codes are taken from source-sdk-2013/mp/src/game/shared/gamemovement.cpp
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ss.MoveEmulation = ss.MoveEmulation or {
-    m_surfaceFriction = {},
-    m_surfaceProps = {},
-    m_angViewPunchAngles = {},
-    m_bAllowAutoMovement = {},
-    m_bCollisionEnabled = {},
-    m_bGameCodeMovedPlayer = {},
-    m_bInDuckJump = {},
-    m_bInFence = {},
-    m_bSlowMovement = {},
-    m_chPreviousTextureType = {},
-    m_chTextureType = {},
-    m_entGroundEntity = {},
-    m_flClientMaxSpeed = {},
-    m_flConstraintRadius = {},
-    m_flConstraintSpeedFactor = {},
-    m_flConstraintWidth = {},
-    m_flDuckJumpTime = {},
-    m_flDucktime = {},
-    m_flFallVelocity = {},
-    m_flForwardMove = {},
-    m_flJumpTime = {},
-    m_flMaxSpeed = {},
-    m_flSideMove = {},
-    m_flStepSoundTime = {},
-    m_flSwimSoundTime = {},
-    m_flUpMove = {},
-    m_flWaterEntryTime = {},
-    m_flWaterJumpTime = {},
-    m_nButtons = {},
-    m_nEmitSound = {},
-    m_nFlags = {},
-    m_nMoveType = {},
-    m_nOldButtons = {},
-    m_nOldWaterLevel = {},
-    m_nOnLadder = {},
-    m_nSetAnimation = {},
-    m_nSplashData = {},
-    m_nWaterLevel = {},
-    m_nWaterType = {},
-    m_outJumpVel = {},
-    m_outStepHeight = {},
-    m_outWishVel = {},
-    m_pSurfaceData = {},
-    m_vecAngles = {},
-    m_vecBaseVelocity = {},
-    m_vecConstraintCenter = {},
-    m_vecForward = {},
-    m_vecOldAngles = {},
-    m_vecOrigin = {},
-    m_vecPunchAngleVel = {},
-    m_vecRight = {},
-    m_vecUp = {},
-    m_vecVelocity = {},
-    m_vecWaterJumpVel = {},
+    m_surfaceFriction         = {}, ---@type table<Player, number>
+    m_surfaceProps            = {}, ---@type table<Player, integer>
+    m_angViewPunchAngles      = {}, ---@type table<Player, Angle>
+    m_bAllowAutoMovement      = {}, ---@type table<Player, boolean>
+    m_bCollisionEnabled       = {}, ---@type table<Player, boolean>
+    m_bGameCodeMovedPlayer    = {}, ---@type table<Player, boolean>
+    m_bInDuckJump             = {}, ---@type table<Player, boolean>
+    m_bInFence                = {}, ---@type table<Player, boolean>
+    m_bSlowMovement           = {}, ---@type table<Player, boolean>
+    m_chPreviousTextureType   = {}, ---@type table<Player, integer>
+    m_chTextureType           = {}, ---@type table<Player, integer>
+    m_entGroundEntity         = {}, ---@type table<Player, Entity>
+    m_flClientMaxSpeed        = {}, ---@type table<Player, number>
+    m_flConstraintRadius      = {}, ---@type table<Player, number>
+    m_flConstraintSpeedFactor = {}, ---@type table<Player, number>
+    m_flConstraintWidth       = {}, ---@type table<Player, number>
+    m_flDuckJumpTime          = {}, ---@type table<Player, number>
+    m_flDucktime              = {}, ---@type table<Player, number>
+    m_flFallVelocity          = {}, ---@type table<Player, number>
+    m_flForwardMove           = {}, ---@type table<Player, number>
+    m_flJumpTime              = {}, ---@type table<Player, number>
+    m_flMaxSpeed              = {}, ---@type table<Player, number>
+    m_flSideMove              = {}, ---@type table<Player, number>
+    m_flStepSoundTime         = {}, ---@type table<Player, number>
+    m_flSwimSoundTime         = {}, ---@type table<Player, number>
+    m_flUpMove                = {}, ---@type table<Player, number>
+    m_flWaterEntryTime        = {}, ---@type table<Player, number>
+    m_flWaterJumpTime         = {}, ---@type table<Player, number>
+    m_nButtons                = {}, ---@type table<Player, integer>
+    m_nEmitSound              = {}, ---@type table<Player, string>
+    m_nFlags                  = {}, ---@type table<Player, integer>
+    m_nMoveType               = {}, ---@type table<Player, integer>
+    m_nOldButtons             = {}, ---@type table<Player, integer>
+    m_nOldWaterLevel          = {}, ---@type table<Player, integer>
+    m_nOnLadder               = {}, ---@type table<Player, integer>
+    m_nSetAnimation           = {}, ---@type table<Player, integer>
+    m_nSplashData             = {}, ---@type table<Player, CEffectData>
+    m_nWaterLevel             = {}, ---@type table<Player, integer>
+    m_nWaterType              = {}, ---@type table<Player, integer>
+    m_outJumpVel              = {}, ---@type table<Player, Vector>
+    m_outStepHeight           = {}, ---@type table<Player, number>
+    m_outWishVel              = {}, ---@type table<Player, Vector>
+    m_pSurfaceData            = {}, ---@type table<Player, integer>
+    m_vecAngles               = {}, ---@type table<Player, Angle>
+    m_vecBaseVelocity         = {}, ---@type table<Player, Vector>
+    m_vecConstraintCenter     = {}, ---@type table<Player, Vector>
+    m_vecForward              = {}, ---@type table<Player, Vector>
+    m_vecOldAngles            = {}, ---@type table<Player, Angle>
+    m_vecOrigin               = {}, ---@type table<Player, Vector>
+    m_vecPunchAngleVel        = {}, ---@type table<Player, Vector>
+    m_vecRight                = {}, ---@type table<Player, Vector>
+    m_vecUp                   = {}, ---@type table<Player, Vector>
+    m_vecVelocity             = {}, ---@type table<Player, Vector>
+    m_vecWaterJumpVel         = {}, ---@type table<Player, Vector>
 }
 local FT = FrameTime
-local me, mv, ply = ss.MoveEmulation
+local me, mv = ss.MoveEmulation, nil
+local ply = nil ---@type Player
+---@param p Player
 function ss.InitializeMoveEmulation(p)
     if not IsValid(p) then return end
     for var, t in pairs(me) do
@@ -71,36 +74,43 @@ function ss.InitializeMoveEmulation(p)
         elseif var:find "m_vec" then t[p] = Vector()
         elseif var:find "m_ch" or var:find "m_fl"
         or var:find "m_n" then t[p] = 0 end
+        var:StartsWith "a"
     end
 
     me.m_surfaceFriction[p] = me.m_surfaceFriction[p] or 1
-    me.m_surfaceProps[p] = me.m_surfaceProps[p] or 0
-    me.m_outJumpVel[p] = me.m_outJumpVel[p] or Vector()
-    me.m_outStepHeight[p] = me.m_outStepHeight[p] or 0
-    me.m_outWishVel[p] = me.m_outWishVel[p] or Vector()
+    me.m_surfaceProps[p]    = me.m_surfaceProps[p]    or 0
+    me.m_outJumpVel[p]      = me.m_outJumpVel[p]      or Vector()
+    me.m_outStepHeight[p]   = me.m_outStepHeight[p]   or 0
+    me.m_outWishVel[p]      = me.m_outWishVel[p]      or Vector()
 end
 
-local COORD_FRACTIONAL_BITS = 5
-local COORD_DENOMINATOR = bit.lshift(1, COORD_FRACTIONAL_BITS)
-local COORD_RESOLUTION = 1.0 / COORD_DENOMINATOR
-local DIST_EPSILON = .03125
-local FX_WATER_IN_SLIME = 0x01
-local GAMEMOVEMENT_JUMP_TIME = 510.0 -- ms approx. - based on the 21 unit height jump
-local MAX_CLIP_PLANES = 5
-local PLAYER_FALL_PUNCH_THRESHOLD = 303.0 or 350 -- HL2 or Other
-local PLAYER_LAND_ON_FLOATING_OBJECT = 173 or 200 -- HL2 or Other
-local PLAYER_MAX_SAFE_FALL_SPEED = 526.5 or 580 -- HL2 or Other
-local PLAYER_MIN_BOUNCE_SPEED = 173 or 200 -- HL2 or Other
-local PUNCH_DAMPING = 9.0
-local PUNCH_SPRING_CONSTANT = 65.0
-local WATERJUMP_HEIGHT = 8
-local WL_NotInWater = 0
-local WL_Feet = 1
-local WL_Waist = 2
-local WL_Eyes = 3
+local g_bMovementOptimizations ---@type boolean
+local COORD_FRACTIONAL_BITS          = 5
+local COORD_DENOMINATOR              = bit.lshift(1, COORD_FRACTIONAL_BITS)
+local COORD_RESOLUTION               = 1.0 / COORD_DENOMINATOR
+local DIST_EPSILON                   = .03125
+local FX_WATER_IN_SLIME              = 0x01
+local GAMEMOVEMENT_JUMP_TIME         = 510.0 -- ms approx. - based on the 21 unit height jump
+local MAX_CLIP_PLANES                = 5
+local PLAYER_FALL_PUNCH_THRESHOLD    = 303.0 or 350 -- HL2 or Other
+local PLAYER_LAND_ON_FLOATING_OBJECT = 173   or 200 -- HL2 or Other
+local PLAYER_MAX_SAFE_FALL_SPEED     = 526.5 or 580 -- HL2 or Other
+local PLAYER_MIN_BOUNCE_SPEED        = 173   or 200 -- HL2 or Other
+local PUNCH_DAMPING                  = 9.0
+local PUNCH_SPRING_CONSTANT          = 65.0
+local WATERJUMP_HEIGHT               = 8
+local WL_NotInWater                  = 0
+local WL_Feet                        = 1
+local WL_Waist                       = 2
+local WL_Eyes                        = 3
+---@return boolean
 local function IsDead() return ply:Health() <= 0 and not ply:Alive() end
+---@return number
 local function GetAirSpeedCap() return 30.0 end
+---@return number
 local function GetCurrentGravity() return GetConVar "sv_gravity":GetFloat() end
+---@param ducked boolean?
+---@return Vector
 local function GetPlayerMins(ducked)
     if ducked or ply:Crouching() then
         local mins, _ = ply:GetHullDuck()
@@ -110,6 +120,8 @@ local function GetPlayerMins(ducked)
         return mins
     end
 end
+---@param ducked boolean?
+---@return Vector
 local function GetPlayerMaxs(ducked)
     if ducked or ply:Crouching() then
         local _, maxs = ply:GetHullDuck()
@@ -119,6 +131,8 @@ local function GetPlayerMaxs(ducked)
         return maxs
     end
 end
+---@param ducked boolean?
+---@return Vector
 local function GetPlayerViewOffset(ducked)
     return ducked and ply:GetViewOffsetDucked() or ply:GetViewOffset()
 end
@@ -152,8 +166,8 @@ local function PlayerSolidMask(brushOnly)
 end
 
 local function DecayPunchAngle()
-    local vecPunchAngles = me.m_angViewPunchAngles[ply]
-    vecPunchAngles = Vector(vecPunchAngles.p, vecPunchAngles.y, vecPunchAngles.r)
+    local ang = me.m_angViewPunchAngles[ply]
+    local vecPunchAngles = Vector(ang.p, ang.y, ang.r)
     if vecPunchAngles:LengthSqr() > 0.001 or me.m_vecPunchAngleVel[ply]:LengthSqr() > 0.001 then
         vecPunchAngles = vecPunchAngles + me.m_vecPunchAngleVel[ply] * FT()
         local damping = math.max(0, 1 - PUNCH_DAMPING * FT())
@@ -177,6 +191,11 @@ local function DecayPunchAngle()
     end
 end
 
+---@param angles Angle
+---@param velocity Vector
+---@param rollangle number
+---@param rollspeed number
+---@return unknown
 local function CalcRoll(angles, velocity, rollangle, rollspeed)
     local side = velocity:Dot(angles:Right())
     local sign = side < 0 and -1 or 1
@@ -284,8 +303,8 @@ local function CategorizeGroundSurface(pm)
 end
 
 local function SetGroundEntity(pm)
-    local newGround = pm and pm.Entity or NULL
-    local oldGround = me.m_entGroundEntity[ply]
+    local newGround = pm and pm.Entity or NULL  ---@type Entity?
+    local oldGround = me.m_entGroundEntity[ply] ---@type Entity?
     local vecBaseVelocity = me.m_vecBaseVelocity[ply]
     if newGround == NULL then newGround = nil end
     if oldGround == NULL then oldGround = nil end
@@ -406,16 +425,26 @@ local function CheckVelocity()
         -- See if it's bogus.
         -- Msg(string.format("PM  Got a NaN velocity %s\n", i))
         -- Msg(string.format("PM  Got a NaN origin %s\n", i))
-        if me.m_vecVelocity[ply][i] ~= me.m_vecVelocity[ply][i] then me.m_vecVelocity[ply][i] = 0 end
-        if me.m_vecOrigin[ply][i] ~= me.m_vecOrigin[ply][i] then me.m_vecOrigin[ply][i] = 0 end
+        if me.m_vecVelocity[ply][i] ~= me.m_vecVelocity[ply][i] then
+            me.m_vecVelocity[ply][i] = 0 ---@type number
+        end
+        if me.m_vecOrigin[ply][i] ~= me.m_vecOrigin[ply][i] then
+            me.m_vecOrigin[ply][i] = 0 ---@type number
+        end
 
         -- Bound it.
         -- Msg(string.format("PM  Got a velocity too high on %s\n", i))
         -- Msg(string.format("PM  Got a velocity too low on %s\n", i))
+        ---@type number
         me.m_vecVelocity[ply][i] = math.Clamp(me.m_vecVelocity[ply][i], -maxvelocity, maxvelocity)
     end
 end
 
+---@param vin Vector
+---@param normal Vector
+---@param out Vector
+---@param overbounce number
+---@return number
 local function ClipVelocity(vin, normal, out, overbounce)
     -- Determine how far along plane to slide based on incoming direction.
     local backoff = vin:Dot(normal) * overbounce
@@ -607,7 +636,8 @@ local function CheckJumpButton()
 
         -- If we're over the maximum, we want to only boost as much as will get us to the goal speed
         if flNewSpeed > flMaxSpeed then
-            flSpeedAddition = flSpeedAddition - (flNewSpeed - flMaxSpeed)
+            local diff = flNewSpeed - flMaxSpeed ---@type number
+            flSpeedAddition = flSpeedAddition - diff
         end
 
         if me.m_flForwardMove[ply] < 0.0 then
@@ -726,7 +756,7 @@ local function CheckWaterJump()
 
     -- Start line trace at waist height (using the center of the player for this here)
     local vecStart = me.m_vecOrigin[ply] + (GetPlayerMins() + GetPlayerMaxs()) * 0.5
-    local vecEnd = vecStart + 24.0 * flatforward
+    local vecEnd = vecStart + flatforward * 24.0
     local tr = TracePlayerBBox(vecStart, vecEnd, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT)
     if tr.Fraction < 1.0 then -- solid at waist
         local pPhysObj = tr.Entity:GetPhysicsObject()
@@ -735,7 +765,7 @@ local function CheckWaterJump()
         end
 
         vecStart.z = me.m_vecOrigin[ply].z + GetPlayerViewOffset(ply:Crouching()).z + WATERJUMP_HEIGHT
-        vecEnd = vecStart + 24.0 * flatforward
+        vecEnd = vecStart + flatforward * 24.0
         me.m_vecWaterJumpVel[ply] = -50.0 * tr.HitNormal
 
         tr = TracePlayerBBox(vecStart, vecEnd, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT)
@@ -869,6 +899,9 @@ local function Friction()
     me.m_outWishVel[ply]:Sub((1 - newspeed) * me.m_vecVelocity[ply])
 end
 
+---@param wishdir Vector
+---@param wishspeed number
+---@param accel number
 local function Accelerate(wishdir, wishspeed, accel)
     -- This gets overridden because some games (CSPort) want to allow dead (observer) players
     -- to be able to move around.
@@ -883,6 +916,9 @@ local function Accelerate(wishdir, wishspeed, accel)
     me.m_vecVelocity[ply]:Add(accelspeed * wishdir) -- Adjust velocity.
 end
 
+---@param wishdir Vector
+---@param wishspeed number
+---@param accel number
 local function AirAccelerate(wishdir, wishspeed, accel)
     if IsDead() then return end
     if me.m_flWaterJumpTime[ply] ~= 0 then return end
@@ -907,15 +943,18 @@ local function AirAccelerate(wishdir, wishspeed, accel)
     me.m_outWishVel[ply]:Add(accelspeed * wishdir)
 end
 
+---@param pFirstDest Vector?
+---@param pFirstTrace TraceResult?
+---@return integer
 local function TryPlayerMove(pFirstDest, pFirstTrace)
     local numbumps = 4 -- Bump up to four times
     local dir = Vector()
     local numplanes = 0 -- and not sliding along any planes
-    local planes = {} -- MAX_CLIP_PLANES
+    local planes = {} ---@type Vector[] MAX_CLIP_PLANES
     local primal_velocity, original_velocity = Vector(me.m_vecVelocity[ply]), Vector(me.m_vecVelocity[ply]) -- Store original velocity
     local new_velocity = Vector()
     local a, b = 0, 0
-    local pm -- TraceResult
+    local pm ---@type TraceResult
     local endpos = Vector()
     local time_left, allFraction = FT(), 0 -- Total time for this movement operation.
     local blocked = 0 -- Assume not blocked
@@ -923,12 +962,12 @@ local function TryPlayerMove(pFirstDest, pFirstTrace)
         if me.m_vecVelocity[ply]:LengthSqr() == 0.0 then break end
 
         -- Assume we can move all the way from the current origin to the end point.
-        endpos = me.m_vecOrigin[ply] + time_left * me.m_vecVelocity[ply]
+        endpos = me.m_vecOrigin[ply] + me.m_vecVelocity[ply] * time_left
 
         -- See if we can make it from origin to end point.
         if g_bMovementOptimizations then
             -- If their velocity Z is 0, then we can avoid an extra trace here during WalkMove.
-            if pFirstDest and endpos == pFirstDest then
+            if pFirstDest and endpos == pFirstDest then ---@cast pFirstTrace -?
                 pm = pFirstTrace
             else
                 pm = TracePlayerBBox(me.m_vecOrigin[ply], endpos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT)
@@ -1000,7 +1039,7 @@ local function TryPlayerMove(pFirstDest, pFirstTrace)
         end
 
         -- Set up next clipping plane
-        numplanes = numplanes + 1
+        numplanes = numplanes + 1 ---@type integer
         planes[numplanes] = Vector(pm.HitNormal)
 
         -- modify original_velocity so it parallels all of the clip planes
@@ -1355,7 +1394,7 @@ local function WaterMove()
 
     -- Water friction
     local temp = Vector(me.m_vecVelocity[ply])
-    local speed, newspeed = temp:Length()
+    local speed, newspeed = temp:Length(), nil
     temp:Normalize()
     if speed ~= 0 then
         newspeed = speed - FT() * speed * GetConVar "sv_friction":GetFloat() * me.m_surfaceFriction[ply]
@@ -1385,7 +1424,7 @@ local function WaterMove()
 
     -- Now move
     -- assume it is a stair or a slope, so press down from stepheight above
-    local dest = me.m_vecOrigin[ply] + FT() * me.m_vecVelocity[ply]
+    local dest = me.m_vecOrigin[ply] + me.m_vecVelocity[ply] * FT()
     local pm = TracePlayerBBox(me.m_vecOrigin[ply], dest, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT)
     if pm.Fraction == 1.0 then
         local start = Vector(dest)
@@ -1539,6 +1578,10 @@ local function SquidMove()
     FullWalkMove()
 end
 
+---@param w SplatoonWeaponBase
+---@param oldpos Vector
+---@param newpos Vector?
+---@return boolean
 local function GetInFence(w, oldpos, newpos)
     if not ply:Crouching() then return false end
     local t = {
@@ -1553,6 +1596,9 @@ local function GetInFence(w, oldpos, newpos)
     return tr.Entity ~= NULL and util.TraceHull(t).Entity == NULL
 end
 
+---@param w SplatoonWeaponBase
+---@param p Player
+---@param m CMoveData
 function ss.MoveHook(w, p, m)
     ss.PredictedThinkMoveHook(w, p, m)
 
@@ -1589,7 +1635,10 @@ function ss.MoveHook(w, p, m)
     end
 end
 
--- Squids can go through fences
+---Squids can go through fences
+---@param w SplatoonWeaponBase
+---@param p Player
+---@param m CMoveData
 function ss.FinishMove(w, p, m)
     ply, mv = p, m
     if not (w:GetInFence() or mv:KeyDown(IN_DUCK)) then return end
@@ -1666,6 +1715,10 @@ function ss.FinishMove(w, p, m)
     end
 end
 
+---@param w SplatoonWeaponBase
+---@param p Player
+---@param desired boolean
+---@return boolean?
 function ss.PlayerNoClip(w, p, desired)
     if desired then return end
     local old = w:GetInFence()
@@ -1674,7 +1727,7 @@ function ss.PlayerNoClip(w, p, desired)
         mins = GetPlayerMins(), maxs = GetPlayerMaxs(),
         mask = ss.MASK_GRATE, collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT,
         filter = p,
-    } .Hit)
+    } .Hit --[[@as boolean]])
 
     if CLIENT then
         me.m_bInFence[p] = w:GetInFence()
