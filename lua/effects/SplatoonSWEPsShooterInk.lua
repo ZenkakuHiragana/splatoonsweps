@@ -29,7 +29,7 @@ local EFFECT = EFFECT
 ---@field Frame                 integer
 ---@field GetRenderColor        fun(self): Color
 ---@field HitEffect             fun(self, tr: TraceResult)
----@field Ink                   InkQueue
+---@field Ink                   ss.InkQueue
 ---@field IsBlaster             boolean?
 ---@field IsCharger             boolean?
 ---@field IsDrop                boolean

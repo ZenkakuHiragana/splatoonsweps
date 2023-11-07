@@ -40,7 +40,9 @@ ENT.WeaponClassName = ""
 ---@param e2 ENT.Throwable
 ---@return boolean?
 local function SplashWallFilter(e1, e2)
-    if e2.SubWeaponName == "splashwall" then e1, e2 = e2, e1 end
+    if e2.SubWeaponName == "splashwall" then
+        e1, e2 = e2, e1 ---@type ENT.Throwable, ENT.Throwable
+    end
     local w = ss.IsValidInkling(e2)
     if w and ss.IsAlly(e1, w) then return false end
     if not isstring(e2.SubWeaponName) then return end
@@ -56,7 +58,9 @@ function(e1, e2)
         return SplashWallFilter(e1, e2)
     end
 
-    if e2.UseSubWeaponFilter then e1, e2 = e2, e1 end
+    if e2.UseSubWeaponFilter then
+        e1, e2 = e2, e1 ---@type ENT.Throwable, ENT.Throwable
+    end
     if e2.UseSubWeaponFilter then return false end
     if not e1.UseSubWeaponFilter then return end
     if not IsValid(e1.Owner) then return end

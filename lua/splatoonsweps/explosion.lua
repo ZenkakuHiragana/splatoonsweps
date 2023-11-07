@@ -336,7 +336,7 @@ function ss.MakeDeathExplosion(org, attacker, color)
     }))
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 function ss.MakeBlasterExplosion(ink)
     local data, p = ink.Data, ink.Parameters --[[@as Parameters.Blaster]]
     local dmul = ink.BlasterHitWall and p.mShotCollisionHitDamageRate or 1

@@ -167,7 +167,9 @@ local function get2DComponents(surf)
 
     --  cos(x)  sin(x)   +90deg    -sin(x)  cos(x)
     -- -sin(x)  cos(x)  -------->  -cos(x) -sin(x)
-    if add90deg then rx, ry = ry, -rx end
+    if add90deg then
+        rx, ry = ry, -rx ---@type Vector, Vector
+    end
     surf.Angles.roll = -math.deg(math.atan2(ry.x, rx.x))
 
     -- Rotate all vertices to minimize AABB

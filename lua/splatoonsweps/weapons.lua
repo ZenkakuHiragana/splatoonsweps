@@ -32,19 +32,19 @@ if not ss then return end
 ---@field BurstSound string?
 ---@field GetDamage (fun(distance: number, ent: Entity?): number)?
 
----@class InkQueue
+---@class ss.InkQueue
 ---@field Data                   Projectile
 ---@field InitTime               number
 ---@field IsCarriedByLocalPlayer boolean
 ---@field Owner                  Entity?
 ---@field Parameters             Parameters
----@field Trace                  InkQueueTrace
+---@field Trace                  ss.InkQueueTrace
 ---@field CurrentSpeed           number
 ---@field BlasterRemoval         boolean
 ---@field BlasterHitWall         boolean
 ---@field Exploded               boolean
 
----@class InkQueueTrace : Trace, HullTrace
+---@class ss.InkQueueTrace : Trace, HullTrace
 ---@field LengthSum number
 ---@field LifeTime  number
 
@@ -621,7 +621,7 @@ function ss.MakeProjectileStructure()
     }
 end
 
----@return InkQueueTrace
+---@return ss.InkQueueTrace
 function ss.MakeInkQueueTraceStructure()
     return {
         collisiongroup = COLLISION_GROUP_NONE,
@@ -636,7 +636,7 @@ function ss.MakeInkQueueTraceStructure()
     }
 end
 
----@return InkQueue
+---@return ss.InkQueue
 function ss.MakeInkQueueStructure()
     return {
         Data = {},

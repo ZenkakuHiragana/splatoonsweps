@@ -3,7 +3,7 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 local function DoScatterSplash(ink)
     local data, p = ink.Data, ink.Parameters
     if CurTime() < data.ScatterSplashTime then return end
@@ -61,7 +61,7 @@ local function DoScatterSplash(ink)
     ss.CreateDropEffect(dropdata, p.mScatterSplashPaintRadius, ink.Owner)
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 local function Simulate(ink)
     if IsFirstTimePredicted() then ss.DoDropSplashes(ink) end
     ink.CurrentSpeed = ink.Trace.start:Distance(ink.Trace.endpos) / FrameTime()
@@ -81,7 +81,7 @@ local function Simulate(ink)
     ss.MakeBlasterExplosion(ink)
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 ---@param t   TraceResult
 local function HitSmoke(ink, t) -- FIXME: Don't emit it twice
     local data, weapon = ink.Data, ink.Data.Weapon
@@ -98,7 +98,7 @@ local function HitSmoke(ink, t) -- FIXME: Don't emit it twice
     util.Effect("SplatoonSWEPsMuzzleMist", e, true, weapon.IgnorePrediction)
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 ---@param t   TraceResult
 local function HitPaint(ink, t)
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
@@ -189,7 +189,7 @@ local function HitPaint(ink, t)
 end
 
 ---Called when ink collides with an entity
----@param ink InkQueue
+---@param ink ss.InkQueue
 ---@param t TraceResult
 local function HitEntity(ink, t)
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
@@ -235,7 +235,7 @@ local function HitEntity(ink, t)
     ss.ProtectedCall(e.TakeDamageInfo, e, d)
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 ---@param ply Entity
 ---@return boolean
 local function ProcessInkQueue(ink, ply)
@@ -434,7 +434,7 @@ function ss.CreateDropEffect(data, drawradius, owner)
     end
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 ---@param iseffect boolean?
 function ss.DoDropSplashes(ink, iseffect)
     local data, tr, p = ink.Data, ink.Trace, ink.Parameters
@@ -511,7 +511,7 @@ end
 ---Make an ink bullet for shooter
 ---@param parameters Parameters|{} Table contains weapon parameters
 ---@param data       Projectile    Table contains ink bullet data
----@return InkQueue
+---@return ss.InkQueue
 function ss.AddInk(parameters, data)
     local w = data.Weapon
     if not IsValid(w) then return {} end
@@ -581,7 +581,7 @@ function ss.GetBulletPos(InitVel, StraightFrame, AirResist, Gravity, t)
     return InitVel * (tlim + resist) + g * tg
 end
 
----@param ink InkQueue
+---@param ink ss.InkQueue
 function ss.AdvanceBullet(ink)
     local data, tr = ink.Data, ink.Trace
     local t = math.max(CurTime() - ink.InitTime, 0)
