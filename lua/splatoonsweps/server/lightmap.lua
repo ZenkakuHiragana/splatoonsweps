@@ -290,9 +290,7 @@ function ss.BuildLightmap()
     print "Packing lightmap..."
     for _, entities in ipairs(ss.BSP.Raw.ENTITIES) do
         for k in entities:gmatch "{[^}]+}" do
-            local _, count = k:gsub("{", "{")   if count % 2 > 0 then continue end
-                  _, count = k:gsub("}", "}")   if count % 2 > 0 then continue end
-                  _, count = k:gsub("\"", "\"") if count % 2 > 0 then continue end
+            if not k:find "light_environment" then continue end
             local t = util.KeyValuesToTable("\"-\" " .. k) ---@type table<string, string>
             if t.classname == "light_environment" then
                 local lightColor    = t._light:Split " " ---@type string[]|number[]
@@ -309,6 +307,14 @@ function ss.BuildLightmap()
                 ss.Lightmap.lightColor    = lightColor
                 ss.Lightmap.lightColorHDR = lightColorHDR
                 ss.Lightmap.lightScaleHDR = tonumber(lightScaleHDR) or 1
+                print ""
+                print(string.format("    light_environment found:\n"
+                    .. "        lightColor    = [%s %s %s %s]\n"
+                    .. "        lightColorHDR = [%s %s %s %s]\n"
+                    .. "        lightScaleHDR = %s",
+                    lightColor[1], lightColor[2], lightColor[3], lightColor[4],
+                    lightColorHDR[1], lightColorHDR[2], lightColorHDR[3], lightColorHDR[4],
+                    lightScaleHDR))
                 break
             end
         end
