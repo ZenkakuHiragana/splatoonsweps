@@ -4,41 +4,28 @@ local ss = SplatoonSWEPs
 if not ss then return end
 
 ---@param surf PaintableSurface
----@return Vector[]?
----@return Vector[]?
+---@return Vector[]
+---@return Vector[]
 local function calculateTangents(surf)
-    if surf.IsSmallProp then return end
+    if surf.IsSmallProp then return {}, {} end
 
     -- Straightly taken from https://github.com/CapsAdmin/pac3/pull/578/commits/43fa75c262cde661713cdaa9d1b09bc29ec796b4
     -- Lengyel, Eric. “Computing Tangent Space Basis Vectors for an Arbitrary Mesh”. Terathon Software, 2001. http://terathon.com/code/tangent.html
     local tan1, tan2 = {}, {} ---@type Vector[], Vector[]
-    for i = 1, #surf.Triangles * 3 do
+    for i = 1, #surf.Triangles do
         tan1[i] = Vector()
         tan2[i] = Vector()
     end
 
-    local textureUV = surf.Vertices2D
-    local vertices = surf.Vertices3D
-    local tangents, tangentWeights = {}, {}
-    for i = 1, #surf.Triangles do
-        local p = {
-            vertices[surf.Triangles[i][1]],
-            vertices[surf.Triangles[i][2]],
-            vertices[surf.Triangles[i][3]],
-        }
-        local u = {
-            textureUV[surf.Triangles[i][1]].x,
-            textureUV[surf.Triangles[i][2]].x,
-            textureUV[surf.Triangles[i][3]].x,
-        }
-        local v = {
-            textureUV[surf.Triangles[i][1]].y,
-            textureUV[surf.Triangles[i][2]].y,
-            textureUV[surf.Triangles[i][3]].y,
-        }
-        local p1, p2, p3 = p[1], p[2], p[3]
-        local u1, u2, u3 = u[1], u[2], u[3]
-        local v1, v2, v3 = v[1], v[2], v[3]
+    local tex = surf.Vertices2D
+    local verts = surf.Vertices3D
+    for i = 1, #surf.Triangles, 3 do
+        local i1 = surf.Triangles[i]
+        local i2 = surf.Triangles[i + 1]
+        local i3 = surf.Triangles[i + 2]
+        local p1, p2, p3 = verts[i1], verts[i2], verts[i3]
+        local u1, u2, u3 = tex[i1].x, tex[i2].x, tex[i3].x
+        local v1, v2, v3 = tex[i1].y, tex[i2].y, tex[i3].y
 
         local x1 = p2.x - p1.x
         local x2 = p3.x - p1.x
@@ -56,12 +43,12 @@ local function calculateTangents(surf)
         local sdir = Vector((t2 * x1 - t1 * x2) * r, (t2 * y1 - t1 * y2) * r, (t2 * z1 - t1 * z2) * r)
         local tdir = Vector((s1 * x2 - s2 * x1) * r, (s1 * y2 - s2 * y1) * r, (s1 * z2 - s2 * z1) * r)
 
-        tan1[(i - 1) * 3 + 1]:Add(sdir)
-        tan1[(i - 1) * 3 + 2]:Add(sdir)
-        tan1[(i - 1) * 3 + 3]:Add(sdir)
-        tan2[(i - 1) * 3 + 1]:Add(tdir)
-        tan2[(i - 1) * 3 + 2]:Add(tdir)
-        tan2[(i - 1) * 3 + 3]:Add(tdir)
+        tan1[i    ]:Add(sdir)
+        tan1[i + 1]:Add(sdir)
+        tan1[i + 2]:Add(sdir)
+        tan2[i    ]:Add(tdir)
+        tan2[i + 1]:Add(tdir)
+        tan2[i + 2]:Add(tdir)
     end
 
     return tan1, tan2
@@ -73,8 +60,8 @@ function ss.BuildInkMesh()
     local rects = {} ---@type ss.Rectangle[]
     local NumMeshTriangles = 0
     for i, surf in ipairs(ss.SurfaceArray) do
-        rects[i] = ss.MakeRectangle(surf.Boundary2D.x + 1, surf.Boundary2D.y + 1, 0, 0, surf)
-        NumMeshTriangles = NumMeshTriangles + #surf.Triangles
+        rects[i] = ss.MakeRectangle(surf.width + 1, surf.height + 1, 0, 0, surf)
+        NumMeshTriangles = NumMeshTriangles + #surf.Triangles / 3
     end
 
     local packer = ss.MakeRectanglePacker(rects):packall()
@@ -82,7 +69,7 @@ function ss.BuildInkMesh()
     local rtSize = rt.BaseTexture:Width()
     local margin = packer.maxsize / rtSize * RT_MARGIN_PIXELS
     for i, surf in ipairs(ss.SurfaceArray) do
-        rects[i] = ss.MakeRectangle(surf.Boundary2D.x + margin, surf.Boundary2D.y + margin, 0, 0, surf)
+        rects[i] = ss.MakeRectangle(surf.width + margin, surf.height + margin, 0, 0, surf)
     end
 
     packer = ss.MakeRectanglePacker(rects):packall()
@@ -132,7 +119,7 @@ function ss.BuildInkMesh()
             surf.OriginUV:Sub(surf.AnglesUV:Up() * (r.height - margin))
         end
 
-        for i in ipairs(textureUV) do
+        for i = 1, #textureUV do
             if r.istall then
                 textureUV[i].x, textureUV[i].y = textureUV[i].y, r.height - margin - textureUV[i].x
             end
@@ -140,15 +127,18 @@ function ss.BuildInkMesh()
             textureUV[i]:Mul(ss.UnitsToUV)
             textureUV[i]:Add(surf.OffsetUV)
         end
-        
+
         local tan1, tan2 = calculateTangents(surf)
-        for triangle_index, tri in ipairs(surf.Triangles) do
-            local n = (v3[tri[1]] - v3[tri[2]]):Cross(v3[tri[3]] - v3[tri[2]]):GetNormalized()
-            for vertex_index, i in ipairs(tri) do
-                local j = (triangle_index - 1) * 3 + vertex_index
+        for i = 1, #surf.Triangles, 3 do
+            local i1 = surf.Triangles[i]
+            local i2 = surf.Triangles[i + 1]
+            local i3 = surf.Triangles[i + 2]
+            local n = (v3[i1] - v3[i2]):Cross(v3[i3] - v3[i2]):GetNormalized()
+            for j = 1, 3 do
+                local k = surf.Triangles[i + j - 1]
                 local tan, bitan, w = Vector(), Vector(), 1
-                if not surf.IsSmallProp then --[[@cast tan1 -?]] ---@cast tan2 -?
-                    local s, t = tan2[j], tan1[j]
+                if not surf.IsSmallProp then
+                    local s, t = tan2[i + j - 1], tan1[i + j - 1]
                     tan = (t - n * n:Dot(t)):GetNormalized()
                     bitan = (s - n * n:Dot(s)):GetNormalized()
                     w = n:Cross(t):Dot(s) < 0 and -1 or 1
@@ -158,14 +148,14 @@ function ss.BuildInkMesh()
                 mesh.UserData(tan.x, tan.y, tan.z, w)
                 mesh.TangentS(tan * w) -- These functions actually DO something
                 mesh.TangentT(bitan)   -- in terms of bumpmap for LightmappedGeneric
-                mesh.Position(v3[i])
-                mesh.TexCoord(0, textureUV[i].x, textureUV[i].y)
+                mesh.Position(v3[k])
+                mesh.TexCoord(0, textureUV[k].x, textureUV[k].y)
                 local color = Color(255, 255, 255, 255)
                 if #lightmapUV > 0 then
-                    mesh.TexCoord(1, lightmapUV[i].x, lightmapUV[i].y)
+                    mesh.TexCoord(1, lightmapUV[k].x, lightmapUV[k].y)
                 else
                     mesh.TexCoord(1, 1, 1)
-                    local sample = render.GetLightColor(v3[i])
+                    local sample = render.GetLightColor(v3[k])
                     color.r = math.Round(sample.x ^ (1 / 2.2) / 2 * 255)
                     color.g = math.Round(sample.y ^ (1 / 2.2) / 2 * 255)
                     color.b = math.Round(sample.z ^ (1 / 2.2) / 2 * 255)
@@ -202,14 +192,18 @@ function ss.BuildWaterMesh()
     end
 
     for _, surf in ipairs(ss.WaterSurfaces) do
-        for _, t in ipairs(surf.Triangles) do
-            local v3 = surf.Vertices3D
-            local n = (v3[t[1]] - v3[t[2]]):Cross(v3[t[3]] - v3[t[2]]):GetNormalized()
-            for _, i in ipairs(t) do
+        local v3 = surf.Vertices3D
+        for i = 1, #surf.Triangles, 3 do
+            local i1 = surf.Triangles[i]
+            local i2 = surf.Triangles[i + 1]
+            local i3 = surf.Triangles[i + 2]
+            local n = (v3[i1] - v3[i2]):Cross(v3[i3] - v3[i2]):GetNormalized()
+            for j = 1, 3 do
+                local v = v3[surf.Triangles[i + j - 1]]
                 mesh.Normal(n)
-                mesh.Position(v3[i])
-                mesh.TexCoord(0, v3[i].x, v3[i].y)
-                mesh.TexCoord(1, v3[i].x, v3[i].y)
+                mesh.Position(v)
+                mesh.TexCoord(0, v.x, v.y)
+                mesh.TexCoord(1, v.x, v.y)
                 mesh.AdvanceVertex()
             end
 

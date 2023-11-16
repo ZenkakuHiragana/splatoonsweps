@@ -180,10 +180,10 @@ if CLIENT then
                 for i, v in ipairs(s.Vertices2D or {}) do t[i] = v * c end
 
                 d.DColor()
-                for _, tri in ipairs(s.Triangles or {}) do
-                    local v1 = t[tri[1]]
-                    local v2 = t[tri[2]]
-                    local v3 = t[tri[3]]
+                for i = 1, #s.Triangles, 3 do
+                    local v1 = t[s.Triangles[i]]
+                    local v2 = t[s.Triangles[i + 1]]
+                    local v3 = t[s.Triangles[i + 2]]
                     d.DLine(v1, v2, true)
                     d.DLine(v2, v3, true)
                     d.DLine(v3, v1, true)
@@ -238,7 +238,7 @@ if ShowInkStateMesh then
         if not ink then return end
         local colorid = ink[pos.x * 32768 + pos.y]
         local color = ss.GetColor(colorid) or color_white
-        local sw, sh = surf.Boundary2D.x, surf.Boundary2D.y
+        local sw, sh = surf.width, surf.height
         local gw, gh = math.floor(sw / gridsize), math.floor(sh / gridsize)
         d.DShort()
         d.DColor(color.r, color.g, color.b, colorid and 64 or 16)

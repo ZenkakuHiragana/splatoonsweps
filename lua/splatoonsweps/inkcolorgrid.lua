@@ -60,7 +60,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local ink = s.InkColorGrid
     local t = ss.InkShotMaterials[inktype]
     local w, h = t.width, t.height
-    local sw, sh = s.GridSize.x, s.GridSize.y
+    local sw, sh = s.GridArraySizeX, s.GridArraySizeY
     local dy = radius * griddivision
     local dx = ratio * dy
     local y_const = dy * 2 / h

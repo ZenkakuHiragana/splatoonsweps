@@ -6,7 +6,8 @@ if not ss then return end
 ---@class PaintableSurface
 ---@field Angles         Angle
 ---@field AnglesUV       Angle?
----@field GridSize       Vector
+---@field GridArraySizeX integer
+---@field GridArraySizeY integer
 ---@field InkColorGrid   integer[]
 ---@field IsDisplacement boolean
 ---@field IsSmallProp    boolean
@@ -14,12 +15,13 @@ if not ss then return end
 ---@field Normal         Vector
 ---@field Origin         Vector
 ---@field OriginUV       Vector?
----@field Triangles      integer[][]
+---@field Triangles      integer[]
 ---@field Vertices2D     Vector[]
 ---@field Vertices3D     Vector[]
 ---@field maxs           Vector
 ---@field mins           Vector
----@field Boundary2D     Vector
+---@field width          number
+---@field height         number
 ---@field BoundaryUV     Vector?
 ---@field LightmapInfo   LightmapInfo
 ---@field OffsetUV       Vector?
@@ -37,20 +39,22 @@ if not ss then return end
 
 ss.class "PaintableSurface" {
     Angles         = Angle(),
-    GridSize       = Vector(),
+    GridArraySizeX = 0,
+    GridArraySizeY = 0,
     InkColorGrid   = {}, -- number[x * 32768 + y]
     IsDisplacement = false,
     IsSmallProp    = false,
     IsWaterSurface = false,
     Normal         = Vector(),
     Origin         = Vector(),
-    Triangles      = {}, -- number[][3]
+    Triangles      = {}, -- number[]
     Vertices2D     = {}, -- Vector[]
     Vertices3D     = {}, -- Vector[]
     ---
     maxs           = -ss.vector_one * math.huge,
     mins           =  ss.vector_one * math.huge,
-    Boundary2D     =  ss.vector_one * math.huge,
+    width          = 0,
+    height         = 0,
     LightmapInfo   = {
         Available    = false,
         Styles       = {},
@@ -64,12 +68,23 @@ ss.class "PaintableSurface" {
     }
 }
 
+local abs = math.abs
+local angle_zero = angle_zero
+local class = ss.class
+local huge = math.huge
+local LocalToWorld = LocalToWorld
+local OrderVectors = OrderVectors
+local pairs = pairs
+local Vector = Vector
+local vector_one = ss.vector_one
+local vector_origin = vector_origin
+
 ---Index to SURFEDGES array -> actual vertex
 ---@param index integer
 ---@return Vector
 local function surfEdgeToVertex(index)
     local surfedge  = ss.BSP.Raw.SURFEDGES[index]
-    local edge      = ss.BSP.Raw.EDGES    [math.abs(surfedge) + 1]
+    local edge      = ss.BSP.Raw.EDGES[abs(surfedge) + 1]
     local vertindex = edge[surfedge < 0 and 2 or 1]
     return ss.BSP.Raw.VERTEXES[vertindex + 1]
 end
@@ -190,11 +205,11 @@ local function get2DComponents(surf)
         maxs2D = ss.MaxVector(maxs2D or v, v)
     end
 
-    surf.Vertices2D = vertices2D
-    surf.Boundary2D = maxs2D - mins2D
-
-    local gridsize = surf.Boundary2D / ss.InkGridSize
-    surf.GridSize = Vector(math.floor(gridsize.x), math.floor(gridsize.y))
+    surf.Vertices2D     = vertices2D
+    surf.width          = math.Round(maxs2D.x - mins2D.x, 4)
+    surf.height         = math.Round(maxs2D.y - mins2D.y, 4)
+    surf.GridArraySizeX = math.floor(surf.width / ss.InkGridSize)
+    surf.GridArraySizeY = math.floor(surf.height / ss.InkGridSize)
 end
 
 ---@type table<string, { material: string, triangles: MeshVertex[], vertices: MeshVertex[] }[]>
@@ -302,7 +317,9 @@ local function buildFace(faceindex, rawFace)
     if not isDisplacement then
         if not isWater then get2DComponents(surf) end
         for i = 2, #filteredVertices - 1 do
-            surf.Triangles[#surf.Triangles + 1] = { 1, i, i + 1 }
+            surf.Triangles[#surf.Triangles + 1] = 1
+            surf.Triangles[#surf.Triangles + 1] = i
+            surf.Triangles[#surf.Triangles + 1] = i + 1
         end
         return surf
     end
@@ -347,8 +364,8 @@ local function buildFace(faceindex, rawFace)
     local u1 = surf.Vertices3D[4] - surf.Vertices3D[1]
     local v1 = surf.Vertices3D[2] - surf.Vertices3D[1]
     local v2 = surf.Vertices3D[3] - surf.Vertices3D[4]
-    local triangles = {} ---@type integer[][] Indices of triangle mesh
-    local vertices  = {} ---@type Vector[]    List of vertices
+    local triangles = {} ---@type integer[] Indices of triangle mesh
+    local vertices  = {} ---@type Vector[]  List of vertices
     maxs, mins = nil, nil ---@type Vector, Vector
     for i = 1, numMeshVertices do
         -- Calculate x-y offset
@@ -368,10 +385,12 @@ local function buildFace(faceindex, rawFace)
 
         -- Generate triangle indices from displacement mesh
         if xi < power - 1 and yi < power - 1 then
-            triangles[#triangles + 1],
-            triangles[#triangles + 2]
-                = { i + invert + power, i + 1,     i             },
-                  { i - invert + 1,     i + power, i + power + 1 }
+            triangles[#triangles + 1] = i + invert + power
+            triangles[#triangles + 1] = i + 1
+            triangles[#triangles + 1] = i
+            triangles[#triangles + 1] = i - invert + 1
+            triangles[#triangles + 1] = i + power
+            triangles[#triangles + 1] = i + power + 1
         end
 
         -- Set bounding box
@@ -387,17 +406,6 @@ local function buildFace(faceindex, rawFace)
     return surf
 end
 
-local abs = math.abs
-local angle_zero = angle_zero
-local class = ss.class
-local huge = math.huge
-local LocalToWorld = LocalToWorld
-local OrderVectors = OrderVectors
-local pairs = pairs
-local table_insert = table.insert
-local Vector = Vector
-local vector_one = ss.vector_one
-local vector_origin = vector_origin
 local PROJECTION_NORMALS = {
     ["x+"] = Vector( 1,  0,  0),
     ["y+"] = Vector( 0,  1,  0),
@@ -482,11 +490,9 @@ local function processStaticPropConvex(origin, angle, triangles)
         surf.Vertices3D[#surf.Vertices3D + 1] = v1
         surf.Vertices3D[#surf.Vertices3D + 1] = v2
         surf.Vertices3D[#surf.Vertices3D + 1] = v3
-        table_insert(surf.Triangles, {
-            #surf.Vertices3D - 2,
-            #surf.Vertices3D - 1,
-            #surf.Vertices3D,
-        })
+        surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D - 2
+        surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D - 1
+        surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D
     end
 
     for k, n in pairs(PROJECTION_NORMALS) do
@@ -553,11 +559,12 @@ local function buildStaticPropSurface(ph, name, origin, angle, mins, maxs)
     local surf = class "PaintableSurface"
     local meshes = getModelMeshes(name)
     surf.Angles = angle
-    surf.Boundary2D = Vector()
     surf.IsSmallProp = true
     surf.Origin = origin
     surf.maxs = LocalToWorld(maxs, angle_zero, origin, angle)
     surf.mins = LocalToWorld(mins, angle_zero, origin, angle)
+    surf.width = 0
+    surf.height = 0
     OrderVectors(surf.mins, surf.maxs)
     for _, t in ipairs(meshes) do
         local m = getMaterial(t.material or "")
@@ -577,11 +584,9 @@ local function buildStaticPropSurface(ph, name, origin, angle, mins, maxs)
             surf.Vertices3D[#surf.Vertices3D + 1] = v1
             surf.Vertices3D[#surf.Vertices3D + 1] = v2
             surf.Vertices3D[#surf.Vertices3D + 1] = v3
-            table_insert(surf.Triangles, {
-                #surf.Vertices3D - 2,
-                #surf.Vertices3D - 1,
-                #surf.Vertices3D,
-            })
+            surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D - 2
+            surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D - 1
+            surf.Triangles[#surf.Triangles + 1] = #surf.Vertices3D
         end
     end
 
