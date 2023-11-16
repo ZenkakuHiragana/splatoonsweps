@@ -119,12 +119,7 @@ local StructureDefinitions = {
         ---@field version     integer
         ---@field lumps       BSP.LumpHeader[]
         ---@field mapRevision integer
-    },
-    LumpHeader = {
-        "Long fileOffset",
-        "Long fileLength",
-        "Long version",
-        "Long fourCC",
+
         ---@class BSP.LumpHeader
         ---@field fileOffset integer
         ---@field fileLength integer
@@ -759,6 +754,32 @@ function StructureDefinitions.StaticProp(bsp, struct, header)
         end
     end
     return data
+end
+
+---@param bsp File
+---@return BSP.DefinedStructures
+function StructureDefinitions.LumpHeader(bsp)
+    local fileOffset = bsp:ReadLong() ---@type integer
+    local fileLength = bsp:ReadLong() ---@type integer
+    local version = bsp:ReadLong() ---@type integer
+    local fourCC = bsp:ReadLong() ---@type integer
+    if fileOffset < bsp:Tell() or version >= 0x100 then
+        -- Left 4 Dead 2 maps have different order
+        -- but I don't know how to detemine if this is Left 4 Dead 2 map
+        return {
+            fileOffset = fileLength,
+            fileLength = version,
+            version = fileOffset,
+            fourCC = fourCC,
+        }
+    else
+        return {
+            fileOffset = fileOffset,
+            fileLength = fileLength,
+            version = version,
+            fourCC = fourCC,
+        }
+    end
 end
 
 ---@param id integer
