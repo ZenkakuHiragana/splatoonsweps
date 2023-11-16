@@ -90,7 +90,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
             ["$bumpmap"]                     = rt.Name.Bumpmap,
             ["$vertexcolor"]                 = "1",
             ["$nolod"]                       = "1",
-            ["$alpha"]                       = "1", -- system.IsLinux() and "1" or "0.9",
+            ["$alpha"]                       = "0.99609375", -- = 255 / 256,
             ["$alphatest"]                   = "1",
             ["$alphatestreference"]          = "0.0625",
             ["$phong"]                       = "1",
