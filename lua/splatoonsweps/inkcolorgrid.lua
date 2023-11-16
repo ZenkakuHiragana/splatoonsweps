@@ -1,9 +1,10 @@
 
 -- Handles ink color info on the map and determines color at a point on a surface
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
-local reference_polys = {}
+local reference_polys = {} ---@type Vector[]
 local reference_vert = Vector(1)
 local circle_polys = 360 / 12
 for _ = 1, circle_polys do
@@ -45,20 +46,28 @@ local net_WriteNormal = net.WriteNormal
 local gridsize = ss.InkGridSize
 local gridarea = gridsize * gridsize
 local griddivision = 1 / gridsize
+---@param color integer
+---@param inktype integer
+---@param localang number
+---@param pos Vector
+---@param radius number
+---@param ratio number
+---@param s PaintableSurface
+---@return integer
 function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local pos2d = To2D(pos, s.Origin, s.Angles) * griddivision
     local x0, y0 = pos2d.x, pos2d.y
     local ink = s.InkColorGrid
     local t = ss.InkShotMaterials[inktype]
     local w, h = t.width, t.height
-    local sw, sh = s.GridSize.x, s.GridSize.y
+    local sw, sh = s.GridArraySizeX, s.GridArraySizeY
     local dy = radius * griddivision
     local dx = ratio * dy
     local y_const = dy * 2 / h
     local x_const = ratio * dy * 2 / w
     local ang = rad(-localang)
     local sind, cosd = sin(ang), cos(ang)
-    local pointcount = {}
+    local pointcount = {} ---@type integer[]
     local area = 0
     local paint_threshold = floor(gridarea / (dx * dy)) + 1
     for x = 0, w - 1, 0.5 do
@@ -84,6 +93,11 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     return area
 end
 
+---@param pos Vector
+---@param normal Vector
+---@param radius number
+---@return Vector
+---@return Vector
 function ss.GetInkReferenceAABB(pos, normal, radius)
     local ang = normal:Angle()
     local mins, maxs = vector_mins, vector_maxs
@@ -95,20 +109,20 @@ function ss.GetInkReferenceAABB(pos, normal, radius)
     return mins, maxs
 end
 
--- Draws ink.
--- Arguments:
---   Vector pos       | Center position.
---   Vector normal    | Normal of the surface to draw.
---   number radius    | Scale of ink in Hammer units.
---   number angle     | Ink rotation in degrees.
---   number inktype   | Shape of ink.
---   number ratio     | Aspect ratio.
---   Entity ply       | The shooter.
---   string classname | Weapon's class name.
 local Order, Tick = 1, 0 -- The ink paint order to handle multiple query at the same tick
 local AddInkRectangle = ss.AddInkRectangle
 local CollectSurfaces = ss.CollectSurfaces
 local GetInkReferenceAABB = ss.GetInkReferenceAABB
+---Draws ink
+---@param pos       Vector  Center position
+---@param normal    Vector  Normal of the surface to draw
+---@param radius    number  Scale of ink in Hammer units
+---@param color     integer Color of the ink
+---@param angle     number  Rotation in degrees
+---@param inktype   integer Shape of ink
+---@param ratio     number  Aspect ratio
+---@param ply       Entity  The shooter
+---@param classname string  Weapon class name
 function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classname)
     -- Parameter limit to reduce network traffic
     pos.x   = Round(pos.x / 2) * 2
@@ -149,6 +163,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
         area = area + AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     end
 
+    ---@cast ply Player
     if not ply:IsPlayer() or ply:IsBot() then return end
     ss.WeaponRecord[ply].Inked[classname] = (ss.WeaponRecord[ply].Inked[classname] or 0) - area * gridarea
     if ss.sp and SERVER then
@@ -159,52 +174,43 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
     end
 end
 
--- Returns ink color at given position against given normal.
--- Argument:
---   Vector pos
---   Vector normal
--- Returning:
---   number         | The ink color of the specified position.
---   nil            | If there is no ink, this returns nil.
+---Returns ink color at given position against given normal
+---@param pos Vector
+---@param normal Vector
+---@return integer? The ink color of the specified position, or nil if there is no ink
 function ss.GetSurfaceColor(pos, normal)
     for s in CollectSurfaces(pos, pos, normal) do
         local p2d = To2D(pos, s.Origin, s.Angles)
         local ink = s.InkColorGrid
         local x, y = floor(p2d.x * griddivision), floor(p2d.y * griddivision)
         local colorid = ink[x * 32768 + y]
-        if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), i, s) end
+        if ss.Debug then ss.Debug.ShowInkStateMesh(Vector(x, y), nil, s) end
         if colorid then return colorid end
     end
 end
 
--- Returns if given position is paintable against given normal.
--- Arguments:
---   Vector pos
---   Vector normal
--- Returning:
---   boolean
+---Returns if given position is paintable against given normal
+---@param pos Vector
+---@param normal Vector
+---@return boolean?
 function ss.IsPaintable(pos, normal)
     for s in CollectSurfaces(pos, pos, normal) do
         if s.InkColorGrid then return true end
     end
 end
 
--- Traces and picks up colors in an area on XY plane and returns the representative color of the area
--- Arguments:
---   Vector org       | the origin/center of the area.
---   Vector mins      | Minimum size (only X and Y components are used).
---   Vector maxs      | Maximum size (only X and Y components are used).
---   number num       | Number of traces per axis.
---   number tolerance | Should be from 0 to 1.
---     The returning color should be the one that covers more than this ratio of the area.
--- Returning:
---   number           | The ink color.
---   nil              | If there is no ink or it's too mixed, this returns nil.
 local GetSurfaceColor = ss.GetSurfaceColor
 local GetWinningKey = table.GetWinningKey
+---Traces and picks up colors in an area on XY plane and returns the representative color of the area
+---@param org       Vector The origin/center of the area
+---@param mins      Vector Minimum size (only X and Y components are used)
+---@param maxs      Vector Maximum size (only X and Y components are used)
+---@param num       number Number of traces per axis
+---@param tolerance number Should be from 0 to 1, The returning color should be the one that covers more than this ratio of the area
+---@return integer? The ink color, or nil if there is no ink or it's too mixed
 function ss.GetSurfaceColorArea(org, mins, maxs, num, tolerance)
     local gcoloravailable = 0 -- number of points whose color is not -1
-    local gcolorlist = {} -- Ground color list
+    local gcolorlist = {} ---@type table<integer, integer> Ground color list
     for dx = -num, num do
         for dy = -num, num do
             local pos = org + Vector(maxs.x * dx, maxs.y * dy) / num

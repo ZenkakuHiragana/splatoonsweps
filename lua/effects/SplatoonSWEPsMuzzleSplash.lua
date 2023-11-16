@@ -1,7 +1,6 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
-
 local drawviewmodel = GetConVar "r_drawviewmodel"
 local deep = "SplatoonSWEPs_Player.InkDiveDeep"
 local shallow = "SplatoonSWEPs_Player.InkDiveShallow"
@@ -9,10 +8,25 @@ local mdl = Model "models/splatoonsweps/effects/muzzlesplash.mdl"
 local mat = Material "splatoonsweps/effects/muzzlesplash"
 local tex = mat:GetTexture "$basetexture"
 local NumTextureFrames = tex:GetNumAnimationFrames()
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.MuzzleSplash
+---@class EFFECT.MuzzleSplash : EFFECT
+---@field Angle             Angle
+---@field AttachmentIndex   integer
+---@field Color             Color
+---@field InitTime          number
+---@field IsTPS             boolean
+---@field Length            number
+---@field LifeTime          number
+---@field Pos               Vector
+---@field Radius            number
+---@field Weapon            SplatoonWeaponBase
+---@field GetMuzzlePosition fun(self): Vector, Angle
+---@field GetPosition       fun(self): Vector, Angle
 
 function EFFECT:GetMuzzlePosition()
     if not IsValid(self.Weapon) then return self.Pos, self.Angle end
-    local ent = self.Weapon
+    local ent = self.Weapon ---@type Entity|SplatoonWeaponBase
     if self.Weapon.IsSplatoonWeapon and not self.Weapon:IsTPS() then
         ent = self.Weapon:GetViewModel()
     end
@@ -38,7 +52,7 @@ end
 function EFFECT:Init(e)
     local f = e:GetFlags()
     local ping = ss.mp and LocalPlayer():Ping() / 1000 or 0
-    self.Weapon   = e:GetEntity()
+    self.Weapon   = e:GetEntity() --[[@as SplatoonWeaponBase]]
     self.Color    = ss.GetColor(e:GetColor())
     self.Radius   = e:GetRadius()
     self.InitTime = CurTime() - ping * bit.band(f, 128) / 128
@@ -90,8 +104,9 @@ end
 function EFFECT:Think()
     local valid = CurTime() < self.InitTime + self.LifeTime
     if IsValid(self.Weapon) and self.Weapon.IsSplatoonWeapon then
-        return valid and IsValid(self.Weapon:GetOwner())
-        and self.Weapon:GetOwner():GetActiveWeapon() == self.Weapon
+        local Owner = self.Weapon:GetOwner()
+        return valid and IsValid(Owner) and Owner:IsPlayer() ---@cast Owner Player
+        and Owner:GetActiveWeapon() == self.Weapon
     else
         return valid and (self.IsTPS or drawviewmodel:GetBool())
     end

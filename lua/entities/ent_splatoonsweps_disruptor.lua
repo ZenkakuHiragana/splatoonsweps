@@ -1,7 +1,13 @@
 
+local ENT = ENT
+---@cast ENT ENT.Disruptor
+---@class ENT.Disruptor : ENT.BurstBomb
+---@field BaseClass ENT.BurstBomb
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_burstbomb"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.Model = Model "models/splatoonsweps/subs/disruptor/disruptor.mdl"
@@ -22,7 +28,7 @@ function ENT:PhysicsCollide(data, collider)
     util.Effect("SplatoonSWEPsDisruptor", e)
 
     for _, t in ipairs(ents.FindInSphere(self:GetPos(), p.Burst_Radius)) do
-        local w = ss.IsValidInkling(t)
+        local w = ss.IsValidInkling(t) ---@type Weapon?
         if (t:IsPlayer() or t:IsNPC() or t:IsNextBot()) and not (w and ss.IsAlly(self, w)) then
             t:EmitSound "SplatoonSWEPs.DisruptorTaken"
             t:SetNWBool("SplatoonSWEPs: IsDisrupted", true)
@@ -52,7 +58,7 @@ function ENT:PhysicsCollide(data, collider)
                 e:SetColor(c)
                 util.Effect("SplatoonSWEPsDisruptor", e)
 
-                if not t:IsNPC() then return end
+                if not t:IsNPC() then return end ---@cast t NPC
                 t:SetMoveVelocity(Vector())
                 t:SetVelocity(Vector())
             end)

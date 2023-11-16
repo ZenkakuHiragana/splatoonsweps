@@ -1,6 +1,7 @@
 
 -- Shared library
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -27,13 +28,16 @@ do local e = EffectData()
     ss.GetEffectStraightFrame  = e.GetScale
     ss.SetEffectStraightFrame  = e.SetScale
     ss.GetEffectFlags = e.GetFlags
+    ---@param eff CEffectData
+    ---@param weapon integer|SplatoonWeaponBase?
+    ---@param flags integer?
     function ss.SetEffectFlags(eff, weapon, flags)
-        if isnumber(weapon) and not flags then
-            flags, weapon = weapon
+        if isnumber(weapon) and not flags then ---@cast weapon integer
+            flags, weapon = weapon, nil
         end
 
-        flags = flags or 0
-        if IsValid(weapon) then
+        flags = flags or 0 ---@cast flags integer
+        if IsValid(weapon) then ---@cast weapon SplatoonWeaponBase
             local IsLP = CLIENT and weapon:IsCarriedByLocalPlayer()
             flags = flags + (IsLP and 128 or 0)
         end
@@ -41,10 +45,9 @@ do local e = EffectData()
         eff:SetFlags(flags)
     end
 
-    -- Dispatch an effect properly in a weapon predicted hook.
-    -- Arguments:
-    --   Player ply        | The owner of the weapon
-    --   vararg            | Arguments of util.Effect()
+    ---Dispatch an effect properly in a weapon predicted hook.
+    ---@param ply Entity? The owner of the weapon
+    ---@param ... any     Arguments of util.Effect()
     function ss.UtilEffectPredicted(ply, ...)
         ss.SuppressHostEventsMP(ply)
         util.Effect(...)
@@ -70,12 +73,16 @@ include "weapons.lua"
 include "weaponregistration.lua"
 
 local path = "splatoonsweps/sub/%s"
-for _, filename in ipairs(file.Find("splatoonsweps/sub/*.lua", "LUA")) do
+for _, filename in ipairs(file.Find("splatoonsweps/sub/*.lua", "LUA") or {}) do
     include(path:format(filename))
 end
 
 local CrouchMask = bit.bnot(IN_DUCK)
 local WALLCLIMB_KEYS = bit.bor(IN_JUMP, IN_FORWARD, IN_BACK)
+
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@param mv CMoveData
 function ss.PredictedThinkMoveHook(w, ply, mv)
     ss.ProtectedCall(w.Move, w, ply, mv)
     ss.PerformSuperJump(w, ply, mv)
@@ -146,9 +153,15 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     end
 
     w.OnOutofInk = w:GetInWallInk()
-    w:SetOldCrouching(crouching or infence)
+    w:SetOldCrouching(crouching)
 end
 
+---comment
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@param mv CMoveData
+---@param crouching boolean
+---@param maxspeed number
 function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
     if w:GetSuperJumpState() >= 0 then return end
     for v, i in pairs {
@@ -206,11 +219,18 @@ function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
     end
 end
 
--- Short for Entity:NetworkVar().
--- A new function Entity:AddNetworkVar() is created to the given entity.
--- Argument:
---   Entity ent | The entity to add to.
+---Short for Entity:NetworkVar()
+---A new function Entity:AddNetworkVar() is created to the given entity
+---@param ent Entity The entity to add to
 function ss.AddNetworkVar(ent)
+    ---@class INetworkVar
+    ---@field NetworkSlot table<string, integer>
+    ---@field AddNetworkVar      fun(self, type: string, name: string): integer
+    ---@field GetLastSlot        fun(self, typeof: string): integer
+    ---@field InitNetworkSlots   fun(self)
+
+    ---@class _NetworkVarImplemented : Entity, INetworkVar
+    ---@cast ent _NetworkVarImplemented
     if ent.NetworkSlot then return end
     function ent:InitNetworkSlots()
         self.NetworkSlot = {
@@ -220,19 +240,17 @@ function ss.AddNetworkVar(ent)
     end
     ent:InitNetworkSlots()
 
-    -- Returns how many network slots the entity uses.
-    -- Argument:
-    --   string typeof | The type to inspect.
-    -- Returning:
-    --   number        | The number of slots the entity uses.
-    function ent:GetLastSlot(typeof) return self.NetworkSlot[typeof] end
+    ---Returns how many network slots the entity uses
+    ---@param typeof string Type to inspect
+    ---@return integer # The number of slots it uses
+    function ent:GetLastSlot(typeof)
+        return self.NetworkSlot[typeof]
+    end
 
-    -- Adds a new network variable to the entity.
-    -- Arguments:
-    --   string typeof | The variable type.  Same as Entity:NetworkVar().
-    --   string name   | The variable name.
-    -- Returning:
-    --   number        | A new assigned slot.
+    ---Adds a new network variable to the entity
+    ---@param typeof string Type of the variable, same as Entity:NetworkVar()
+    ---@param name   string Name of the variable
+    ---@return integer # New assigned slot
     function ent:AddNetworkVar(typeof, name)
         assert(self.NetworkSlot[typeof] < 31, "SplatoonSWEPs: Tried to use too many network variables!")
         self.NetworkSlot[typeof] = self.NetworkSlot[typeof] + 1
@@ -241,21 +259,65 @@ function ss.AddNetworkVar(ent)
     end
 end
 
--- Lets the given entity use CurTime() based timer library.
--- Call it in the header, and put SplatoonSWEPs:ProcessSchedules() in ENT:Think().
--- Argument:
---   Entity ent | The entity to be able to use timer library.
+---Lets the given entity use CurTime() based timer library
+---Call this in the header, and put SplatoonSWEPs.ProcessSchedules() in ENT:Think()
+---@param ent Entity The entity to be able to use timer library
 function ss.AddTimerFramework(ent)
+    ---@class ISchedule
+    ---@field delay           string|number
+    ---@field done            string|integer
+    ---@field func            fun(self: Entity, schedule: ISchedule): boolean?
+    ---@field numcall         string|integer
+    ---@field time            string|number
+    ---@field prevtime        string|number
+    ---@field weapon          SplatoonWeaponBase
+    ---@field SetDone         fun(self, done: integer)
+    ---@field GetDone         fun(self): integer
+    ---@field SetDelay        fun(self, newdelay: number)
+    ---@field GetDelay        fun(self): number
+    ---@field SetLastCalled   fun(self, newtime: number)
+    ---@field SinceLastCalled fun(self): number
+
+    ---@class EntityNetworkSchedule : ISchedule
+    ---@field delay    string
+    ---@field done     string
+    ---@field func     fun(self: Entity, schedule: ISchedule): boolean?
+    ---@field numcall  string
+    ---@field time     string
+    ---@field prevtime string
+    ---@field weapon   SplatoonWeaponBase
+
+    ---@class EntitySchedule : ISchedule
+    ---@field delay    number
+    ---@field done     integer
+    ---@field func     fun(self: Entity, schedule: ISchedule): boolean?
+    ---@field numcall  integer
+    ---@field time     number
+    ---@field prevtime number
+    ---@field weapon   SplatoonWeaponBase
+
+    ---@alias _AddScheduleSignetures
+    ---| fun(self, delay: number, repitition: integer, hook: fun(self: Entity, schedule: ISchedule)): EntitySchedule
+    ---| fun(self, delay: number, hook: fun(self: Entity, schedule: ISchedule)): EntitySchedule
+    ---@class INetworkSchedule
+    ---@field FunctionQueue      ISchedule[]
+    ---@field AddNetworkSchedule fun(self, repitition: integer, hook: fun(self: Entity, schedule: ISchedule)): EntityNetworkSchedule
+    ---@field AddSchedule        _AddScheduleSignetures
+    ---@field ProcessSchedules   fun(self)
+
+    ---@class _NetworkScheduleImplemented : INetworkVar, INetworkSchedule, Entity
+    ---@cast ent _NetworkScheduleImplemented
     if ent.FunctionQueue then return end
 
     ss.AddNetworkVar(ent) -- Required to use Entity:AddNetworkSchedule()
     ent.FunctionQueue = {}
 
-    -- Sets how many this schedule has done.
-    -- Argument:
-    --   number done | The new counter.
+    ---@class ISchedule
     local ScheduleFunc = {}
     local ScheduleMeta = {__index = ScheduleFunc}
+
+    ---Sets how many this schedule has done
+    ---@param done integer The new amount
     function ScheduleFunc:SetDone(done)
         if isstring(self.done) then
             self.weapon["Set" .. self.done](self.weapon, done)
@@ -264,14 +326,18 @@ function ss.AddTimerFramework(ent)
         end
     end
 
-    -- Returns the current counter value.
+    ---Returns the current counter value.
+    ---@return integer
     function ScheduleFunc:GetDone()
-        return isstring(self.done) and self.weapon["Get" .. self.done](self.weapon) or self.done
+        if isstring(self.done) then
+            return self.weapon["Get" .. self.done](self.weapon)
+        else
+            return self.done --[[@as integer]]
+        end
     end
 
-    -- Resets the interval of the schedule.
-    -- Argument:
-    --   number newdelay | The new interval.
+    ---Resets the interval of the schedule
+    ---@param newdelay number The new interval in seconds
     function ScheduleFunc:SetDelay(newdelay)
         if isstring(self.delay) then
             self.weapon["Set" .. self.delay](self.weapon, newdelay)
@@ -292,14 +358,18 @@ function ss.AddTimerFramework(ent)
         end
     end
 
-    -- Returns the current interval of the schedule.
+    ---Returns the current interval of the schedule
+    ---@return number
     function ScheduleFunc:GetDelay()
-        return isstring(self.delay) and self.weapon["Get" .. self.delay](self.weapon) or self.delay
+        if isstring(self.delay) then
+            return self.weapon["Get" .. self.delay](self.weapon)
+        else
+            return self.delay --[[@as number]]
+        end
     end
 
-    -- Sets a time for SinceLastCalled()
-    -- Argument:
-    --   number newtime | Relative to CurTime()
+    ---Sets a time for SinceLastCalled()
+    ---@param newtime number Relative to CurTime()
     function ScheduleFunc:SetLastCalled(newtime)
         if isstring(self.prevtime) then
             self.weapon["Set" .. self.prevtime](self.weapon, CurTime() - newtime)
@@ -308,7 +378,8 @@ function ss.AddTimerFramework(ent)
         end
     end
 
-    -- Returns the time since the schedule has been last called.
+    ---Returns the time since the schedule has been last called
+    ---@return number
     function ScheduleFunc:SinceLastCalled()
         if isstring(self.prevtime) then
             return CurTime() - self.weapon["Get" .. self.prevtime](self.weapon)
@@ -317,18 +388,16 @@ function ss.AddTimerFramework(ent)
         end
     end
 
-    -- Adds an syncronized schedule.
-    -- Arguments:
-    --   number delay  | How long the function should be ran in seconds.
-    --                 | Use 0 to have the function run every time ENT:Think() called.
-    --   function func | The function to run after the specified delay.
-    -- Returning:
-    --   table         | The created schedule object.
+    ---Adds a schedule that is synchronized between server and clients
+    ---@param delay number How long the function should be ran in seconds. Use 0 to have the function run every time ENT:Think() called
+    ---@param func fun(self: Entity, schedule: ISchedule) The function to run after the specified delay
+    ---@return EntityNetworkSchedule # Created schedule object
     function ent:AddNetworkSchedule(delay, func)
+        ---@type EntityNetworkSchedule
         local schedule = setmetatable({
             func = func,
             weapon = self,
-        }, ScheduleMeta)
+        }, ScheduleMeta --[[@as EntityNetworkSchedule]])
         schedule.delay = "TimerDelay" .. tostring(self:GetLastSlot "Float")
         self:AddNetworkVar("Float", schedule.delay)
         self["Set" .. schedule.delay](self, delay)
@@ -345,15 +414,13 @@ function ss.AddTimerFramework(ent)
         return schedule
     end
 
-    -- Adds an schedule.
-    -- Arguments:
-    --   number delay   | How long the function should be ran in seconds.
-    --                  | Use 0 to have the function run every time ENT:Think() called.
-    --   number numcall | The number of times to repeat.  Set to nil or 0 for infinite schedule.
-    --   function func  | The function to run.  Returning true in it to have the schedule stop.
-    -- Returning:
-    --   table          | The created schedule object.
+    ---Adds a schedule similar to timer.Create()
+    ---@param delay   number   How long the function should be ran in seconds. Use 0 to have the function run every time ENT:Think() called
+    ---@param numcall integer? The number of times to repeat.  Set to nil or 0 for infinite schedule
+    ---@param func   (fun(self: Entity, schedule: ISchedule): boolean?)? The function to run.  Returning true in it to have the schedule stop
+    ---@return EntitySchedule # Created schedule object
     function ent:AddSchedule(delay, numcall, func)
+        ---@type EntitySchedule
         local schedule = setmetatable({
             delay = delay,
             done = 0,
@@ -362,16 +429,16 @@ function ss.AddTimerFramework(ent)
             time = CurTime() + delay,
             prevtime = CurTime(),
             weapon = self,
-        }, ScheduleMeta)
+        }, ScheduleMeta --[[@as EntitySchedule]])
         self.FunctionQueue[#self.FunctionQueue + 1] = schedule
         return schedule
     end
 
-    -- Makes the registered functions run.  Put it in ENT:Think() for desired use.
+    ---Makes the registered functions run.  Put this in ENT:Think() for desired use
     function ent:ProcessSchedules()
         for i, s in pairs(self.FunctionQueue) do
             if isstring(s.time) then
-                local get = self["Get" .. s.time]
+                local get = self["Get" .. s.time] ---@type fun(self: Entity): number
                 if not (isfunction(s.func) and isfunction(get) and isnumber(get(self))) then
                     self.FunctionQueue[i] = nil
                 elseif CurTime() > get(self) then
@@ -396,17 +463,32 @@ function ss.AddTimerFramework(ent)
     end
 end
 
--- ss.GetMaxHealth() - Get inkling's desired maximum health
--- ss.GetMaxInkAmount() - Get the maximum amount of an ink tank.
 local gain = ss.GetOption "gain"
-function ss.GetMaxHealth() return gain "maxhealth" end
-function ss.GetMaxInkAmount() return gain "inkamount" end
-function ss.GetDamageScale() return gain "damagescale" / 100 end
-function ss.GetBotOption(pt)
-    return (pt.cl or pt.sv):GetDefault()
-end
 
--- Play footstep sound of ink.
+---Get inkling's desired maximum health
+---@return number
+function ss.GetMaxHealth() return gain "maxhealth" --[[@as number]] end
+
+---Get the maximum amount of an ink tank
+---@return number
+function ss.GetMaxInkAmount() return gain "inkamount" --[[@as number]] end
+
+---@return number
+function ss.GetDamageScale() return gain "damagescale" / 100 end
+
+---@param pt cvartree.CVarItem
+---@return any
+function ss.GetBotOption(pt) return (pt.cl or pt.sv):GetDefault() end
+
+---Play footstep sound of ink
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@param pos Vector
+---@param foot number
+---@param soundName string
+---@param volume number
+---@param filter CRecipientFilter
+---@return boolean?
 function ss.PlayerFootstep(w, ply, pos, foot, soundName, volume, filter)
     if SERVER and ss.mp then return end
     if ply:Crouching() and w:GetNWBool "becomesquid" and w:GetGroundColor() < 0
@@ -419,6 +501,10 @@ function ss.PlayerFootstep(w, ply, pos, foot, soundName, volume, filter)
     return soundName:find "chainlink" and true or nil
 end
 
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@param velocity Vector
+---@param maxseqspeed number
 function ss.UpdateAnimation(w, ply, velocity, maxseqspeed)
     ss.ProtectedCall(w.UpdateAnimation, w, ply, velocity, maxseqspeed)
     ss.SuperJumpAnimationFix(w, ply)
@@ -439,6 +525,9 @@ function ss.UpdateAnimation(w, ply, velocity, maxseqspeed)
     end
 end
 
+---@param self SplatoonWeaponBase
+---@param ply Player
+---@param key integer
 function ss.KeyPress(self, ply, key)
     if ss.KeyMaskFind[key] then
         self:SetKey(key)
@@ -459,6 +548,9 @@ function ss.KeyPress(self, ply, key)
     end
 end
 
+---@param self SplatoonWeaponBase
+---@param ply Player
+---@param key integer
 function ss.KeyRelease(self, ply, key)
     table.RemoveByValue(self.KeyPressedOrder, key)
     if #self.KeyPressedOrder > 0 then
@@ -487,6 +579,11 @@ function ss.KeyRelease(self, ply, key)
     ss.ProtectedCall(Either(SERVER, self.ServerSecondaryAttack, self.ClientSecondaryAttack), self, able)
 end
 
+---@param self SplatoonWeaponBase
+---@param ply Player
+---@param inWater boolean
+---@param onFloater boolean
+---@param speed number
 function ss.OnPlayerHitGround(self, ply, inWater, onFloater, speed)
     if not self:GetInInk() or self:GetInWallInk() then return end
     if not self:IsFirstTimePredicted() then return end
@@ -519,7 +616,7 @@ for hookname in pairs {CalcMainActivity = true, TranslateActivity = true} do
         if nest then nest = nil return end
         if not ply:Crouching() then return end
         if not w:GetInFence() then return end
-        nest, ply.m_bWasNoclipping = true
+        nest = true
         ply:SetMoveType(MOVETYPE_WALK)
         local res1, res2 = gamemode.Call(hookname, ply, ...)
         ply:AnimResetGestureSlot(GESTURE_SLOT_CUSTOM)
@@ -528,11 +625,13 @@ for hookname in pairs {CalcMainActivity = true, TranslateActivity = true} do
     end))
 end
 
-concommand.Add("-splatoonsweps_reset_camera", function(ply) end, nil, ss.Text.CVars.ResetCamera)
-concommand.Add("+splatoonsweps_reset_camera", function(ply)
+concommand.Add("-splatoonsweps_reset_camera", function(ply) end, nil, ss.Text.CVars.ResetCamera --[[@as string]])
+concommand.Add("+splatoonsweps_reset_camera", function(ply --[[@as Player]])
     ss.PlayerShouldResetCamera[ply] = true
-end, nil, ss.Text.CVars.ResetCamera)
+end, nil, ss.Text.CVars.ResetCamera --[[@as string]])
 
+---@param pos Vector
+---@return { mins: Vector, maxs: Vector }?
 function ss.GetMinimapAreaBounds(pos)
     for _, t in ipairs(ss.MinimapAreaBounds) do
         if pos:WithinAABox(t.mins, t.maxs) then
@@ -541,27 +640,41 @@ function ss.GetMinimapAreaBounds(pos)
     end
 end
 
--- Gets the point on the trajectory of super jump.
--- It forms a parabolla using first two vectors,
--- then calculates the position at time t (0 <= t <= ss.SuperJumpTravelTime)
+---Gets the point on the trajectory of super jump.
+---It forms a parabolla using first two vectors,
+---then calculates the position at time t (0 <= t <= ss.SuperJumpTravelTime)
+---@param ply Player
+---@param start Vector
+---@param endpos Vector
+---@param t number
+---@return Vector
 function ss.GetSuperJumpRoute(ply, start, endpos, t)
     local apex = ss.GetSuperJumpApex(ply, start, endpos)
     local jumpdir = endpos - start
     local frac = math.min(1, t / ss.SuperJumpTravelTime)
-    local mid = 4 * apex - 2 * start - 2 * endpos
+    local mid = apex * 4 - start * 2 - endpos * 2
     return start + jumpdir * frac + mid * frac - mid * frac * frac
 end
 
--- = d/dt (ss.GetSuperJumpRoute())
+--- = d/dt (ss.GetSuperJumpRoute())
+---@param ply Entity
+---@param start Vector
+---@param endpos Vector
+---@param t number
+---@return Vector
 function ss.GetSuperJumpVelocity(ply, start, endpos, t)
     local apex = ss.GetSuperJumpApex(ply, start, endpos)
     local jumpdir = endpos - start
     local frac = 1 / ss.SuperJumpTravelTime
-    local mid = 4 * apex - 2 * start - 2 * endpos
+    local mid = apex * 4 - start * 2 - endpos * 2
     return jumpdir * frac + mid * frac - 2 * mid * frac * frac * t
 end
 
--- Gets the apex of super jump trajectory.
+---Gets the apex of super jump trajectory
+---@param ply Entity
+---@param start Vector
+---@param endpos Vector
+---@return Vector
 function ss.GetSuperJumpApex(ply, start, endpos)
     local mid = (start + endpos) / 2
     local trstart = Vector(mid)
@@ -575,13 +688,16 @@ function ss.GetSuperJumpApex(ply, start, endpos)
     if tr.StartSolid then
         trstart.z = tr.StartPos.z
     end
-    return trstart - vector_up * ply:GetViewOffset().z * 3
+    local offset = ply:EyePos().z - ply:GetPos().z
+    return trstart - vector_up * offset * 3
 end
 
+---@param ply Entity
+---@param beakon ENT.SquidBeakon
 function ss.EnterSuperJumpState(ply, beakon)
     local w = ss.IsValidInkling(ply)
     local squid = w and w:GetNWEntity "Squid"
-    if not (w and IsValid(squid)) then return end
+    if not (w and IsValid(squid)) then return end ---@cast squid -?
     if w:GetSuperJumpState() >= 0 then return end
     if CLIENT then return end -- TODO: Predict the beginning of super jump
     squid:SetCycle(0)
@@ -593,6 +709,8 @@ function ss.EnterSuperJumpState(ply, beakon)
     w:SetSuperJumpState(0)
 end
 
+---@param ply Entity
+---@param ang Angle
 function ss.SetSuperJumpBoneManipulation(ply, ang)
     if not (ss.sp or CLIENT) then return end
 
@@ -608,12 +726,16 @@ function ss.SetSuperJumpBoneManipulation(ply, ang)
     ply:ManipulateBoneAngles(boneid, ang)
 end
 
+---@param w SplatoonWeaponBase
+---@param ply Player
+---@param mv CMoveData
+---@return boolean?
 function ss.PerformSuperJump(w, ply, mv)
     local sjs = w:GetSuperJumpState()
     if sjs < 0 then return end
 
     local t = CurTime() - w:GetSuperJumpStartTime()
-    local targetentity = w:GetSuperJumpEntity()
+    local targetentity = w:GetSuperJumpEntity() --[[@as ENT.SquidBeakon|Player]]
     local endpos = w:GetSuperJumpTo()
     if IsValid(targetentity) then
         endpos = targetentity:GetNetworkOrigin()
@@ -644,7 +766,7 @@ function ss.PerformSuperJump(w, ply, mv)
         w:SetSuperJumpFrom(mv:GetOrigin())
         w:SetSuperJumpStartTime(CurTime())
         w:SetSuperJumpState(1)
-        local squid = w:GetNWEntity "Squid"
+        local squid = w:GetNWEntity "Squid" --[[@as ENT.Squid]]
         if IsValid(squid) then
             squid:ResetSequence "jump_roll"
             if SERVER then
@@ -657,7 +779,7 @@ function ss.PerformSuperJump(w, ply, mv)
     end
 
     -- Actual jump
-    local squid = w:GetNWEntity "Squid"
+    local squid = w:GetNWEntity "Squid" --[[@as ENT.Squid]]
     local frac = math.min(1, t / ss.SuperJumpTravelTime)
     if frac < 1 then
         local start = w:GetSuperJumpFrom()
@@ -700,7 +822,7 @@ function ss.PerformSuperJump(w, ply, mv)
 
         return true
     else
-        local dz = -vector_up * ply:GetViewOffset()
+        local dz = -vector_up * ply:GetViewOffset().z
         local trstart = endpos - dz
         local tr = util.TraceHull {
             start = trstart,
@@ -730,6 +852,8 @@ function ss.PerformSuperJump(w, ply, mv)
     end
 end
 
+---@param w SplatoonWeaponBase
+---@param ply Player
 function ss.SuperJumpAnimationFix(w, ply)
     local sjs = w:GetSuperJumpState()
     if sjs < 2 then return end

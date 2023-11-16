@@ -3,6 +3,20 @@ local ss = SplatoonSWEPs
 if not ss then return end
 include "shared.lua"
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Splatling
+---@class SWEP.Splatling : SWEP.Shooter
+---@field CrosshairFlashTime      number
+---@field MinChargeDeg            number
+---@field FullChargeFlagPredicted boolean
+---@field DrawChargeCircle        fun(self, t: SWEP.CrosshairData)
+---@field DrawColoredCircle       fun(self, t: SWEP.CrosshairData)
+---@field DrawCrosshairFlash      fun(self, t: SWEP.CrosshairData)
+
+---@param self SWEP.Splatling
+---@param vm Entity
+---@param weapon SWEP.Splatling
+---@param ply Entity
 local function Spin(self, vm, weapon, ply)
     if self:GetCharge() < math.huge or self:GetFireInk() > 0 then
         local sgn = self:GetNWBool "lefthand" and 1 or -1
@@ -19,6 +33,7 @@ local function Spin(self, vm, weapon, ply)
         vm:ManipulateBoneAngles(b, a)
     end
 
+    ---@cast vm Entity.Colorable
     if not IsValid(vm) then return end
     function vm.GetInkColorProxy()
         return ss.ProtectedCall(self.GetInkColorProxy, self) or ss.vector_one
@@ -82,7 +97,7 @@ end
 function SWEP:DrawFourLines(t, degx, degy)
     local frac = t.Trace.Fraction
     local bgcolor = t.IsSplatoon2 and t.Trace.Hit and ColorAlpha(color_white, 64) or color_white
-    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor")
+    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor") or color_white
     local dir = self:GetAimVector() * t.Distance
     local org = self:GetShootPos()
     local right = EyeAngles():Right()
@@ -163,7 +178,7 @@ function SWEP:DrawCrosshairFlash(t)
     ss.DrawCrosshair.SplatlingFlash(t.HitPosScreen.x, t.HitPosScreen.y, self:GetInkColor(), frac)
 end
 
-function SWEP:DrawCrosshair(x, y)
+function SWEP:CustomDrawCrosshair(x, y)
     if self:GetCharge() == math.huge and self:GetFireInk() == 0 then return end
     local t = self:SetupDrawCrosshair()
     t.EndPosScreen = (self:GetShootPos() + self:GetAimVector() * self.Range):ToScreen()

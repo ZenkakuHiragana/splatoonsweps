@@ -2,11 +2,15 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 local mdl = Model "models/props_junk/PopCan01a.mdl"
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.RollerRolling
+---@class EFFECT.RollerRolling : EFFECT
+
 function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())
     self:SetNoDraw(true)
-    local w = e:GetEntity()
+    local w = e:GetEntity() --[[@as SplatoonWeaponBase]]
     if not IsValid(w) then return end
     local ent = w:IsTPS() and w or w:GetViewModel()
     local a = ent:LookupAttachment "roll"
@@ -16,7 +20,7 @@ function EFFECT:Init(e)
         name = ss.Particles.BrushRunning
     end
 
-    local p = CreateParticleSystem(ent, name, PATTACH_POINT_FOLLOW, a, dp)
+    local p = CreateParticleSystem(ent, name, PATTACH_POINT_FOLLOW, a)
     p:AddControlPoint(1, game.GetWorld(), PATTACH_WORLDORIGIN, nil, w:GetInkColorProxy())
     p:AddControlPoint(2, game.GetWorld(), PATTACH_WORLDORIGIN, nil, vector_up * e:GetRadius())
 end

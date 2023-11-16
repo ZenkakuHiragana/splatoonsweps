@@ -1,7 +1,32 @@
 
+local ENT = ENT
+---@cast ENT ENT.SplashWall
+---@class ENT.SplashWall : ENT.Throwable
+---@field BaseClass ENT.Throwable
+---@field CollisionMesh        Vector[]
+---@field ContactStartTime     number
+---@field DestroyWaitStartTime number
+---@field EmissionInterval     number
+---@field GetUnfolded          fun(self): boolean
+---@field GravityHold          number
+---@field HitNormal            Vector
+---@field IsFirstTimeContact   boolean
+---@field MakeCollisionMesh    fun(self)
+---@field NextEmissionTime     number
+---@field NextPaintTime        number
+---@field Paint                fun(self)
+---@field Parameters           SubParameters.SplashWall
+---@field ParticleEffects      CNewParticleEffect[]
+---@field PhysObjChanged       boolean
+---@field RunningSound         CSoundPatch
+---@field SetUnfolded          fun(self, value: boolean)
+---@field TracePaint           fun(self)
+---@field TracePaintRadius     number
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_throwable"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.AutomaticFrameAdvance = true
@@ -11,7 +36,7 @@ ENT.SubWeaponName = "splashwall"
 ENT.IsFirstTimeContact = true
 
 function ENT:Initialize()
-    local p = ss[self.SubWeaponName].Parameters
+    local p = ss[self.SubWeaponName].Parameters ---@type SubParameters.SplashWall
     self.Parameters = p
     self.StraightFrame = p.Fly_AirFrm
     self.AirResist = p.Fly_VelKd - 1
@@ -19,6 +44,7 @@ function ENT:Initialize()
     self.GravityHold = p.Fly_Gravity
     self.Gravity = p.Fly_Gravity
     self.HitNormal = vector_up
+    self.NextPaintTime = CurTime()
     self.DragCoeffChangeTime = CurTime() + self.StraightFrame
     self.BaseClass.Initialize(self)
     self.RunningSound = CreateSound(self, ss.SplashWallRunning)
@@ -81,7 +107,7 @@ if CLIENT then
     function ENT:Think()
         self:SetNextClientThink(CurTime())
         if not self:GetUnfolded() then return true end
-        if #self.ParticleEffects > 0 then return end
+        if #self.ParticleEffects > 0 then return true end
         if CurTime() < self.NextEmissionTime then return true end
         self.NextEmissionTime = CurTime() + self.EmissionInterval
 
@@ -93,7 +119,7 @@ if CLIENT then
 
         local scale = 8
         local color = ss.GetColor(self:GetNWInt "inkcolor"):ToVector()
-        for i, att in ipairs(self:GetAttachments()) do
+        for i, att in ipairs(self:GetAttachments() or {}) do
             local p = CreateParticleSystem(self, ss.Particles.SplashWall, PATTACH_POINT_FOLLOW, att.id, self:GetPos())
             p:AddControlPoint(1, game.GetWorld(), PATTACH_WORLDORIGIN, nil, color)
             p:AddControlPoint(2, game.GetWorld(), PATTACH_WORLDORIGIN, nil, vector_up * scale)
@@ -106,7 +132,6 @@ if CLIENT then
     return
 end
 
-ENT.NextPaintTime = CurTime()
 function ENT:Paint()
     if not self:GetUnfolded() then return end
     if CurTime() < self.NextPaintTime then return end
@@ -115,9 +140,9 @@ function ENT:Paint()
     local ratio = 0.6
     local radius = self.Parameters.mPaintWidth / 2
     local inkcolor = self:GetNWInt "inkcolor"
-    local atts = self:GetAttachments()
+    local atts = self:GetAttachments() or {}
     local dz = self:OBBMaxs().z
-    local paintPos = {}
+    local paintPos = {} ---@type TraceResult[]
     for _, att in ipairs(atts) do
         -- get rid of leftmost/rightmost nozzle
         if not (att.name:find "7" or att.name:find "6") then
@@ -149,7 +174,7 @@ function ENT:Think()
     self:NextThink(CurTime())
     local p = self:GetPhysicsObject()
     if not IsValid(p) then return true end
-    if not self.ContactStartTime then return end
+    if not self.ContactStartTime then return true end
 
     local i = self:GetFlexIDByName "InkAmount"
     if self.DestroyWaitStartTime then
@@ -184,22 +209,23 @@ function ENT:Think()
 end
 
 function ENT:PhysicsCollide(data, collider)
+    local ent = data.HitEntity --[[@as ENT.SplatBomb]]
     if self:IsStuck() then
-        if data.HitEntity.SubWeaponName then
-            if data.HitEntity.SubWeaponName == "splashwall" then
-                if not data.HitEntity:IsStuck() then
-                    SafeRemoveEntity(data.HitEntity)
+        if ent.SubWeaponName then
+            if ent.SubWeaponName == "splashwall" then
+                if not ent:IsStuck() then
+                    SafeRemoveEntity(ent)
                 end
             else
-                SafeRemoveEntity(data.HitEntity)
-                if isfunction(data.HitEntity.Detonate) then
-                    data.HitEntity:Detonate()
+                SafeRemoveEntity(ent)
+                if isfunction(ent.Detonate) then
+                    ent:Detonate()
                 end
             end
-        elseif not data.HitEntity:IsWorld() then
+        elseif not ent:IsWorld() then
             local d = DamageInfo()
             local dt = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL)
-            if not data.HitEntity:IsPlayer() then dt = bit.bor(dt, DMG_DISSOLVE) end
+            if not ent:IsPlayer() then dt = bit.bor(dt, DMG_DISSOLVE) end
             d:SetDamage(self.Parameters.mDamage)
             d:SetDamageForce(-data.HitNormal)
             d:SetDamagePosition(data.HitPos)
@@ -208,9 +234,9 @@ function ENT:PhysicsCollide(data, collider)
             d:SetAttacker(self:GetOwner())
             d:SetInflictor(self)
             d:ScaleDamage(ss.ToHammerHealth)
-            data.HitEntity:TakeDamageInfo(d)
-            if data.HitEntity:GetClass() == "npc_grenade_frag" then
-                data.HitEntity:Fire("SetTimer", 0)
+            ent:TakeDamageInfo(d)
+            if ent:GetClass() == "npc_grenade_frag" then
+                ent:Fire("SetTimer", "0")
             end
         end
 

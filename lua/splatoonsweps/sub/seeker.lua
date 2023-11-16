@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.seeker = {
     Merge = {
         IsSubWeaponThrowable = false,
     },
+    ---@class SubParameters.Seeker
     Parameters = {
         Burst_Damage_Far = 0.3,
         Burst_Damage_Middle = 0.8,
@@ -72,6 +75,7 @@ ss.seeker = {
 
 ss.ConvertUnits(ss.seeker.Parameters, ss.seeker.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.seeker.Merge
 local p = ss.seeker.Parameters
 function module:CanSecondaryAttack()
@@ -87,7 +91,9 @@ function module:GetSubWeaponInitVelocity()
     return self:GetAimVector() * initspeed
 end
 
-function module:SearchTarget()
+---@param self SplatoonWeaponBase
+---@return Entity?
+local function SearchTarget(self)
     local seeker_search_deg = self:GetFOV() / 4
     local maxdot, ent = math.cos(math.rad(seeker_search_deg)), nil
     for _, e in ipairs(ents.GetAll()) do
@@ -119,8 +125,8 @@ end
 
 if SERVER then
     function module:ServerSecondaryAttack(throwable)
-        local e = ents.Create "ent_splatoonsweps_seeker"
-        e.Target = self:SearchTarget()
+        local e = ents.Create "ent_splatoonsweps_seeker" --[[@as ENT.Seeker]]
+        e.Target = SearchTarget(self)
         e:SetOwner(self:GetOwner())
         e:SetNWInt("inkcolor", self:GetNWInt "inkcolor")
         e:SetInkColorProxy(self:GetInkColorProxy())
@@ -142,7 +148,7 @@ else
             self.SeekerPreviousTarget = nil
         end
 
-        local ent = self:SearchTarget()
+        local ent = SearchTarget(self)
         self.SeekerTargetSearched = RealTime()
         if self.SeekerPreviousTarget ~= ent then
             self.SeekerPreviousTarget = ent

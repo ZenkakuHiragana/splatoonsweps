@@ -1,12 +1,13 @@
 
 -- Clientside ink renderer
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 local CVarWireframe = GetConVar "mat_wireframe"
 local CVarMinecraft = GetConVar "mat_showlowresimage"
-local inkmaterials = {}
-local inknormals = {}
+local inkmaterials = {} ---@type IMaterial[][]
+local inknormals   = {} ---@type IMaterial[][]
 local rt = ss.RenderTarget
 local MAX_QUEUE_TIME = ss.FrameToSec
 local MAX_QUEUES_TOLERANCE = 5 -- Possible number of queues to be processed at once without losing FPS.
@@ -44,6 +45,15 @@ local CollectSurfaces = ss.CollectSurfaces
 local CollisionAABB2D = ss.CollisionAABB2D
 local GetColor = ss.GetColor
 local GetInkReferenceAABB = ss.GetInkReferenceAABB
+---@param radius  number
+---@param ang     number
+---@param normal  Vector
+---@param ratio   number
+---@param color   integer
+---@param inktype integer
+---@param pos     Vector
+---@param order   integer
+---@param tick    integer
 function ss.ReceiveInkQueue(radius, ang, normal, ratio, color, inktype, pos, order, tick)
     if color == 0 or inktype == 0 then return end
     local i = 0
@@ -61,6 +71,8 @@ function ss.ReceiveInkQueue(radius, ang, normal, ratio, color, inktype, pos, ord
         if CollisionAABB2D(start, endpos, center - vr, center + vr) then
             local lightmapoffset = r / 2
             i = i + 1
+            ---@class ss.PaintQueue
+            ---@field done integer
             ss.PaintQueue[tick * 16384 + order * 512 + i] = {
                 angle = ang,
                 center = center,
@@ -149,7 +161,7 @@ local function ProcessPaintQueue()
                 PaintQueue[order] = nil
             end
 
-            if ss.Debug then ss.Debug.ShowInkDrawn(q.start, q.center, q.endpos, q.surf, q, q.surf.Moved) end
+            if ss.Debug then ss.Debug.ShowInkDrawn(q.start, q.center, q.endpos, q.surf, q) end
             if SysTime() - Benchmark > MAX_QUEUE_TIME then
                 yield()
                 Benchmark = SysTime()
@@ -162,6 +174,7 @@ local function ProcessPaintQueue()
 end
 
 local process = coroutine.create(ProcessPaintQueue)
+---@diagnostic disable-next-line: duplicate-set-field
 function ss.ClearAllInk()
     table.Empty(ss.InkQueue)
     table.Empty(ss.PaintSchedule)

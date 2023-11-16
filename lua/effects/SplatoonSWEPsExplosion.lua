@@ -4,6 +4,18 @@ if not ss then return end
 local mat = Material "splatoonsweps/effects/explosion_ink"
 local mdl = Model "models/hunter/misc/sphere2x2.mdl"
 local numframes = 32
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.Explosion
+---@class EFFECT.Explosion : EFFECT
+---@field Color               number
+---@field Frame               integer
+---@field InitTime            number
+---@field IsSubExplosion      boolean
+---@field MaxScale            number
+---@field MinScale            number
+---@field Radius              number
+---@field SubExplosionEmitted boolean
+
 function EFFECT:Init(e)
     local maxscale = e:GetRadius() / 100
     local minscale = maxscale / 2

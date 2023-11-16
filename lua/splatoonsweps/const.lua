@@ -1,6 +1,7 @@
 
 -- Constant values
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -16,14 +17,15 @@ local Marina   = Model "models/egghead/splatoon_2/marina_ida_pm.mdl"
 
 ss.sp = game.SinglePlayer()
 ss.mp = not ss.sp
-ss.Options           = include "splatoonsweps/constants/options.lua"
-ss.WeaponClassNames  = include "splatoonsweps/constants/weaponclasses.lua"
-ss.WeaponClassNames2 = include "splatoonsweps/constants/weaponclasses2.lua"
-ss.TEXTUREFLAGS      = include "splatoonsweps/constants/textureflags.lua"
-ss.RenderTarget      = table.Merge(ss.RenderTarget, include "splatoonsweps/constants/rendertarget.lua")
+ss.Options           = include "splatoonsweps/constants/options.lua" ---@type {[string]: cvartree.CVarOption}
+ss.WeaponClassNames  = include "splatoonsweps/constants/weaponclasses.lua" ---@type string[]
+ss.WeaponClassNames2 = include "splatoonsweps/constants/weaponclasses2.lua" ---@type string[]
+ss.TEXTUREFLAGS      = include "splatoonsweps/constants/textureflags.lua" ---@type table<string, integer>
+ss.RenderTarget      = include "splatoonsweps/constants/rendertarget.lua" ---@type ss.RenderTarget
 ss.InkTankModel      = Model "models/props_splatoon/gear/inktank_backpack/inktank_backpack.mdl"
-ss.Units             = include "splatoonsweps/constants/parameterunits.lua"
+ss.Units             = include "splatoonsweps/constants/parameterunits.lua" ---@type table<string, string>
 
+---@enum PlayerType
 ss.PLAYER = {
     NOCHANGE = 1,
     GIRL     = 2,
@@ -36,12 +38,14 @@ ss.PLAYER = {
     PEARL    = 9,
     MARINA   = 10,
 }
+---@enum SquidType
 ss.SQUID = {
     INKLING = 1,
     KRAKEN  = 2,
     OCTO    = 3,
     OCTO2   = 4,
 }
+---@type { [PlayerType]: string? }
 ss.Playermodel = {
     [ss.PLAYER.NOCHANGE] = nil,
     [ss.PLAYER.GIRL]     = InkGirl,
@@ -54,6 +58,7 @@ ss.Playermodel = {
     [ss.PLAYER.PEARL]    = Pearl,
     [ss.PLAYER.MARINA]   = Marina,
 }
+---@type { [string]: PlayerType }
 ss.PlayermodelInv = {
     [InkGirl]  = ss.PLAYER.GIRL,
     [InkBoy]   = ss.PLAYER.BOY,
@@ -65,12 +70,14 @@ ss.PlayermodelInv = {
     [Pearl]    = ss.PLAYER.PEARL,
     [Marina]   = ss.PLAYER.MARINA,
 }
+---@type { [SquidType]: string }
 ss.Squidmodel = {
     [ss.SQUID.INKLING] = Model "models/splatoonsweps/squids/squid.mdl",
     [ss.SQUID.KRAKEN]  = Model "models/props_splatoon/squids/kraken_beta.mdl",
     [ss.SQUID.OCTO]    = Model "models/splatoonsweps/squids/octopus.mdl",
     [ss.SQUID.OCTO2]   = Model "models/splatoonsweps/squids/octopus2.mdl",
 }
+---@type { [PlayerType]: SquidType? }
 ss.SquidmodelIndex = {
     [ss.PLAYER.NOCHANGE] = nil,
     [ss.PLAYER.GIRL]     = ss.SQUID.INKLING,
@@ -232,6 +239,9 @@ ss.SplatoonMapPorts = {
     humpback_pump_track_night           = true,
 }
 
+---Get path of squid model from PlayerType enum
+---@param pmid PlayerType
+---@return string?
 function ss.GetSquidmodel(pmid)
     if pmid == ss.PLAYER.NOCHANGE then return end
     local squid = ss.Squidmodel[ss.SquidmodelIndex[pmid] or ss.SQUID.INKLING]
@@ -239,25 +249,30 @@ function ss.GetSquidmodel(pmid)
 end
 
 do -- Color tables
-    for i, t in ipairs(include "splatoonsweps/constants/inkcolors.lua") do
+    ---@type table<integer, {[1]: integer, [2]: number, [3]: number, [4]: integer}>
+    local inkcolors = include "splatoonsweps/constants/inkcolors.lua"
+    for i, t in ipairs(inkcolors) do
         local c = HSVToColor(t[1], t[2], t[3])
         ss.InkColors[i]       = ColorAlpha(c, c.a)
         ss.CrosshairColors[i] = t[4]
         ss.MAX_COLORS         = #ss.InkColors
     end
-    ss.COLOR_BITS = select(2, math.frexp(ss.MAX_COLORS))
+
+    ss.COLOR_BITS = select(2, math.frexp(ss.MAX_COLORS)) ---@type integer
 end
 
 do -- Ink distribution map
     local one = string.byte "1"
     local path = "splatoonsweps/constants/inkdistributions/shot%d.lua"
     for i = 1, 14 do
-        local f, mask = path:format(i), {}
-        local w, h, data = include(f)
-        mask.width, mask.height = w, h
-        data = data:Split "\n"
-        for y = 1, h do
-            for x, d in ipairs {data[y]:byte(1, #data[y])} do
+        local f = path:format(i)
+        ---@type { w: integer, h: integer, data: string }
+        local map = include(f)
+        ---@type { width: integer, height: integer, [integer]: boolean[] }
+        local mask = { width = map.w, height = map.h }
+        local lines = map.data:Split "\n"
+        for y = 1, map.h do
+            for x, d in ipairs { lines[y]:byte(1, #lines[y]) } do
                 mask[x] = mask[x] or {}
                 mask[x][y] = d == one
             end
@@ -266,13 +281,18 @@ do -- Ink distribution map
         ss.InkShotMaterials[i] = mask
     end
 
-    ss.INK_TYPE_BITS = select(2, math.frexp(#ss.InkShotMaterials))
+    ss.INK_TYPE_BITS = select(2, math.frexp(#ss.InkShotMaterials)) ---@type integer
 end
 
 game.AddParticles "particles/splatoonsweps.pcf"
 for _, p in pairs(ss.Particles) do PrecacheParticleSystem(p) end
 
-function ss.GetColor(colorid) return ss.InkColors[tonumber(colorid)] end
+---Gets actual color from color ID
+---@param colorid integer|string
+---@return Color
+function ss.GetColor(colorid)
+    return ss.InkColors[tonumber(colorid)]
+end
 
 if game.GetMap() == "gm_inkopolis_b1" then
     ss.SquidSolidMask          = bit.band(MASK_PLAYERSOLID, bit.bnot(CONTENTS_PLAYERCLIP))
@@ -284,36 +304,37 @@ else
     ss.MASK_GRATE              = bit.bor(CONTENTS_GRATE, CONTENTS_MONSTER)
 end
 
-local framepersec = 60
-local inklingspeed = .96 * framepersec
-ss.eps                      = 1e-9 -- Epsilon, representing "close-to-zero"
+local fps = 60
+local inklingspeed = .96 * fps
+local dutohu = .1 * 3.28084 * 16 * (1.00965 / 1.5)        -- Distance units to Hammer units
+ss.eps                      = 1e-9                        -- Epsilon, representing "close-to-zero"
 ss.vector_one               = Vector(1, 1, 1)
 ss.MaxInkAmount             = 100
 ss.SquidBoundHeight         = 32
 ss.SquidViewOffset          = vector_up * 24
-ss.InkGridSize              = 12 -- in Hammer Units
-ss.DisruptedSpeed           = .45 -- Disruptor's debuff factor
-ss.DisruptorDuration        = 5 -- Disruptor lasts this seconds
-ss.PointSensorDuration      = 8 -- It was 10 sec. until version 2.1.0.
-ss.InklingJumpPower         = 250
-ss.InklingSpeedMulSubWeapon = .75 -- Speed multiplier when holding MOUSE2
-ss.JumpPowerMulOnEnemyInk   = .75
-ss.JumpPowerMulDisrupted    = .6
-ss.SuperJumpWaitTime        = 1.5 -- Time to wait for super jump
-ss.SuperJumpTravelTime      = 2.8 -- Time from start to end of the super jump
-ss.SuperJumpVoiceDelay      = 0.8 -- Delay to play super jump voice
-ss.ToHammerUnits            = .1 * 3.28084 * 16 * (1.00965 / 1.5)  -- = 3.53, Splatoon distance units -> Hammer distance units
-ss.ToHammerUnitsPerSec      = ss.ToHammerUnits * framepersec       -- = 212, Splatoon du/s -> Hammer du/s
-ss.ToHammerUnitsPerSec2     = ss.ToHammerUnitsPerSec * framepersec -- = 12720, Splatoon du/s^2 -> Hammer du/s^2
-ss.ToHammerHealth           = 100             -- Health is normalized in Splatoon (0--1)
-ss.FrameToSec               = 1 / framepersec -- = 0.016667, Constants for time conversion
-ss.SecToFrame               = framepersec     -- = 60, Constants for time conversion
-ss.mDegRandomY              = .5              -- Shooter spread angle, yaw (need to be validated)
-ss.SquidSpeedOutofInk       = .45             -- Squid speed coefficient when it goes out of ink.
-ss.CameraFadeDistance       = 100^2           -- Thirdperson model fade distance[Hammer units^2]
+ss.InkGridSize              = 12                          -- in Hammer Units
+ss.DisruptedSpeed           = .45                         -- Disruptor's debuff factor
+ss.DisruptorDuration        = 5                           -- Disruptor lasts this seconds
+ss.PointSensorDuration      = 8                           -- It was 10 sec. until version 2.1.0.
+ss.InklingJumpPower         = 250                         -- Base jump power
+ss.InklingSpeedMulSubWeapon = .75                         -- Speed multiplier when holding MOUSE2
+ss.JumpPowerMulOnEnemyInk   = .75                         -- Jump power multiplier when on enemy ink
+ss.JumpPowerMulDisrupted    = .6                          -- Jump power multiplier when disrupted
+ss.SuperJumpWaitTime        = 1.5                         -- Time to wait for super jump
+ss.SuperJumpTravelTime      = 2.8                         -- Time from start to end of the super jump
+ss.SuperJumpVoiceDelay      = 0.8                         -- Delay to play super jump voice
+ss.ToHammerUnits            = dutohu                      -- = 3.53, Splatoon distance units -> Hammer distance units
+ss.ToHammerUnitsPerSec      = dutohu * fps                -- = 212, Splatoon du/s -> Hammer du/s
+ss.ToHammerUnitsPerSec2     = dutohu * fps * fps          -- = 12720, Splatoon du/s^2 -> Hammer du/s^2
+ss.ToHammerHealth           = 100                         -- Health is normalized in Splatoon (0--1)
+ss.FrameToSec               = 1 / fps                     -- = 0.016667, Constants for time conversion
+ss.SecToFrame               = fps                         -- = 60, Constants for time conversion
+ss.mDegRandomY              = .5                          -- Shooter spread angle, yaw (need to be validated)
+ss.SquidSpeedOutofInk       = .45                         -- Squid speed coefficient when it goes out of ink.
+ss.CameraFadeDistance       = 100^2                       -- Thirdperson model fade distance[Hammer units^2]
 ss.InkDropGravity           = 1 * ss.ToHammerUnitsPerSec2 -- The gravity acceleration of ink drops[Hammer units/s^2]
-ss.ShooterAirResist         = 0.25 -- Air resistance of Shooter's ink.  The velocity will be multiplied by (1 - AirResist).
-ss.RollerAirResist          = 0.1  -- Air resistance of Roller's splash.
+ss.ShooterAirResist         = 0.25                        -- Air resistance of Shooter's ink.  The velocity will be multiplied by (1 - AirResist).
+ss.RollerAirResist          = 0.1                         -- Air resistance of Roller's splash.
 ss.CrosshairBaseAlpha       = 64
 ss.CrosshairBaseColor       = ColorAlpha(color_white, ss.CrosshairBaseAlpha)
 ss.CrosshairDarkColor       = ColorAlpha(color_black, ss.CrosshairBaseAlpha)
@@ -327,30 +348,21 @@ ss.SquidTrace = {
     maxs           = ss.vector_one,
 }
 
-for key, value in pairs {
-    InklingBaseSpeed   = inklingspeed,        -- Walking speed [Splatoon units/60frame]
-    SquidBaseSpeed     = 1.923 * framepersec, -- Swimming speed [Splatoon units/60frame]
-    OnEnemyInkSpeed    = inklingspeed / 4,    -- On enemy ink speed[Splatoon units/60frame]
-    mColRadius         = 2,                   -- Shooter's ink collision radius[Splatoon units]
-    mPaintNearDistance = 11,                  -- Start decreasing distance[Splatoon units]
-    mPaintFarDistance  = 200,                 -- Minimum radius distance[Splatoon units]
-    mSplashDrawRadius  = 3,                   -- Ink drop position random spread value[Splatoon units]
-    mSplashColRadius   = 1.5,                 -- Ink drop collision radius[Splatoon units]
-} do
-    ss[key] = value * ss.ToHammerUnits
-end
-
-for key, value in pairs {
-    AimDuration             = 20, -- Change hold type
-    CrouchDelay             = 6,  -- Cannot crouch for some frames after firing.
-    EnemyInkCrouchEndurance = 20, -- Time to force inklings to stand up when they're on enemy ink.
-    HealDelay               = 60, -- Time to heal again after taking damage.
-    RollerRunoverStopFrame  = 30, -- Stopping time when inkling tries to run over.
-    ShooterTrailDelay       = 2,  -- Time to start to move the latter half of shooter's ink.
-    SubWeaponThrowTime      = 25, -- Duration of TPS sub weapon throwing animation.
-} do
-    ss[key] = value * ss.FrameToSec
-end
+ss.InklingBaseSpeed        = ss.ToHammerUnits * inklingspeed     -- Walking speed [Splatoon units/60frame]
+ss.SquidBaseSpeed          = ss.ToHammerUnits * 1.923 * fps      -- Swimming speed [Splatoon units/60frame]
+ss.OnEnemyInkSpeed         = ss.ToHammerUnits * inklingspeed / 4 -- On enemy ink speed[Splatoon units/60frame]
+ss.mColRadius              = ss.ToHammerUnits * 2                -- Shooter's ink collision radius[Splatoon units]
+ss.mPaintNearDistance      = ss.ToHammerUnits * 11               -- Start decreasing distance[Splatoon units]
+ss.mPaintFarDistance       = ss.ToHammerUnits * 200              -- Minimum radius distance[Splatoon units]
+ss.mSplashDrawRadius       = ss.ToHammerUnits * 3                -- Ink drop position random spread value[Splatoon units]
+ss.mSplashColRadius        = ss.ToHammerUnits * 1.5              -- Ink drop collision radius[Splatoon units]
+ss.AimDuration             = ss.FrameToSec    * 20               -- Change hold type
+ss.CrouchDelay             = ss.FrameToSec    * 6                -- Cannot crouch for some frames after firing.
+ss.EnemyInkCrouchEndurance = ss.FrameToSec    * 20               -- Time to force inklings to stand up when they're on enemy ink.
+ss.HealDelay               = ss.FrameToSec    * 60               -- Time to heal again after taking damage.
+ss.RollerRunoverStopFrame  = ss.FrameToSec    * 30               -- Stopping time when inkling tries to run over.
+ss.ShooterTrailDelay       = ss.FrameToSec    * 2                -- Time to start to move the latter half of shooter's ink.
+ss.SubWeaponThrowTime      = ss.FrameToSec    * 25               -- Duration of TPS sub weapon throwing animation.
 
 ss.UnitsConverter = {
     ["du"]     = ss.ToHammerUnits,

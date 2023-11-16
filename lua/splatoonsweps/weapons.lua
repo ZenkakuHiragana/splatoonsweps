@@ -1,13 +1,535 @@
 
 -- Functions for weapon settings.
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@alias Parameters
+---| Parameters.Shooter
+---| Parameters.Blaster
+---| Parameters.Charger
+---| Parameters.Splatling
+---| Parameters.Roller
+---| Parameters.Slosher
+
+---@alias SubParameters
+---| SubParameters.BurstBomb
+---| SubParameters.Disruptor
+---| SubParameters.Inkmine
+---| SubParameters.PointSensor
+---| SubParameters.Seeker
+---| SubParameters.SplashWall
+---| SubParameters.SplatBomb
+---| SubParameters.Sprinkler
+---| SubParameters.SquidBeakon
+---| SubParameters.SuctionBomb
+
+---@class ISubWeaponDef
+---@field Merge      table<string, any>
+---@field Parameters SubParameters
+---@field Units      table<string, string>
+---@field BurstSound string?
+---@field GetDamage (fun(distance: number, ent: Entity?): number)?
+
+---@class ss.InkQueue
+---@field Data                   Projectile
+---@field InitTime               number
+---@field IsCarriedByLocalPlayer boolean
+---@field Owner                  Entity?
+---@field Parameters             Parameters
+---@field Trace                  ss.InkQueueTrace
+---@field CurrentSpeed           number
+---@field BlasterRemoval         boolean
+---@field BlasterHitWall         boolean
+---@field Exploded               boolean
+
+---@class ss.InkQueueTrace : Trace, HullTrace
+---@field LengthSum number
+---@field LifeTime  number
+
+---@class Projectile
+---@field AirResist              number   Air resistance.  Horizontal velocity at next frame = Current horizontal velocity * AirResist
+---@field Color                  number   Ink color ID
+---@field ColRadiusEntity        number   Collision radius against entities
+---@field ColRadiusWorld         number   Collision radius against the world
+---@field DoDamage               boolean  Whether or not the ink deals damage
+---@field DamageMax              number   Maximum damage
+---@field DamageMaxDistance      number   Ink travel distance to start decaying damage
+---@field DamageMin              number   Minimum damage
+---@field DamageMinDistance      number   Ink travel distance to end decaying damage
+---@field Gravity                number   Gravity acceleration
+---@field ID                     number   Ink identifier to avoid multiple damages at once
+---@field InitDir                Vector   (Auto set) Initial direction of velocity
+---@field InitPos                Vector   Initial position
+---@field InitSpeed              number   (Auto set) Initial speed
+---@field InitVel                Vector   Initial velocity
+---@field IsCritical             boolean  Whether or not the ink is critical (true to change the hit effect)
+---@field PaintFarDistance       number   Ink travel distance to end shrinking paint radius
+---@field PaintFarRadius         number   Painting radius when hit
+---@field PaintFarRatio          number   Painting aspect ratio at the end
+---@field PaintNearDistance      number   Ink travel distance to start shrinking paint radius
+---@field PaintNearRadius        number   Painting radius when hit
+---@field PaintNearRatio         number   Painting aspect ratio at the beginning
+---@field PaintRatioFarDistance  number   Ink travel distance to end changing paint aspect ratio
+---@field PaintRatioNearDistance number   Ink travel distance to start changing paint aspect ratio
+---@field Range                  number   (For Chargers) Ink travel distance limit
+---@field ScatterSplashCount     integer? (For Sloshing Maching) Number of scatte splashes spawned so far
+---@field ScatterSplashTime      number?  (For Sloshing Machine) Time to seek when to spawn next scatter splash
+---@field SplashColRadius        number   Collision radius against entities/world for splashes created from the ink
+---@field SplashDrawRadius       number?  Draw radius for splashes created from the ink
+---@field SplashCount            number   (Variable) Current number of splashes the ink has dropped so far
+---@field SplashInitRate         number   Determines the position of the first splash the ink drops = SplashLength * SplashInitRate
+---@field SplashLength           number   Length between two splashes from the ink
+---@field SplashNum              number   Number of total splashes the ink will drop
+---@field SplashPaintRadius      number   Painting radius splashes will paint
+---@field SplashRatio            number   Painting aspect ratio for splashes
+---@field StraightFrame          number   The ink travels without affecting gravity for this frames
+---@field Type                   number   The shape of the paintings
+---@field WallPaintFirstLength   number   (For Chargers) Determines the position of the first paint for the vertical wall paint
+---@field WallPaintLength        number   (For Chargers) Length between two paints for the vertical wall paint
+---@field WallPaintMaxNum        number   (For Chargers) Number of paints for the vertical wall paint
+---@field WallPaintRadius        number   (For Chargers) Painting radius for the vertical wall paint
+---@field WallPaintUseSplashNum  boolean  (For Chargers) True to use the rest of splash count (SplashNum - SplashCount) instead of WallPaintMaxNum
+---@field Weapon                 SplatoonWeaponBase The weapon entity which created the ink
+---@field Yaw                    number   Determines the angle of the paintings in degrees
+---@field Charge                 number   (For Chargers) Fired at this %
+
+---@class Parameters.Shooter
+---@field mRepeatFrame                  number
+---@field mTripleShotSpan               number
+---@field mInitVel                      number
+---@field mDegRandom                    number
+---@field mDegJumpRandom                number
+---@field mSplashSplitNum               number
+---@field mKnockBack                    number
+---@field mInkConsume                   number
+---@field mInkRecoverStop               number
+---@field mMoveSpeed                    number
+---@field mDamageMax                    number
+---@field mDamageMin                    number
+---@field mDamageMinFrame               number
+---@field mStraightFrame                number
+---@field mGuideCheckCollisionFrame     number
+---@field mCreateSplashNum              number
+---@field mCreateSplashLength           number
+---@field mDrawRadius                   number
+---@field mColRadius                    number
+---@field mPaintNearDistance            number
+---@field mPaintFarDistance             number
+---@field mPaintNearRadius              number
+---@field mPaintFarRadius               number
+---@field mSplashDrawRadius             number
+---@field mSplashColRadius              number
+---@field mSplashPaintRadius            number
+---@field mArmorTypeGachihokoDamageRate number?
+---@field mDegBias                      number
+---@field mDegBiasKf                    number
+---@field mDegJumpBias                  number
+---@field mDegJumpBiasFrame             number
+
+---@class Parameters.Blaster : Parameters.Shooter
+---@field mExplosionFrame                              number
+---@field mExplosionSleep                              boolean
+---@field mDamageNear                                  number
+---@field mCollisionRadiusNear                         number
+---@field mDamageMiddle                                number
+---@field mCollisionRadiusMiddle                       number
+---@field mDamageFar                                   number
+---@field mCollisionRadiusFar                          number
+---@field mShotCollisionHitDamageRate                  number
+---@field mShotCollisionRadiusRate                     number
+---@field mKnockBackRadius                             number
+---@field mMoveLength                                  number
+---@field mSphereSplashDropOn                          boolean
+---@field mSphereSplashDropInitSpeed                   number
+---@field mSphereSplashDropCollisionRadius             number
+---@field mSphereSplashDropDrawRadius                  number
+---@field mSphereSplashDropPaintRadius                 number
+---@field mSphereSplashDropPaintShotCollisionHitRadius number
+---@field mBoundPaintMaxRadius                         number
+---@field mBoundPaintMinRadius                         number
+---@field mBoundPaintMinDistanceXZ                     number
+---@field mWallHitPaintRadius                          number
+---@field mPreDelayFrm_HumanMain                       number
+---@field mPreDelayFrm_SquidMain                       number
+---@field mPostDelayFrm_Main                           number
+
+---@class Parameters.Splatling : Parameters.Shooter
+---@field mMinChargeFrame                     number
+---@field mFirstPeriodMaxChargeFrame          number
+---@field mSecondPeriodMaxChargeFrame         number
+---@field mFirstPeriodMaxChargeShootingFrame  number
+---@field mSecondPeriodMaxChargeShootingFrame number
+---@field mWaitShootingFrame                  number
+---@field mEmptyChargeTimes                   number
+---@field mInitVelMinCharge                   number
+---@field mInitVelFirstPeriodMaxCharge        number
+---@field mInitVelSecondPeriodMinCharge       number
+---@field mInitVelSecondPeriodMaxCharge       number
+---@field mDamageMaxMaxCharge                 number
+---@field mMoveSpeed_Charge                   number
+---@field mVelGnd_DownRt_Charge               number
+---@field mVelGnd_Bias_Charge                 number
+---@field mJumpGnd_Charge                     number
+---@field mInitVelSpeedRateRandom             number
+---@field mInitVelSpeedBias                   number
+---@field mInitVelDegRandom                   number
+---@field mInitVelDegBias                     number
+---@field mPaintDepthScaleBias                number
+
+---@class Parameters.Charger
+---@field mMinDistance                           number
+---@field mMaxDistance                           number
+---@field mMaxDistanceScoped                     number
+---@field mFullChargeDistance                    number
+---@field mFullChargeDistanceScoped              number
+---@field mMinChargeFrame                        number
+---@field mMaxChargeFrame                        number
+---@field mEmptyChargeTimes                      number
+---@field mFreezeFrmL                            number
+---@field mInitVelL                              number
+---@field mFreezeFrmH                            number
+---@field mInitVelH                              number
+---@field mInitVelF                              number
+---@field mInkConsume                            number
+---@field mMoveSpeed                             number
+---@field mVelGnd_DownRt                         number
+---@field mVelGnd_Bias                           number
+---@field mJumpGnd                               number
+---@field mMaxChargeSplashPaintRadius            number
+---@field mPaintNearR_WeakRate                   number
+---@field mPaintRateLastSplash                   number
+---@field mMinChargeDamage                       number
+---@field mMaxChargeDamage                       number
+---@field mFullChargeDamage                      number
+---@field mSplashBetweenMaxSplashPaintRadiusRate number
+---@field mSplashBetweenMinSplashPaintRadiusRate number
+---@field mSplashDepthMinChargeScaleRateByWidth  number
+---@field mSplashDepthMaxChargeScaleRateByWidth  number
+---@field mSplashNearFootOccurChargeRate         number
+---@field mSplashSplitNum                        number
+---@field mSniperCameraMoveStartChargeRate       number
+---@field mSniperCameraMoveEndChargeRate         number
+---@field mSniperCameraFovy                      number
+---@field mSniperCameraPlayerAlphaChargeRate     number
+---@field mSniperCameraPlayerInvisibleChargeRate number
+---@field mMinChargeColRadiusForPlayer           number
+---@field mMaxChargeColRadiusForPlayer           number
+---@field mMinChargeHitSplashNum                 number
+---@field mMaxChargeHitSplashNum                 number
+---@field mMaxHitSplashNumChargeRate             number
+
+---@class Parameters.Roller
+---@field mSwingLiftFrame                    number
+---@field mSplashNum                         number
+---@field mSplashInitSpeedBase               number
+---@field mSplashInitSpeedRandomZ            number
+---@field mSplashInitSpeedRandomX            number
+---@field mSplashInitVecYRate                number
+---@field mSplashDeg                         number
+---@field mSplashSubNum                      number
+---@field mSplashSubInitSpeedBase            number
+---@field mSplashSubInitSpeedRandomZ         number
+---@field mSplashSubInitSpeedRandomX         number
+---@field mSplashSubInitVecYRate             number
+---@field mSplashSubDeg                      number
+---@field mSplashPositionWidth               number
+---@field mSplashInsideDamageRate            number
+---@field mCorePaintWidthHalf                number
+---@field mCorePaintSlowMoveWidthHalf        number
+---@field mSlowMoveSpeed                     number
+---@field mCoreColWidthHalf                  number
+---@field mInkConsumeCore                    number
+---@field mInkConsumeSplash                  number
+---@field mInkRecoverCoreStop                number
+---@field mInkRecoverSplashStop              number
+---@field mMoveSpeed                         number
+---@field mCoreColRadius                     number
+---@field mCoreDamage                        number
+---@field mTargetEffectScale                 number
+---@field mTargetEffectVelRate               number
+---@field mSplashStraightFrame               number
+---@field mSplashDamageMaxDist               number
+---@field mSplashDamageMinDist               number
+---@field mSplashDamageMaxValue              number
+---@field mSplashDamageMinValue              number
+---@field mSplashOutsideDamageMaxDist        number
+---@field mSplashOutsideDamageMinDist        number
+---@field mSplashOutsideDamageMaxValue       number
+---@field mSplashOutsideDamageMinValue       number
+---@field mSplashDamageRateBias              number
+---@field mSplashDrawRadius                  number
+---@field mSplashPaintNearD                  number
+---@field mSplashPaintNearR                  number
+---@field mSplashPaintFarD                   number
+---@field mSplashPaintFarR                   number
+---@field mSplashCollisionRadiusForField     number
+---@field mSplashCollisionRadiusForPlayer    number
+---@field mSplashCoverApertureFreeFrame      number
+---@field mSplashSubStraightFrame            number
+---@field mSplashSubDamageMaxDist            number
+---@field mSplashSubDamageMinDist            number
+---@field mSplashSubDamageMaxValue           number
+---@field mSplashSubDamageMinValue           number
+---@field mSplashSubDamageRateBias           number
+---@field mSplashSubDrawRadius               number
+---@field mSplashSubPaintNearD               number
+---@field mSplashSubPaintNearR               number
+---@field mSplashSubPaintFarD                number
+---@field mSplashSubPaintFarR                number
+---@field mSplashSubCollisionRadiusForField  number
+---@field mSplashSubCollisionRadiusForPlayer number
+---@field mSplashSubCoverApertureFreeFrame   number
+---@field mSplashPaintType                   number
+---@field mArmorTypeObjectDamageRate         number
+---@field mArmorTypeGachihokoDamageRate      number?
+---@field mPaintBrushType                    boolean
+---@field mPaintBrushRotYDegree              number
+---@field mPaintBrushSwingRepeatFrame        number
+---@field mPaintBrushNearestBulletLoopNum    number
+---@field mPaintBrushNearestBulletOrderNum   number
+---@field mPaintBrushNearestBulletRadius     number
+---@field mDropSplashDrawRadius              number
+---@field mDropSplashPaintRadius             number
+
+---@class Parameters.Slosher
+---@field mSwingLiftFrame                                       number
+---@field mSwingRepeatFrame                                     number
+---
+---@field mFirstGroupBulletNum                                  number
+---@field mFirstGroupBulletFirstInitSpeedBase                   number
+---@field mFirstGroupBulletFirstInitSpeedJumpingBase            number
+---@field mFirstGroupBulletAfterInitSpeedOffset                 number
+---@field mFirstGroupBulletInitSpeedRandomZ                     number
+---@field mFirstGroupBulletInitSpeedRandomX                     number
+---@field mFirstGroupBulletInitVecYRate                         number
+---@field mFirstGroupBulletFirstDrawRadius                      number
+---@field mFirstGroupBulletAfterDrawRadiusOffset                number
+---@field mFirstGroupBulletFirstPaintNearD                      number
+---@field mFirstGroupBulletFirstPaintNearR                      number
+---@field mFirstGroupBulletFirstPaintNearRate                   number
+---@field mFirstGroupBulletFirstPaintFarD                       number
+---@field mFirstGroupBulletFirstPaintFarR                       number
+---@field mFirstGroupBulletFirstPaintFarRate                    number
+---@field mFirstGroupBulletSecondAfterPaintNearD                number
+---@field mFirstGroupBulletSecondAfterPaintNearR                number
+---@field mFirstGroupBulletSecondAfterPaintNearRate             number
+---@field mFirstGroupBulletSecondAfterPaintFarD                 number
+---@field mFirstGroupBulletSecondAfterPaintFarR                 number
+---@field mFirstGroupBulletSecondAfterPaintFarRate              number
+---@field mFirstGroupBulletFirstCollisionRadiusForField         number
+---@field mFirstGroupBulletAfterCollisionRadiusForFieldOffset   number
+---@field mFirstGroupBulletFirstCollisionRadiusForPlayer        number
+---@field mFirstGroupBulletAfterCollisionRadiusForPlayerOffset  number
+---@field mFirstGroupBulletFirstDamageMaxValue                  number
+---@field mFirstGroupBulletFirstDamageMinValue                  number
+---@field mFirstGroupBulletDamageRateBias                       number
+---@field mFirstGroupBulletAfterDamageRateOffset                number
+---@field mFirstGroupSplashFirstOccur                           boolean
+---@field mFirstGroupSplashFromSecondToLastOneOccur             boolean
+---@field mFirstGroupSplashLastOccur                            boolean
+---@field mFirstGroupSplashMaxNum                               number
+---@field mFirstGroupSplashDrawRadius                           number
+---@field mFirstGroupSplashColRadius                            number
+---@field mFirstGroupSplashPaintRadius                          number
+---@field mFirstGroupSplashDepthScaleRateByWidth                number
+---@field mFirstGroupSplashBetween                              number
+---@field mFirstGroupSplashFirstDropRandomRateMin               number
+---@field mFirstGroupSplashFirstDropRandomRateMax               number
+---@field mFirstGroupBulletUnuseOneEmitterBulletNum             number
+---@field mFirstGroupCenterLine                                 boolean
+---@field mFirstGroupSideLine                                   boolean
+---
+---@field mSecondGroupBulletNum                                 number
+---@field mSecondGroupBulletFirstInitSpeedBase                  number
+---@field mSecondGroupBulletFirstInitSpeedJumpingBase           number
+---@field mSecondGroupBulletAfterInitSpeedOffset                number
+---@field mSecondGroupBulletInitSpeedRandomZ                    number
+---@field mSecondGroupBulletInitSpeedRandomX                    number
+---@field mSecondGroupBulletInitVecYRate                        number
+---@field mSecondGroupBulletFirstDrawRadius                     number
+---@field mSecondGroupBulletAfterDrawRadiusOffset               number
+---@field mSecondGroupBulletFirstPaintNearD                     number
+---@field mSecondGroupBulletFirstPaintNearR                     number
+---@field mSecondGroupBulletFirstPaintNearRate                  number
+---@field mSecondGroupBulletFirstPaintFarD                      number
+---@field mSecondGroupBulletFirstPaintFarR                      number
+---@field mSecondGroupBulletFirstPaintFarRate                   number
+---@field mSecondGroupBulletSecondAfterPaintNearD               number
+---@field mSecondGroupBulletSecondAfterPaintNearR               number
+---@field mSecondGroupBulletSecondAfterPaintNearRate            number
+---@field mSecondGroupBulletSecondAfterPaintFarD                number
+---@field mSecondGroupBulletSecondAfterPaintFarR                number
+---@field mSecondGroupBulletSecondAfterPaintFarRate             number
+---@field mSecondGroupBulletFirstCollisionRadiusForField        number
+---@field mSecondGroupBulletAfterCollisionRadiusForFieldOffset  number
+---@field mSecondGroupBulletFirstCollisionRadiusForPlayer       number
+---@field mSecondGroupBulletAfterCollisionRadiusForPlayerOffset number
+---@field mSecondGroupBulletFirstDamageMaxValue                 number
+---@field mSecondGroupBulletFirstDamageMinValue                 number
+---@field mSecondGroupBulletDamageRateBias                      number
+---@field mSecondGroupBulletAfterDamageRateOffset               number
+---@field mSecondGroupSplashFirstOccur                          boolean
+---@field mSecondGroupSplashFromSecondToLastOneOccur            boolean
+---@field mSecondGroupSplashLastOccur                           boolean
+---@field mSecondGroupSplashMaxNum                              number
+---@field mSecondGroupSplashDrawRadius                          number
+---@field mSecondGroupSplashColRadius                           number
+---@field mSecondGroupSplashPaintRadius                         number
+---@field mSecondGroupSplashDepthScaleRateByWidth               number
+---@field mSecondGroupSplashBetween                             number
+---@field mSecondGroupSplashFirstDropRandomRateMin              number
+---@field mSecondGroupSplashFirstDropRandomRateMax              number
+---@field mSecondGroupBulletUnuseOneEmitterBulletNum            number
+---@field mSecondGroupCenterLine                                boolean
+---@field mSecondGroupSideLine                                  boolean
+---
+---@field mThirdGroupBulletNum                                  number
+---@field mThirdGroupBulletFirstInitSpeedBase                   number
+---@field mThirdGroupBulletFirstInitSpeedJumpingBase            number
+---@field mThirdGroupBulletAfterInitSpeedOffset                 number
+---@field mThirdGroupBulletInitSpeedRandomZ                     number
+---@field mThirdGroupBulletInitSpeedRandomX                     number
+---@field mThirdGroupBulletInitVecYRate                         number
+---@field mThirdGroupBulletFirstDrawRadius                      number
+---@field mThirdGroupBulletAfterDrawRadiusOffset                number
+---@field mThirdGroupBulletFirstPaintNearD                      number
+---@field mThirdGroupBulletFirstPaintNearR                      number
+---@field mThirdGroupBulletFirstPaintNearRate                   number
+---@field mThirdGroupBulletFirstPaintFarD                       number
+---@field mThirdGroupBulletFirstPaintFarR                       number
+---@field mThirdGroupBulletFirstPaintFarRate                    number
+---@field mThirdGroupBulletSecondAfterPaintNearD                number
+---@field mThirdGroupBulletSecondAfterPaintNearR                number
+---@field mThirdGroupBulletSecondAfterPaintNearRate             number
+---@field mThirdGroupBulletSecondAfterPaintFarD                 number
+---@field mThirdGroupBulletSecondAfterPaintFarR                 number
+---@field mThirdGroupBulletSecondAfterPaintFarRate              number
+---@field mThirdGroupBulletFirstCollisionRadiusForField         number
+---@field mThirdGroupBulletAfterCollisionRadiusForFieldOffset   number
+---@field mThirdGroupBulletFirstCollisionRadiusForPlayer        number
+---@field mThirdGroupBulletAfterCollisionRadiusForPlayerOffset  number
+---@field mThirdGroupBulletFirstDamageMaxValue                  number
+---@field mThirdGroupBulletFirstDamageMinValue                  number
+---@field mThirdGroupBulletDamageRateBias                       number
+---@field mThirdGroupBulletAfterDamageRateOffset                number
+---@field mThirdGroupSplashFirstOccur                           boolean
+---@field mThirdGroupSplashFromSecondToLastOneOccur             boolean
+---@field mThirdGroupSplashLastOccur                            boolean
+---@field mThirdGroupSplashMaxNum                               number
+---@field mThirdGroupSplashDrawRadius                           number
+---@field mThirdGroupSplashColRadius                            number
+---@field mThirdGroupSplashPaintRadius                          number
+---@field mThirdGroupSplashDepthScaleRateByWidth                number
+---@field mThirdGroupSplashBetween                              number
+---@field mThirdGroupSplashFirstDropRandomRateMin               number
+---@field mThirdGroupSplashFirstDropRandomRateMax               number
+---@field mThirdGroupBulletUnuseOneEmitterBulletNum             number
+---@field mThirdGroupCenterLine                                 boolean
+---@field mThirdGroupSideLine                                   boolean
+---
+---@field mFirstGroupBulletAfterFrameOffset                     number
+---@field mSecondGroupBulletFirstFrameOffset                    number
+---@field mSecondGroupBulletAfterFrameOffset                    number
+---@field mThirdGroupBulletFirstFrameOffset                     number
+---@field mThirdGroupBulletAfterFrameOffset                     number
+---@field mFrameOffsetMaxMoveLength                             number
+---@field mFrameOffsetMaxDegree                                 number
+---@field mLineNum                                              number
+---@field mLineDegree                                           number
+---@field mGuideCenterGroup                                     number
+---@field mGuideCenterBulletNumInGroup                          number
+---@field mGuideCenterCheckCollisionFrame                       number
+---@field mGuideSideGroup                                       number
+---@field mGuideSideBulletNumInGroup                            number
+---@field mGuideSideCheckCollisionFrame                         number
+---@field mShotRandomDegreeExceptBulletForGuide                 number
+---@field mShotRandomBiasExceptBulletForGuide                   number
+---@field mFreeStateGravity                                     number
+---@field mFreeStateAirResist                                   number
+---@field mDropSplashDrawRadius                                 number
+---@field mDropSplashColRadius                                  number
+---@field mDropSplashPaintRadius                                number
+---@field mDropSplashPaintRate                                  number
+---@field mDropSplashOffsetX                                    number
+---@field mDropSplashOffsetZ                                    number
+---@field mTailSolidFrame                                       number
+---@field mTailMaxLength                                        number
+---@field mTailMinLength                                        number
+---
+---@field mSpiralSplashGroup                                    number
+---@field mSpiralSplashBulletNumInGroup                         number
+---@field mSpiralSplashInitSpeed                                number
+---@field mSpiralSplashSpeedBaseDist                            number
+---@field mSpiralSplashSpeedMaxDist                             number
+---@field mSpiralSplashSpeedMaxRate                             number
+---@field mSpiralSplashLifeFrame                                number
+---@field mSpiralSplashMinSpanFrame                             number
+---@field mSpiralSplashMinSpanBulletCounter                     number
+---@field mSpiralSplashMaxSpanFrame                             number
+---@field mSpiralSplashMaxSpanBulletCounter                     number
+---@field mSpiralSplashSameTimeBulletNum                        number
+---@field mSpiralSplashRoundSplitNum                            number
+---@field mSpiralSplashColRadiusForField                        number
+---@field mSpiralSplashColRadiusForPlayer                       number
+---@field mSpiralSplashMaxDamage                                number
+---@field mSpiralSplashMinDamage                                number
+---@field mSpiralSplashMaxDamageDist                            number
+---@field mSpiralSplashMinDamageDist                            number
+---@field mScatterSplashGroup                                   number
+---@field mScatterSplashBulletNumInGroup                        number
+---@field mScatterSplashInitSpeed                               number
+---@field mScatterSplashMinSpanBulletCounter                    number
+---@field mScatterSplashMinSpanFrame                            number
+---@field mScatterSplashMaxSpanBulletCounter                    number
+---@field mScatterSplashMaxSpanFrame                            number
+---@field mScatterSplashMaxNum                                  number
+---@field mScatterSplashUpDegree                                number
+---@field mScatterSplashDownDegree                              number
+---@field mScatterSplashDegreeBias                              number
+---@field mScatterSplashColRadius                               number
+---@field mScatterSplashPaintRadius                             number
+---@field mScatterSplashInitPosMinOffset                        number
+---@field mScatterSplashInitPosMaxOffset                        number
+---
+---@field mInkConsume                                           number
+---@field mInkRecoverStop                                       number
+---@field mMoveSpeed                                            number
+---@field mBulletStraightFrame                                  number
+---@field mBulletPaintBaseDist                                  number
+---@field mBulletPaintMaxDist                                   number
+---@field mBulletPaintMaxRate                                   number
+---@field mPaintTextureCenterOffsetRate                         number
+---@field mBulletDamageMaxDist                                  number
+---@field mBulletDamageMinDist                                  number
+---@field mBulletCollisionRadiusForPlayerInitRate               number
+---@field mBulletCollisionRadiusForPlayerSwellFrame             number
+---@field mBulletCollisionPlayerSameTeamNotHitFrame             number
+---@field mBulletCollisionRadiusForFieldInitRate                number
+---@field mBulletCollisionRadiusForFieldSwellFrame              number
+---@field mHitWallSplashOnlyCenter                              boolean
+---@field mHitWallSplashFirstLength                             number
+---@field mHitWallSplashBetweenLength                           number
+---@field mHitWallSplashMinusYRate                              number
+---@field mHitWallSplashDistanceRate                            number
+---@field mHitPlayerDrapDrawRadius                              number
+---@field mHitPlayerDrapCollisionRadius                         number
+---@field mHitPlayerDrapPaintRadiusRate                         number
+---@field mHitPlayerDrapHitPlayerOffset                         number
+---@field mHitPlayerDrapHitObjectOffset                         number
+---@field mPostDelayFrm_Main                                    number
+
+---@param initvel       number Initial speed
+---@param straightframe number Go straight without gravity for this seconds
+---@param guideframe    number
+---@param airresist     number
+---@return number
 function ss.GetRange(initvel, straightframe, guideframe, airresist)
     return ss.GetBulletPos(Vector(initvel), straightframe, airresist, 0, guideframe).x
 end
 
+---@param self SplatoonWeaponBase
 function ss.SetChargingEye(self)
     local ply = self:GetOwner()
     local mdl = ply:GetModel()
@@ -23,6 +545,7 @@ function ss.SetChargingEye(self)
     end
 end
 
+---@param self SplatoonWeaponBase
 function ss.SetNormalEye(self)
     local ply = self:GetOwner()
     local mdl = ply:GetModel()
@@ -49,6 +572,7 @@ function ss.SetNormalEye(self)
     end
 end
 
+---@return Projectile
 function ss.MakeProjectileStructure()
     local PRFarD  = 100 * ss.ToHammerUnits
     local PRNearD =  50 * ss.ToHammerUnits
@@ -97,6 +621,7 @@ function ss.MakeProjectileStructure()
     }
 end
 
+---@return ss.InkQueueTrace
 function ss.MakeInkQueueTraceStructure()
     return {
         collisiongroup = COLLISION_GROUP_NONE,
@@ -111,6 +636,7 @@ function ss.MakeInkQueueTraceStructure()
     }
 end
 
+---@return ss.InkQueue
 function ss.MakeInkQueueStructure()
     return {
         Data = {},
@@ -121,6 +647,8 @@ function ss.MakeInkQueueStructure()
     }
 end
 
+---@param weapon SplatoonWeaponBase
+---@param parameters Parameters
 function ss.SetPrimary(weapon, parameters)
     local maxink = ss.GetMaxInkAmount()
     ss.ProtectedCall(ss.DefaultParams[weapon.Base], weapon)
@@ -138,9 +666,10 @@ end
 
 ss.DefaultParams = {}
 ss.CustomPrimary = {}
+---@param weapon SWEP.Shooter
 function ss.DefaultParams.weapon_splatoonsweps_shooter(weapon)
     weapon.Parameters = {
-        mRepeatFrame = 6,
+        mRepeatFrame = 6, ---The repeat frame
         mTripleShotSpan = 0,
         mInitVel = 22,
         mDegRandom = 6,
@@ -174,6 +703,7 @@ function ss.DefaultParams.weapon_splatoonsweps_shooter(weapon)
     }
 end
 
+---@param weapon SWEP.Shooter
 function ss.CustomPrimary.weapon_splatoonsweps_shooter(weapon)
     local p = weapon.Parameters
     weapon.NPCDelay = p.mRepeatFrame
@@ -182,6 +712,7 @@ function ss.CustomPrimary.weapon_splatoonsweps_shooter(weapon)
     p.mGuideCheckCollisionFrame, ss.ShooterAirResist)
 end
 
+---@param weapon SWEP.Blaster
 function ss.DefaultParams.weapon_splatoonsweps_blaster_base(weapon)
     ss.DefaultParams.weapon_splatoonsweps_shooter(weapon)
     table.Merge(weapon.Parameters, {
@@ -213,10 +744,12 @@ function ss.DefaultParams.weapon_splatoonsweps_blaster_base(weapon)
     })
 end
 
+---@param weapon SWEP.Blaster
 function ss.CustomPrimary.weapon_splatoonsweps_blaster_base(weapon)
     ss.CustomPrimary.weapon_splatoonsweps_shooter(weapon)
 end
 
+---@param weapon SWEP.Splatling
 function ss.DefaultParams.weapon_splatoonsweps_splatling(weapon)
     ss.DefaultParams.weapon_splatoonsweps_shooter(weapon)
     table.Merge(weapon.Parameters, {
@@ -244,6 +777,7 @@ function ss.DefaultParams.weapon_splatoonsweps_splatling(weapon)
     })
 end
 
+---@param weapon SWEP.Splatling
 function ss.CustomPrimary.weapon_splatoonsweps_splatling(weapon)
     local p = weapon.Parameters
     ss.CustomPrimary.weapon_splatoonsweps_shooter(weapon)
@@ -251,9 +785,9 @@ function ss.CustomPrimary.weapon_splatoonsweps_splatling(weapon)
     p.mStraightFrame, p.mGuideCheckCollisionFrame, ss.ShooterAirResist)
 end
 
+---@param weapon SWEP.Charger
 function ss.DefaultParams.weapon_splatoonsweps_charger(weapon)
-    ss.DefaultParams.weapon_splatoonsweps_shooter(weapon)
-    table.Merge(weapon.Parameters, {
+    weapon.Parameters = {
         mMinDistance = 90,
         mMaxDistance = 200,
         mMaxDistanceScoped = 200,
@@ -294,16 +828,17 @@ function ss.DefaultParams.weapon_splatoonsweps_charger(weapon)
         mMinChargeHitSplashNum = 0,
         mMaxChargeHitSplashNum = 8,
         mMaxHitSplashNumChargeRate = 0.54,
-    })
+    }
 end
 
+---@param weapon SWEP.Charger
 function ss.CustomPrimary.weapon_splatoonsweps_charger(weapon)
     local p = weapon.Parameters
-    ss.CustomPrimary.weapon_splatoonsweps_shooter(weapon)
     weapon.Range = weapon.Scoped and p.mFullChargeDistanceScoped or p.mFullChargeDistance
     weapon.NPCDelay = p.mMinChargeFrame
 end
 
+---@param weapon SWEP.Roller
 function ss.DefaultParams.weapon_splatoonsweps_roller(weapon)
     weapon.Parameters = {
         mSwingLiftFrame = 20,
@@ -380,6 +915,7 @@ function ss.DefaultParams.weapon_splatoonsweps_roller(weapon)
     }
 end
 
+---@param weapon SWEP.Roller
 function ss.CustomPrimary.weapon_splatoonsweps_roller(weapon)
     local p = weapon.Parameters
     weapon.Primary.Automatic = false
@@ -388,6 +924,7 @@ function ss.CustomPrimary.weapon_splatoonsweps_roller(weapon)
     p.mSplashStraightFrame, p.mSplashStraightFrame * 1.5, ss.RollerAirResist)
 end
 
+---@param weapon SWEP.Slosher
 function ss.DefaultParams.weapon_splatoonsweps_slosher_base(weapon)
     weapon.Parameters = {
         mSwingLiftFrame = 15,
@@ -622,30 +1159,45 @@ function ss.DefaultParams.weapon_splatoonsweps_slosher_base(weapon)
     }
 end
 
+---@param weapon SWEP.Slosher
 function ss.CustomPrimary.weapon_splatoonsweps_slosher_base(weapon)
     local p = weapon.Parameters
     local number = p.mGuideCenterGroup
-    local order = ({"First", "Second", "Third"})[number]
     local spawncount = p.mGuideCenterBulletNumInGroup
-    local base = p["m" .. order .. "GroupBulletFirstInitSpeedBase"]
-    local initvel = base + spawncount * p["m" .. order .. "GroupBulletAfterInitSpeedOffset"]
+    local base = ({
+        p.mFirstGroupBulletFirstInitSpeedBase,
+        p.mSecondGroupBulletFirstInitSpeedBase,
+        p.mThirdGroupBulletFirstInitSpeedBase,
+    })[number]
+    local offset = ({
+        p.mFirstGroupBulletAfterInitSpeedOffset,
+        p.mSecondGroupBulletAfterInitSpeedOffset,
+        p.mThirdGroupBulletAfterInitSpeedOffset,
+    })[number]
+    local initvel = base + spawncount * offset
     weapon.Primary.Automatic = false
     weapon.NPCDelay = p.mSwingLiftFrame
     weapon.Range = ss.GetRange(initvel, p.mBulletStraightFrame,
     p.mGuideCenterCheckCollisionFrame, p.mFreeStateAirResist)
 end
 
--- event = 5xyy, x = option index, yy = effect type
--- yy = 0 : SplatoonSWEPsMuzzleSplash
---     x = 0 : Attach to muzzle
---     x = 1 : Go backward (for charger)
--- yy = 1 : SplatoonSWEPsMuzzleRing
--- yy = 2 : SplatoonSWEPsMuzzleMist
--- yy = 3 : SplatoonSWEPsMuzzleFlash
--- yy = 4 : SplatoonSWEPsRollerSplash
--- yy = 5 : SplatoonSWEPsBrushSwing1
--- yy = 6 : SplatoonSWEPsBrushSwing2
--- yy = 7 : SplatoonSWEPsSlosherSplash
+---event = 5xyy, x = option index, yy = effect type
+--- - yy = 0 : SplatoonSWEPsMuzzleSplash
+---   - x = 0 : Attach to muzzle
+---   - x = 1 : Go backward (for charger)
+--- - yy = 1 : SplatoonSWEPsMuzzleRing
+--- - yy = 2 : SplatoonSWEPsMuzzleMist
+--- - yy = 3 : SplatoonSWEPsMuzzleFlash
+--- - yy = 4 : SplatoonSWEPsRollerSplash
+--- - yy = 5 : SplatoonSWEPsBrushSwing1
+--- - yy = 6 : SplatoonSWEPsBrushSwing2
+--- - yy = 7 : SplatoonSWEPsSlosherSplash
+---@param self SplatoonWeaponBase|ENT.Sprinkler
+---@param pos Vector
+---@param ang Angle
+---@param event integer
+---@param options string
+---@return boolean
 function ss.FireAnimationEvent(self, pos, ang, event, options)
     if 5000 <= event and event < 6000 then
         event = event - 5000
@@ -657,6 +1209,7 @@ function ss.FireAnimationEvent(self, pos, ang, event, options)
     return true
 end
 
+---@type (fun(self: SplatoonWeaponBase, options: table, pos: Vector, ang: Angle))[]
 ss.DispatchEffect = {}
 local SplatoonSWEPsMuzzleSplash = 0
 local SplatoonSWEPsMuzzleRing = 1
@@ -669,7 +1222,8 @@ local SplatoonSWEPsSlosherSplash = 7
 local sd, e = ss.DispatchEffect, EffectData()
 sd[SplatoonSWEPsMuzzleSplash] = function(self, options, pos, ang)
     local tpslag = 0
-    if self.IsSplatoonWeapon and self:IsCarriedByLocalPlayer() and self:GetOwner():ShouldDrawLocalPlayer() then
+    if self.IsSplatoonWeapon and self:IsCarriedByLocalPlayer()
+    and self:GetOwner() --[[@as Player]]:ShouldDrawLocalPlayer() then
         tpslag = 128
     end
 
@@ -679,7 +1233,7 @@ sd[SplatoonSWEPsMuzzleSplash] = function(self, options, pos, ang)
 
     ang = angle_zero
     local a, s, r = 7, 2, 25
-    if options[2] == "CHARGER" then
+    if options[2] == "CHARGER" then ---@cast self SWEP.Charger
         attindex = self:LookupAttachment "muzzle"
         r, s = Lerp(self:GetFireAt(), 20, 60) / 2, 6
         if options[1] == 1 then
@@ -699,14 +1253,14 @@ sd[SplatoonSWEPsMuzzleSplash] = function(self, options, pos, ang)
 end
 
 sd[SplatoonSWEPsMuzzleRing] = function(self, options, pos, ang)
-    local numpieces = options[1]
+    local numpieces = options[1] ---@type integer
     local da, r1, r2, t1, t2 = math.Rand(0, 360), 40, 30, 6, 13
     local tpslag = self:IsCarriedByLocalPlayer() and
-    self:GetOwner():ShouldDrawLocalPlayer() and 128 or 0
+    self:GetOwner() --[[@as Player]]:ShouldDrawLocalPlayer() and 128 or 0
     e:SetColor(self:GetNWInt "inkcolor")
     e:SetEntity(self)
 
-    if options[2] == "CHARGER" then
+    if options[2] == "CHARGER" then ---@cast self SWEP.Charger
         r2 = Lerp(self:GetFireAt(), 20, 70)
         r1 = r2 * 2
         t2 = Lerp(self:GetFireAt(), 3, 7)
@@ -730,6 +1284,7 @@ sd[SplatoonSWEPsMuzzleRing] = function(self, options, pos, ang)
 end
 
 sd[SplatoonSWEPsMuzzleMist] = function(self, options, pos, ang)
+    if not self.IsShooter then return end ---@cast self SWEP.Shooter
     local mdl = self:IsTPS() and self or self:GetViewModel()
     local dir = ang:Right()
     if not self:IsTPS() then
@@ -770,6 +1325,8 @@ sd[SplatoonSWEPsRollerSplash] = function(self, options, pos, ang)
     end
 end
 
+---@param self SplatoonWeaponBase
+---@param sign integer
 local function MakeSwingEffect(self, sign)
     local color = self:GetNWInt "inkcolor"
     sign = self:GetNWBool "lefthand" and -sign or sign

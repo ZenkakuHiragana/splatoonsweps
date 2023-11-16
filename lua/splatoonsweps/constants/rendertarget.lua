@@ -1,13 +1,19 @@
 AddCSLuaFile()
-local TEXTUREFLAGS = include "textureflags.lua"
+local TEXTUREFLAGS = include "textureflags.lua" ---@type table<string, integer>
 local MINIMUM   = 0 -- 2048x2048,       32MB
 local SMALL     = 1 -- 4096x4096,       128MB
 local DSMALL    = 2 -- 2x4096x4096,     256MB
 local MEDIUM    = 3 -- 8192x8192,       512MB
 local DMEDIUM   = 4 -- 2x8192x8192,     1GB
 local LARGE     = 5 -- 16384x16384,     2GB
-return {
-    RESOLUTION = {
+---@class ss.RenderTarget
+---@field BaseTexture ITexture
+---@field Bumpmap     ITexture
+---@field Lightmap    ITexture
+---@field Material    IMaterial
+---@field Ready       boolean
+local rt = {
+    RESOLUTION = { ---@type table<string, integer>
         MINIMUM = MINIMUM,
         SMALL   = SMALL,
         DSMALL  = DSMALL,
@@ -15,7 +21,7 @@ return {
         DMEDIUM = DMEDIUM,
         LARGE   = LARGE,
     },
-    Size = {
+    Size = { ---@type table<integer, integer>
         [MINIMUM] = 2048,
         [SMALL  ] = 4096,
         [DSMALL ] = 5792,
@@ -23,7 +29,7 @@ return {
         [DMEDIUM] = 11586,
         [LARGE  ] = 16384,
     },
-    SizeFromPixels = {
+    SizeFromPixels = { ---@type table<integer, integer>
         [2048 ] = MINIMUM,
         [4096 ] = SMALL,
         [5792 ] = DSMALL,
@@ -31,7 +37,7 @@ return {
         [11586] = DMEDIUM,
         [16384] = LARGE,
     },
-    Name = {
+    Name = { ---@type table<string, string>
         BaseTexture   = "splatoonsweps_basetexture",
         Bumpmap       = "splatoonsweps_bumpmap",
         Lightmap      = "splatoonsweps_lightmap",
@@ -39,7 +45,7 @@ return {
         RTScope       = "splatoonsweps_rtscope",
         WaterMaterial = "splatoonsweps_watermaterial",
     },
-    Flags = {
+    Flags = { ---@type table<string, integer>
         BaseTexture = bit.bor(
             TEXTUREFLAGS.NOMIP,
             TEXTUREFLAGS.NOLOD,
@@ -67,3 +73,4 @@ return {
         ),
     },
 }
+return rt

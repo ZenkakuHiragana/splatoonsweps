@@ -3,11 +3,15 @@ local ss = SplatoonSWEPs
 if not ss then return end
 local mdl = Model "models/props_junk/PopCan01a.mdl"
 local drawviewmodel = GetConVar "r_drawviewmodel"
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.SplatlingMuzzleFlash
+---@class EFFECT.SplatlingMuzzleFlash : EFFECT
+
 function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())
     self:SetNoDraw(true)
-    local w = e:GetEntity()
+    local w = e:GetEntity() --[[@as SplatoonWeaponBase]]
     if not IsValid(w) then return end
     local t = w:IsTPS()
     if not (t or drawviewmodel:GetBool()) then return end

@@ -1,11 +1,13 @@
 
 AddCSLuaFile()
+
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
 if SERVER then
     local subs = "splatoonsweps/subs/"
-    for _, filename in ipairs(file.Find(subs .. "*.lua", "LUA")) do
+    for _, filename in ipairs(file.Find(subs .. "*.lua", "LUA") or {}) do
         AddCSLuaFile(subs .. filename)
     end
 end
@@ -18,6 +20,7 @@ local weaponslot = {
     weapon_splatoonsweps_charger = 4,
     weapon_splatoonsweps_slosher_base = 5,
 }
+---@param SWEP SWEP
 local function SetupIcons(SWEP)
     if SERVER then return end
     local icon = "entities/" .. SWEP.ClassName
@@ -32,6 +35,7 @@ local function SetupIcons(SWEP)
     SWEP.WepSelectIcon = surface.GetTextureID(icon) -- Weapon select icon
 end
 
+---@param t string[]
 local function PrecacheModels(t)
     for _, m in ipairs(t) do
         if file.Exists(m, "GAME") then
@@ -47,12 +51,12 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
     local WeaponList = list.GetForEdit "Weapon"
     for base in pairs(weaponslot) do
         local LuaFolderPath = "weapons/" .. base
-        for i, LuaFilePath in ipairs(file.Find(LuaFolderPath .. "/weapon_*.lua", "LUA")) do
+        for i, LuaFilePath in ipairs(file.Find(LuaFolderPath .. "/weapon_*.lua", "LUA") or {}) do
             local ClassName = "weapon_splatoonsweps_" .. LuaFilePath:StripExtension():sub(8)
             LuaFilePath = string.format("%s/%s", LuaFolderPath, LuaFilePath)
 
             if SERVER then AddCSLuaFile(LuaFilePath) end
-            SWEP = {
+            SWEP = { ---@type SplatoonWeaponBase
                 Base = base,
                 ClassName = ClassName,
                 Folder = LuaFolderPath,
@@ -79,7 +83,7 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
 
                 local UniqueModelPath = modelpath:format(v.ClassName)
                 v.Base = base
-                v.Category = ss.Text.Category
+                v.Category = ss.Text.Category --[[@as string]]
                 v.PrintName = ss.Text.PrintNames[v.ClassName]
                 v.ModelPath = v.ModelPath or file.Exists(UniqueModelPath, "GAME") and UniqueModelPath or SWEP.ModelPath
                 v.ViewModel = v.ModelPath .. "c_viewmodel.mdl"
@@ -87,20 +91,26 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
                 v.ViewModel1 = v.ModelPath .. "c_viewmodel2.mdl"
                 v.ViewModel2 = v.ModelPath .. "c_viewmodel3.mdl"
                 v.WorldModel = v.ModelPath .. "w_right.mdl"
-                v = table.Merge(table.Copy(SWEP), v)
-                SetupIcons(v)
-                PrecacheModels {v.ViewModel0, v.ViewModel1, v.ViewModel2, v.WorldModel, v.ModelPath .. "w_left.mdl"}
-                setmetatable(v, {__index = SWEP})
-                weapons.Register(v, v.ClassName)
-                table.Merge(WeaponList[v.ClassName], {
+                local merged = table.Merge(table.Copy(SWEP), v) ---@type SplatoonWeaponBase
+                SetupIcons(merged)
+                PrecacheModels {
+                    merged.ViewModel0,
+                    merged.ViewModel1,
+                    merged.ViewModel2,
+                    merged.WorldModel,
+                    merged.ModelPath .. "w_left.mdl"
+                }
+                setmetatable(merged, {__index = SWEP})
+                weapons.Register(merged, merged.ClassName)
+                table.Merge(WeaponList[merged.ClassName], {
                     Base = base,
-                    ClassID = table.KeyFromValue(ss.WeaponClassNames, v.ClassName),
-                    Customized = v.Customized,
+                    ClassID = table.KeyFromValue(ss.WeaponClassNames, merged.ClassName),
+                    Customized = merged.Customized,
                     IsSplatoonWeapon = true,
-                    SheldonsPicks = v.SheldonsPicks,
+                    SheldonsPicks = merged.SheldonsPicks,
                     Spawnable = SERVER,
-                    SpecialWeapon = v.Special,
-                    SubWeapon = v.Sub,
+                    SpecialWeapon = merged.Special,
+                    SubWeapon = merged.Sub,
                 })
             end
 
@@ -126,14 +136,16 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
     SWEP = oldSWEP
 end)
 
-hook.Add("PopulateMenuBar", "SplatoonSWEPs: NPC weapon menu", function(menu)
+hook.Add("PopulateMenuBar", "SplatoonSWEPs: NPC weapon menu",
+---@param menu DMenuBar
+function(menu)
     local menulist = menu:AddOrGetMenu "#menubar.npcs"
-    local submenu = menulist:AddSubMenu(ss.Text.NPCWeaponMenu)
-    local WeaponCategories = {}
+    local submenu = menulist:AddSubMenu(ss.Text.NPCWeaponMenu --[[@as string]])
+    local WeaponCategories = {} ---@type table<string, table[]>
     local WeaponList = list.Get "Weapon"
     submenu:SetDeleteSelf(false)
 
-    for classname, weapontable in pairs(WeaponList) do
+    for classname, weapontable in pairs(WeaponList --[[@as table<string, SplatoonWeaponBase>]]) do
         if weapontable.IsSplatoonWeapon then
             local c = ss.Text.CategoryNames[weapontable.Base]
             WeaponCategories[c] = WeaponCategories[c] or {}
@@ -149,16 +161,16 @@ hook.Add("PopulateMenuBar", "SplatoonSWEPs: NPC weapon menu", function(menu)
         m:SetDeleteSelf(false)
         table.SortByMember(data, "title", true)
         for _, v in ipairs(data) do
-            m:AddCVar(v.title, "gmod_npcweapon", v.class)
+            m:AddCVar(v.title, "gmod_npcweapon", v.class, "")
         end
     end
 end)
 
 if CLIENT then return end
-local NPCWeaponList = list.GetForEdit "NPCUsableWeapons"
+local NPCWeaponList = list.GetForEdit "NPCUsableWeapons" ---@type table<string, table>
 hook.Add("PlayerSpawnNPC", "SplatoonSWEPs: Apply NPC Weapon", function(ply, npc, w)
     if NPCWeaponList[w] then return end
-    local weapontable = list.Get "Weapon"[w]
+    local weapontable = list.Get "Weapon"[w] ---@type SplatoonWeaponBase
     if not weapontable then return end
     if not weapontable.IsSplatoonWeapon then return end
     NPCWeaponList[w] = {

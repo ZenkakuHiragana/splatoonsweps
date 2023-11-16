@@ -1,7 +1,9 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@param ink ss.InkQueue
 local function DoScatterSplash(ink)
     local data, p = ink.Data, ink.Parameters
     if CurTime() < data.ScatterSplashTime then return end
@@ -59,6 +61,7 @@ local function DoScatterSplash(ink)
     ss.CreateDropEffect(dropdata, p.mScatterSplashPaintRadius, ink.Owner)
 end
 
+---@param ink ss.InkQueue
 local function Simulate(ink)
     if IsFirstTimePredicted() then ss.DoDropSplashes(ink) end
     ink.CurrentSpeed = ink.Trace.start:Distance(ink.Trace.endpos) / FrameTime()
@@ -78,6 +81,8 @@ local function Simulate(ink)
     ss.MakeBlasterExplosion(ink)
 end
 
+---@param ink ss.InkQueue
+---@param t   TraceResult
 local function HitSmoke(ink, t) -- FIXME: Don't emit it twice
     local data, weapon = ink.Data, ink.Data.Weapon
     if weapon.IsBamboozler then return end
@@ -93,6 +98,8 @@ local function HitSmoke(ink, t) -- FIXME: Don't emit it twice
     util.Effect("SplatoonSWEPsMuzzleMist", e, true, weapon.IgnorePrediction)
 end
 
+---@param ink ss.InkQueue
+---@param t   TraceResult
 local function HitPaint(ink, t)
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
     local g_dir = ss.GetGravityDirection()
@@ -151,7 +158,6 @@ local function HitPaint(ink, t)
 
     local n = data.WallPaintMaxNum
     if data.WallPaintUseSplashNum then n = data.SplashNum - data.SplashCount end
-    if not t.FractionPaintWall then t.FractionPaintWall = 0 end
     for i = 1, n do
         local pos = t.HitPos + g_dir * data.WallPaintFirstLength
         if i > 1 then pos:Add(g_dir * (i - 1) * data.WallPaintLength) end
@@ -164,7 +170,6 @@ local function HitPaint(ink, t)
         }
 
         if math.abs(tn.HitNormal:Dot(g_dir)) < ss.MAX_COS_DIFF
-        and t.FractionPaintWall < tn.Fraction
         and not tn.StartSolid and tn.HitWorld then
             ss.PaintSchedule[{
                 pos = tn.HitPos,
@@ -183,9 +188,13 @@ local function HitPaint(ink, t)
     end
 end
 
+---Called when ink collides with an entity
+---@param ink ss.InkQueue
+---@param t TraceResult
 local function HitEntity(ink, t)
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
     local d, e, o = DamageInfo(), t.Entity, weapon:GetOwner()
+    ---@cast e -?
     if weapon.IsCharger and data.Range and tr.LengthSum > data.Range then return end
     if ss.LastHitID[e] == data.ID then return end
     ss.LastHitID[e] = data.ID -- Avoid multiple damages at once
@@ -226,6 +235,9 @@ local function HitEntity(ink, t)
     ss.ProtectedCall(e.TakeDamageInfo, e, d)
 end
 
+---@param ink ss.InkQueue
+---@param ply Entity
+---@return boolean
 local function ProcessInkQueue(ink, ply)
     if not ink then return true end
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
@@ -274,6 +286,7 @@ local SortedPairs = SortedPairs
 local SysTime = SysTime
 local pairs = pairs
 local yield = coroutine.yield
+---@param ply Entity
 local function ProcessInkQueueAll(ply)
     local Benchmark = SysTime()
     while true do
@@ -286,7 +299,7 @@ local function ProcessInkQueueAll(ply)
                 if ProcessInkQueue(ink, ply) then
                     inkgroup[i] = nil
                 else -- Move i's kept value to k's position, if it's not already there.
-                    if i ~= k then inkgroup[k], inkgroup[i] = ink end
+                    if i ~= k then inkgroup[k], inkgroup[i] = ink, nil end
                     k = k + 1 -- Increment position of where we'll place the next kept value.
                 end
 
@@ -316,19 +329,24 @@ local function ProcessInkQueueAll(ply)
     end
 end
 
+---@param color integer
+---@param flags integer
+---@param pos Vector
+---@param normal Vector
+---@param owner Entity?
 function ss.CreateHitEffect(color, flags, pos, normal, owner)
     local filter = nil
-    if SERVER and IsValid(owner) and owner:IsPlayer() then
+    if SERVER and IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
         if player.GetCount() == 1 then
             filter = true
-        else
+        else ---@cast owner Player
             filter = RecipientFilter()
             filter:AddPlayer(owner)
         end
     end
 
     local e = EffectData()
-    if ss.mp or owner:IsPlayer() then
+    if ss.mp or IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
         e:SetColor(color)
         e:SetFlags(flags)
         e:SetOrigin(pos)
@@ -345,18 +363,32 @@ function ss.CreateHitEffect(color, flags, pos, normal, owner)
     util.Effect("SplatoonSWEPsMuzzleSplash", e, true, SERVER)
 end
 
+---@param offset number?
+---@return integer
 function ss.GetDropType(offset) -- math.floor(1 <= x < 4) -> 1, 2, 3
     return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 1, 4, CurTime() + (offset or 0)))
 end
 
+---@param offset number?
+---@return integer
 function ss.GetShooterInkType(offset) -- math.floor(4 <= x < 10) -> 4, 5, 6, 7, 8
     return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 4, 9, CurTime() * 2 + (offset or 0)))
 end
 
+---@param offset number?
+---@return integer
 function ss.GetRollerRollInkType(offset)
     return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 10, 12, CurTime() * 3 + (offset or 0)))
 end
 
+---@param params      Parameters
+---@param pos         Vector
+---@param color       integer
+---@param weapon      SplatoonWeaponBase
+---@param colradius   number
+---@param paintradius number
+---@param paintratio  number
+---@param yaw         number
 function ss.CreateDrop(params, pos, color, weapon, colradius, paintradius, paintratio, yaw)
     local dropdata = ss.MakeProjectileStructure()
     table.Merge(dropdata, {
@@ -379,6 +411,9 @@ function ss.CreateDrop(params, pos, color, weapon, colradius, paintradius, paint
     ss.AddInk(params, dropdata)
 end
 
+---@param data Projectile
+---@param drawradius number
+---@param owner Entity?
 function ss.CreateDropEffect(data, drawradius, owner)
     local e = EffectData()
     ss.SetEffectColor(e, data.Color)
@@ -392,13 +427,15 @@ function ss.CreateDropEffect(data, drawradius, owner)
     ss.SetEffectSplashInitRate(e, Vector(0))
     ss.SetEffectSplashNum(e, 0)
     ss.SetEffectStraightFrame(e, data.StraightFrame)
-    if IsValid(owner) then
+    if IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
         ss.UtilEffectPredicted(owner, "SplatoonSWEPsShooterInk", e)
     else
         util.Effect("SplatoonSWEPsShooterInk", e)
     end
 end
 
+---@param ink ss.InkQueue
+---@param iseffect boolean?
 function ss.DoDropSplashes(ink, iseffect)
     local data, tr, p = ink.Data, ink.Trace, ink.Parameters
     if not data.DoDamage then return end
@@ -471,10 +508,10 @@ function ss.DoDropSplashes(ink, iseffect)
     end
 end
 
--- Make an ink bullet for shooter.
--- Arguments:
---   table parameters | Table contains weapon parameters
---   table data       | Table contains ink bullet data
+---Make an ink bullet for shooter
+---@param parameters Parameters|{} Table contains weapon parameters
+---@param data       Projectile    Table contains ink bullet data
+---@return ss.InkQueue
 function ss.AddInk(parameters, data)
     local w = data.Weapon
     if not IsValid(w) then return {} end
@@ -496,13 +533,16 @@ function ss.AddInk(parameters, data)
     return t
 end
 
-local processes = {}
+local processes = {} ---@type table<Player, thread>
 local ErrorNoHalt = ErrorNoHalt
 local create = coroutine.create
 local status = coroutine.status
 local resume = coroutine.resume
 local Empty = table.Empty
-hook.Add("Move", "SplatoonSWEPs: Simulate ink", function(ply, mv)
+hook.Add("Move", "SplatoonSWEPs: Simulate ink",
+---@param ply Player
+---@param mv CMoveData
+function(ply, mv)
     local p = processes[ply]
     if not p or status(p) == "dead" then
         processes[ply] = create(ProcessInkQueueAll)
@@ -518,15 +558,15 @@ hook.Add("Move", "SplatoonSWEPs: Simulate ink", function(ply, mv)
     ErrorNoHalt(msg)
 end)
 
--- Physics simulation for ink trajectory.
--- The first some frames(1/60 sec.) ink flies without gravity.
--- After that, ink decelerates horizontally and is affected by gravity.
--- Arguments:
---   Vector InitVel       | Initial velocity in Hammer units/s
---   number StraightFrame | Time to go straight in seconds
---   number AirResist     | Air resistance after it goes straight (0-1)
---   number Gravity       | Gravity acceleration in Hammer units/s^2
---   number t             | Time in seconds
+---Physics simulation for ink trajectory.
+---The first some frames(1/60 sec.) ink flies without gravity.
+---After that, ink decelerates horizontally and is affected by gravity.
+---@param InitVel       Vector Initial velocity in Hammer units/s
+---@param StraightFrame number Time to go straight in seconds
+---@param AirResist     number Air resistance after it goes straight (0-1)
+---@param Gravity       number Gravity acceleration in Hammer units/s^2
+---@param t             number Time in seconds
+---@return Vector
 function ss.GetBulletPos(InitVel, StraightFrame, AirResist, Gravity, t)
     local tf = math.max(t - StraightFrame, 0) -- Time for being "free state"
     local tg = tf^2 / 2 -- Time for applying gravity
@@ -541,6 +581,7 @@ function ss.GetBulletPos(InitVel, StraightFrame, AirResist, Gravity, t)
     return InitVel * (tlim + resist) + g * tg
 end
 
+---@param ink ss.InkQueue
 function ss.AdvanceBullet(ink)
     local data, tr = ink.Data, ink.Trace
     local t = math.max(CurTime() - ink.InitTime, 0)

@@ -1,6 +1,31 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local SWEP = SWEP
+---@cast SWEP SWEP.Splatling
+---@class SWEP.Splatling : SWEP.Shooter
+---@field BaseClass          SWEP.Shooter
+---@field Parameters         Parameters.Splatling
+---@field AirTimeFraction    number
+---@field ChargeSound        string[]
+---@field FlashDuration      number
+---@field FullChargeFlag     boolean
+---@field MediumCharge       number
+---@field NotEnoughInk       boolean
+---@field SpinupEffectTime   number
+---@field SpinupFraction     number
+---@field TakeAmmo           number
+---@field GetChargeProgress  fun(self, ping: boolean?): number
+---@field GetDamage          fun(self, ping: boolean?): number
+---@field GetInitVelocity    fun(self, nospread: boolean?): number
+---@field GetInkVelocity     fun(self): number
+---@field GetScopedProgress  fun(self, ping: boolean?): number
+---@field HideRTScope       (fun(self, alpha: number))?
+---@field PlayChargeSound    fun(self)
+---@field ResetCharge        fun(self)
+---@field ShouldChargeWeapon fun(self): boolean
+
 SWEP.Base = "weapon_splatoonsweps_shooter"
 SWEP.IsSplatling = true
 SWEP.FlashDuration = .25
@@ -28,7 +53,8 @@ end
 
 local randsign = "SplatoonSWEPs: Init rate sign"
 function SWEP:GetSplashInitRate()
-    local rate = self:GetBase().GetSplashInitRate(self)
+    local base = self:GetBase() --[[@as SWEP.Shooter]]
+    local rate = base.GetSplashInitRate(self)
     if util.SharedRandom(randsign, 0, 3, CurTime() - 1) < 1 then return rate end
 
     local p = self.Parameters
@@ -43,7 +69,8 @@ function SWEP:GetRange()
 end
 
 function SWEP:GetSpreadAmount()
-    local sx, sy = self:GetBase().GetSpreadAmount(self)
+    local base = self:GetBase() --[[@as SWEP.Shooter]]
+    local sx, sy = base.GetSpreadAmount(self)
     return sx, (self.Parameters.mDegRandom + sy) / 2
 end
 
@@ -88,8 +115,9 @@ function SWEP:PlayChargeSound()
 end
 
 function SWEP:ShouldChargeWeapon()
-    if self:GetOwner():IsPlayer() then
-        return self:GetOwner():KeyDown(IN_ATTACK)
+    local Owner = self:GetOwner()
+    if Owner:IsPlayer() then ---@cast Owner Player
+        return Owner:KeyDown(IN_ATTACK)
     else
         return CurTime() - self:GetCharge() < self.Parameters.mSecondPeriodMaxChargeFrame + .5
     end
@@ -103,9 +131,9 @@ end
 
 function SWEP:SharedInit()
     self.LoopSounds.AimSound = {SoundName = ss.ChargerAim}
-    self.LoopSounds.SpinupSound1 = {SoundName = self.ChargeSound[1]}
-    self.LoopSounds.SpinupSound2 = {SoundName = self.ChargeSound[2]}
-    self.LoopSounds.SpinupSound3 = {SoundName = self.ChargeSound[3]}
+    self.LoopSounds.SpinupSound1 = { SoundName = self.ChargeSound[1] }
+    self.LoopSounds.SpinupSound2 = { SoundName = self.ChargeSound[2] }
+    self.LoopSounds.SpinupSound3 = { SoundName = self.ChargeSound[3] }
     self.SplashInitTable = {}
 
     local p = self.Parameters
@@ -181,7 +209,7 @@ end
 
 function SWEP:Move(ply)
     local p = self.Parameters
-    if ply:IsPlayer() then
+    if ply:IsPlayer() then ---@cast ply Player
         if self:GetNWBool "toggleads" then
             if ply:KeyPressed(IN_USE) then
                 self:SetADS(not self:GetADS())
@@ -229,7 +257,7 @@ function SWEP:Move(ply)
         if self:GetCharge() == math.huge then return end
         if self:ShouldChargeWeapon() then return end
         if CurTime() - self:GetCharge() < p.mMinChargeFrame then return end
-        local duration
+        local duration ---@type number
         local prog = self:GetChargeProgress()
         local d1 = p.mFirstPeriodMaxChargeShootingFrame
         local d2 = p.mSecondPeriodMaxChargeShootingFrame
@@ -249,15 +277,33 @@ function SWEP:Move(ply)
 end
 
 function SWEP:CustomDataTables()
-    self:AddNetworkVar("Bool", "ADS")
+    ---@class SWEP.Splatling
+    ---@field GetADS           fun(self): boolean
+    ---@field GetAimTimer      fun(self): number
+    ---@field GetBias          fun(self): number
+    ---@field GetBiasVelocity  fun(self): number
+    ---@field GetCharge        fun(self): number
+    ---@field GetFireAt        fun(self): number
+    ---@field GetJump          fun(self): number
+    ---@field GetFireInk       fun(self): integer
+    ---@field GetSplashInitMul fun(self): integer
+    ---@field SetAimTimer      fun(self, value: number)
+    ---@field SetBias          fun(self, value: number)
+    ---@field SetBiasVelocity  fun(self, value: number)
+    ---@field SetCharge        fun(self, value: number)
+    ---@field SetFireAt        fun(self, value: number)
+    ---@field SetJump          fun(self, value: number)
+    ---@field SetFireInk       fun(self, value: integer)
+    ---@field SetSplashInitMul fun(self, value: integer)
+    self:AddNetworkVar("Bool",  "ADS")
     self:AddNetworkVar("Float", "AimTimer")
     self:AddNetworkVar("Float", "Bias")
     self:AddNetworkVar("Float", "BiasVelocity")
     self:AddNetworkVar("Float", "Charge")
     self:AddNetworkVar("Float", "FireAt")
     self:AddNetworkVar("Float", "Jump")
-    self:AddNetworkVar("Int", "FireInk")
-    self:AddNetworkVar("Int", "SplashInitMul")
+    self:AddNetworkVar("Int",   "FireInk")
+    self:AddNetworkVar("Int",   "SplashInitMul")
 end
 
 function SWEP:CustomMoveSpeed()

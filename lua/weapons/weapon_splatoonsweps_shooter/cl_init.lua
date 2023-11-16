@@ -3,22 +3,67 @@ local ss = SplatoonSWEPs
 if not ss then return end
 include "shared.lua"
 
--- Custom functions executed before weapon model is drawn.
---   model | Weapon model(Clientside Entity)
---   bone_ent | Owner entity
---   pos, ang | Position and angle of weapon model
---   v | Viewmodel/Worldmodel element table
---   matrix | VMatrix for scaling
--- When the weapon is fired, it slightly expands.  This is maximum time to get back to normal size.
-local FireWeaponCooldown = 6 * ss.FrameToSec
-local FireWeaponMultiplier = 1
+local SWEP = SWEP
+---@cast SWEP SWEP.Shooter
+---@class SWEP.Shooter : SplatoonWeaponBase
+---@field SwayTime              number
+---@field IronSightsAng         Angle[]
+---@field IronSightsPos         Vector[]
+---@field IronSightsFlip        boolean[]
+---@field ArmPos                integer
+---@field ArmBegin              number
+---@field BasePos               Vector
+---@field BaseAng               Angle
+---@field OldPos                Vector
+---@field OldAng                Angle
+---@field OldArmPos             integer
+---@field TransitFlip           boolean
+---@field ADSAngOffset          Angle
+---@field ADSOffset             Vector
+---@field GetMuzzlePosition     fun(self): Vector, Angle
+---@field GetCrosshairTrace     fun(self, t: SWEP.CrosshairData)
+---@field DrawFourLines         fun(self, t: SWEP.CrosshairData, degx: number, degy: number)
+---@field DrawCenterCircleNoHit fun(self, t: SWEP.CrosshairData)
+---@field DrawHitCrossBG        fun(self, t: SWEP.CrosshairData)
+---@field DrawHitCross          fun(self, t: SWEP.CrosshairData)
+---@field DrawOuterCircleBG     fun(self, t: SWEP.CrosshairData)
+---@field DrawOuterCircle       fun(self, t: SWEP.CrosshairData)
+---@field DrawInnerCircle       fun(self, t: SWEP.CrosshairData)
+---@field DrawCenterDot         fun(self, t: SWEP.CrosshairData)
+---@field GetArmPos             fun(self): number?
+---@field GetIronSights        (fun(self): boolean)?
+---@field GetScopedSize        (fun(self): number)?
+---@field SetupDrawCrosshair    fun(self): SWEP.CrosshairData
+
+---@class SWEP.CrosshairData
+---@field CrosshairColor       Color?
+---@field CrosshairDarkColor   Color?
+---@field CrosshairBrightColor Color?
+---@field pos                  Vector
+---@field dir                  Vector
+---@field IsSplatoon2          boolean
+---@field Trace                TraceResult?
+---@field EndPosScreen         { x: number, y: number }?
+---@field HitPosScreen         { x: number, y: number }?
+---@field HitEntity            boolean?
+---@field Distance             number?
+
+---Custom functions executed before weapon model is drawn.  
+---When the weapon is fired, it slightly expands.  This is maximum time to get back to normal size.
+---@param self   SWEP.Shooter
+---@param vm     Entity
+---@param weapon SWEP.Shooter
+---@param ply    Player
 local function ExpandModel(self, vm, weapon, ply)
+    local FireWeaponCooldown = 6 * ss.FrameToSec
+    local FireWeaponMultiplier = 1
     local fraction = FireWeaponCooldown - SysTime() + self.ModifyWeaponSize
     fraction = math.max(1, fraction * FireWeaponMultiplier + 1)
     local s = ss.vector_one * fraction
     self:ManipulateBoneScale(self:LookupBone "root_1" or 0, s)
     if not IsValid(vm) then return end
     if self.ViewModelFlip then s.y = -s.y end
+    ---@cast vm Entity.Colorable
     vm:ManipulateBoneScale(vm:LookupBone "root_1" or 0, s)
     function vm.GetInkColorProxy()
         return ss.ProtectedCall(self.GetInkColorProxy, self) or ss.vector_one
@@ -66,8 +111,7 @@ end
 
 function SWEP:ClientThink()
     if self.IsOctoShot then
-        self.Skin = self:GetNWBool "advanced"
-        self.Skin = self.Skin and 1 or 0
+        self.Skin = self:GetNWBool "advanced" and 1 or 0
     elseif self.IsHeroWeapon then
         self.Skin = self:GetNWInt "level"
         if not self.IsHeroShot then return end
@@ -87,6 +131,7 @@ function SWEP:GetMuzzlePosition()
     return a.Pos, a.Ang
 end
 
+---@param t SWEP.CrosshairData
 function SWEP:GetCrosshairTrace(t)
     local colradius = self:GetColRadius()
     local range = self:GetRange(true) - colradius
@@ -107,11 +152,14 @@ function SWEP:GetCrosshairTrace(t)
     end
 end
 
+---@param t SWEP.CrosshairData
+---@param degx number
+---@param degy number
 function SWEP:DrawFourLines(t, degx, degy)
     degx = math.max(degx, degy) -- Stupid workaround for Blasters' crosshair
     local frac = t.Trace.Fraction
     local bgcolor = t.IsSplatoon2 and t.Trace.Hit and ss.CrosshairBaseColor or color_white
-    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor")
+    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor") or nil
     local dir = self:GetAimVector() * t.Distance
     local org = self:GetShootPos()
     local right = EyeAngles():Right()
@@ -130,11 +178,13 @@ function SWEP:DrawFourLines(t, degx, degy)
     org, right, dir, range, degx, degy, dx, dy, adjust, bgcolor, forecolor)
 end
 
+---@param t SWEP.CrosshairData
 function SWEP:DrawCenterCircleNoHit(t)
     if not t.IsSplatoon2 and t.Trace.Hit then return end
     ss.DrawCrosshair.CircleNoHit(t.EndPosScreen.x, t.EndPosScreen.y)
 end
 
+---@param t SWEP.CrosshairData
 function SWEP:DrawHitCrossBG(t) -- Hit cross pattern, background
     if not t.HitEntity then return end
     local mul = ss.ProtectedCall(self.GetScopedSize, self) or 1
@@ -142,6 +192,7 @@ function SWEP:DrawHitCrossBG(t) -- Hit cross pattern, background
     ss.DrawCrosshair.LinesHitBG(t.HitPosScreen.x, t.HitPosScreen.y, frac, mul)
 end
 
+---@param t SWEP.CrosshairData
 function SWEP:DrawHitCross(t) -- Hit cross pattern, foreground
     if not t.HitEntity then return end
     local c = ss.GetColor(self:GetNWInt "inkcolor")
@@ -182,7 +233,7 @@ function SWEP:GetIronSights()
     return self:GetADS()
 end
 
-local LeftHandAlt = {2, 1, 4, 3, 5, 6}
+local LeftHandAlt = { 2, 1, 4, 3, 5, 6 }
 function SWEP:GetViewModelPosition(pos, ang)
     local vm = self:GetViewModel()
     if not IsValid(vm) then return pos, ang end
@@ -250,16 +301,19 @@ function SWEP:GetViewModelPosition(pos, ang)
     return LocalToWorld(self.OldPos, self.OldAng, relpos, relang)
 end
 
+---@return SWEP.CrosshairData
 function SWEP:SetupDrawCrosshair()
-    local t = {Size = {}}
-    t.CrosshairColor = ss.GetColor(ss.CrosshairColors[self:GetNWInt "inkcolor"])
-    t.pos, t.dir = self:GetFirePosition(true)
-    t.IsSplatoon2 = ss.GetOption "newstylecrosshair"
+    local pos, dir = self:GetFirePosition(true)
+    local t = { ---@type SWEP.CrosshairData
+        pos = pos, dir = dir,
+        CrosshairColor = ss.GetColor(ss.CrosshairColors[self:GetNWInt "inkcolor"]),
+        IsSplatoon2 = ss.GetOption "newstylecrosshair" --[[@as boolean]],
+    }
     self:GetCrosshairTrace(t)
     return t
 end
 
-function SWEP:DrawCrosshair(x, y)
+function SWEP:CustomDrawCrosshair(x, y)
     local t = self:SetupDrawCrosshair()
     if not t.CrosshairColor then return end
     self:DrawFourLines(t, self:GetSpreadAmount())

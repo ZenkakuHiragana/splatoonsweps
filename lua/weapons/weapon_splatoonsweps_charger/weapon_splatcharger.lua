@@ -1,5 +1,6 @@
 
 AddCSLuaFile()
+local SWEP = SWEP ---@cast SWEP SWEP.Charger
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 local ScopePos = Vector(-5, 5.98, 1.13)

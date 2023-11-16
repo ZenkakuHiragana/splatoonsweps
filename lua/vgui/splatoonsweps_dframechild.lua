@@ -1,9 +1,26 @@
 
 -- SplatoonSWEPs.DFrameChild
 local PANEL = {}
+---@cast PANEL PANEL.DFrameChild
+---@class PANEL.DFrameChild : DFrame, EditablePanel, PANEL
+---@field btnMaxim          DButton
+---@field btnMinim          DButton
+---@field Dragging          { [1]: number, [2]: number }
+---@field Hovered           boolean
+---@field InitialScreenLock boolean
+---@field lblTitle          DLabel
+---@field m_bSizable        boolean
+---@field m_iMinHeight      integer
+---@field m_iMinWidth       integer
+---@field Restore           { x: number, y: number, w: number, h: number }
+---@field Sizing            { [1]: number, [2]: number }
+---@field Stat              string?
+---@field x                 number
+---@field y                 number
+
 function PANEL:Init()
-    self.btnMaxim:SetDisabled(false)
-    self.btnMinim:SetDisabled(false)
+    self.btnMaxim:SetEnabled(true)
+    self.btnMinim:SetEnabled(true)
     function self.btnMaxim.DoClick()
         if self.Stat ~= "Maximized" then
             self:SetPos(0, 0)
@@ -92,7 +109,7 @@ function PANEL:Think()
     -- Don't allow the frame to go higher than 0
     local minw, maxw, maxh = self:GetWide(), 8, 8
     if self:GetScreenLock() or self.InitialScreenLock then
-        minw, maxw, maxh = maxw, minw, self:GetTall()
+        minw, maxw, maxh = maxw --[[@as integer]], minw --[[@as integer]], self:GetTall()
         self.InitialScreenLock = nil
     end
 
@@ -106,20 +123,23 @@ function PANEL:OnMousePressed()
     if self.m_bSizable and mousex > self:GetWide() - 20 and mousey > self:GetTall() - 20 then
         self.Sizing = {mousex - self:GetWide(), mousey - self:GetTall()}
         self:MouseCapture(true)
-        return
+        return false
     end
 
     if self:GetDraggable() and mousey < 24 then
         self.Dragging = {mousex, mousey}
         self:MouseCapture(true)
-        return
+        return false
     end
+
+    return false
 end
 
 function PANEL:OnMouseReleased()
     if self.Sizing then self.Stat = nil end
-    self.Dragging, self.Sizing = nil
+    self.Dragging, self.Sizing = nil, nil
     self:MouseCapture(false)
+    return false
 end
 
 derma.DefineControl("SplatoonSWEPs.DFrameChild", "", PANEL, "DFrame")

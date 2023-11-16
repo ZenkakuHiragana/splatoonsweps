@@ -1,6 +1,24 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local SWEP = SWEP
+---@cast SWEP SWEP.Slosher
+---@class SWEP.Slosher : SplatoonWeaponBase
+---@field Parameters          Parameters.Slosher
+---@field ShootSound          string
+---@field CreateInk           fun(self, number: integer, spawncount: integer)
+---@field GetCollisionRadii   fun(self, number: integer, spawncount: integer): number, number
+---@field GetColRadius        fun(self): number
+---@field GetCrosshairTrace   fun(self, t: table)
+---@field GetDamageParameters fun(self, number: integer, spawncount: integer): number, number, number, number
+---@field GetDrawRadius       fun(self, number: integer, spawncount: integer): number
+---@field GetFirePosition     fun(self, ping: boolean?): Vector, Vector, integer
+---@field GetInitSpeed        fun(self, number: integer, spawncount: integer, jumping: boolean?): number
+---@field GetInitVelocity     fun(self, number: integer, spawncount: integer, jumping: boolean?): number, number, number
+---@field GetPaintParameters  fun(self, number: integer, spawncount: integer): number, number, number, number, number, number
+---@field GetRange            fun(self): number
+
 SWEP.Base = "weapon_splatoonsweps_inklingbase"
 SWEP.IsSlosher = true
 
@@ -12,8 +30,9 @@ function SWEP:GetInitSpeed(number, spawncount, jumping)
     jumping = jumping and "Jumping" or ""
     local order = OrdinalNumbers[number]
     local p = self.Parameters
-    local base = p["m" .. order .. "GroupBulletFirstInitSpeed" .. jumping .. "Base"]
-    return base + spawncount * p["m" .. order .. "GroupBulletAfterInitSpeedOffset"]
+    local base = p["m" .. order .. "GroupBulletFirstInitSpeed" .. jumping .. "Base"] ---@type number
+    local offset = p["m" .. order .. "GroupBulletAfterInitSpeedOffset"] ---@type number
+    return base + spawncount * offset
 end
 
 local randvel = "SplatoonSWEPs: Spread velocity"
@@ -22,9 +41,9 @@ function SWEP:GetInitVelocity(number, spawncount, jumping)
     local order = OrdinalNumbers[number]
     local p = self.Parameters
     local base = self:GetInitSpeed(number, spawncount, jumping)
-    local x = p["m" .. order .. "GroupBulletInitSpeedRandomX"]
-    local z = p["m" .. order .. "GroupBulletInitSpeedRandomZ"]
-    local y = base * p["m" .. order .. "GroupBulletInitVecYRate"]
+    local x = p["m" .. order .. "GroupBulletInitSpeedRandomX"] ---@type number
+    local z = p["m" .. order .. "GroupBulletInitSpeedRandomZ"] ---@type number
+    local y = base * p["m" .. order .. "GroupBulletInitVecYRate"] ---@type number
     x = util.SharedRandom(randvel, -x, x, number)
     z = base + util.SharedRandom(randvel, -z, z, number * 2)
     return z, x, y -- Forward, Right, Up
@@ -53,10 +72,10 @@ end
 function SWEP:GetCollisionRadii(number, spawncount)
     local order = OrdinalNumbers[number]
     local p = self.Parameters
-    local forent = p["m" .. order .. "GroupBulletFirstCollisionRadiusForPlayer"]
-    local forworld = p["m" .. order .. "GroupBulletFirstCollisionRadiusForField"]
-    local forent_offset = p["m" .. order .. "GroupBulletAfterCollisionRadiusForPlayerOffset"]
-    local forworld_offset = p["m" .. order .. "GroupBulletAfterCollisionRadiusForFieldOffset"]
+    local forent = p["m" .. order .. "GroupBulletFirstCollisionRadiusForPlayer"] ---@type number
+    local forworld = p["m" .. order .. "GroupBulletFirstCollisionRadiusForField"] ---@type number
+    local forent_offset = p["m" .. order .. "GroupBulletAfterCollisionRadiusForPlayerOffset"] ---@type number
+    local forworld_offset = p["m" .. order .. "GroupBulletAfterCollisionRadiusForFieldOffset"] ---@type number
     return forent + spawncount * forent_offset, forworld + spawncount * forworld_offset
 end
 
@@ -65,9 +84,9 @@ function SWEP:GetDamageParameters(number, spawncount)
     local p = self.Parameters
     local maxdist = p.mBulletDamageMaxDist
     local mindist = p.mBulletDamageMinDist
-    local max = p["m" .. order .. "GroupBulletFirstDamageMaxValue"]
-    local min = p["m" .. order .. "GroupBulletFirstDamageMinValue"]
-    local mul = 1 + spawncount * p["m" .. order .. "GroupBulletAfterDamageRateOffset"]
+    local max = p["m" .. order .. "GroupBulletFirstDamageMaxValue"] ---@type number
+    local min = p["m" .. order .. "GroupBulletFirstDamageMinValue"] ---@type number
+    local mul = 1 + spawncount * p["m" .. order .. "GroupBulletAfterDamageRateOffset"] ---@type number
     local mulmax = mul * max
     local mulmin = mul * min
     if max < 1 then mulmax = math.min(mulmax, 0.99) end
@@ -78,8 +97,8 @@ end
 function SWEP:GetDrawRadius(number, spawncount)
     local order = OrdinalNumbers[number]
     local p = self.Parameters
-    local base = p["m" .. order .. "GroupBulletFirstDrawRadius"]
-    local offset = p["m" .. order .. "GroupBulletAfterDrawRadiusOffset"]
+    local base = p["m" .. order .. "GroupBulletFirstDrawRadius"] ---@type number
+    local offset = p["m" .. order .. "GroupBulletAfterDrawRadiusOffset"] ---@type number
     return base + spawncount * offset
 end
 
@@ -114,22 +133,24 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
     local p = self.Parameters
     local dir = self:GetAimVector()
     local pos = self:GetShootPos()
-    local iscenter = p["m" .. order .. "GroupCenterLine"]
-    local isside = p["m" .. order .. "GroupSideLine"]
-    local splashcolradius = p["m" .. order .. "GroupSplashColRadius"]
-    local splashdrawradius = p["m" .. order .. "GroupSplashDrawRadius"]
-    local splashinitmin = p["m" .. order .. "GroupSplashFirstDropRandomRateMin"]
-    local splashinitmax = p["m" .. order .. "GroupSplashFirstDropRandomRateMax"]
-    local splashlength = p["m" .. order .. "GroupSplashBetween"]
-    local splashnum = p["m" .. order .. "GroupSplashMaxNum"]
-    local splashpaintradius = p["m" .. order .. "GroupSplashPaintRadius"]
-    local splashratio = p["m" .. order .. "GroupSplashDepthScaleRateByWidth"]
+    local iscenter = p["m" .. order .. "GroupCenterLine"] ---@type boolean
+    local isside = p["m" .. order .. "GroupSideLine"] ---@type boolean
+    local splashcolradius = p["m" .. order .. "GroupSplashColRadius"] ---@type number
+    local splashdrawradius = p["m" .. order .. "GroupSplashDrawRadius"] ---@type number
+    local splashinitmin = p["m" .. order .. "GroupSplashFirstDropRandomRateMin"] ---@type number
+    local splashinitmax = p["m" .. order .. "GroupSplashFirstDropRandomRateMax"] ---@type number
+    local splashlength = p["m" .. order .. "GroupSplashBetween"] ---@type number
+    local splashnum = p["m" .. order .. "GroupSplashMaxNum"] ---@type number
+    local splashpaintradius = p["m" .. order .. "GroupSplashPaintRadius"] ---@type number
+    local splashratio = p["m" .. order .. "GroupSplashDepthScaleRateByWidth"] ---@type number
     local spread = p.mShotRandomDegreeExceptBulletForGuide
     local spreadbias = p.mShotRandomBiasExceptBulletForGuide
     local vforward, vright, vup = self:GetInitVelocity(number, spawncount)
     local dmax, dmaxdist, dmin, dmindist = self:GetDamageParameters(number, spawncount)
     local pfardist, pfarradius, pfarrate, pneardist, pnearradius, pnearrate = self:GetPaintParameters(number, spawncount)
     local colent, colworld = self:GetCollisionRadii(number, spawncount)
+    ---@param ang Angle
+    ---@param i integer
     local function Make(ang, i)
         local initvelocity = ang:Forward() * vforward + ang:Right() * vright + ang:Up() * vup
         local yaw = initvelocity:Angle().yaw
@@ -230,7 +251,7 @@ end
 
 function SWEP:Move(ply)
     local p = self.Parameters
-    if ply:IsPlayer() then
+    if ply:IsPlayer() then ---@cast ply Player
         if self:GetNWBool "toggleads" then
             if ply:KeyPressed(IN_USE) then
                 self:SetADS(not self:GetADS())
@@ -241,12 +262,12 @@ function SWEP:Move(ply)
     end
 
     for number, order in ipairs(OrdinalNumbers) do
-        local spawnmax = p["m" .. order .. "GroupBulletNum"]
-        local spawnremaining = self["GetSpawnRemaining" .. number](self)
-        local spawntime = self["GetNextInkSpawnTime" .. number](self)
-        local SetRemaining = self["SetSpawnRemaining" .. number]
-        local SetTime = self["SetNextInkSpawnTime" .. number]
-        local frameoffset = p["m" .. order .. "GroupBulletAfterFrameOffset"]
+        local spawnmax       = p["m" .. order .. "GroupBulletNum"]              ---@type number
+        local spawnremaining = self["GetSpawnRemaining"   .. number](self)      ---@type number
+        local spawntime      = self["GetNextInkSpawnTime" .. number](self)      ---@type number
+        local SetRemaining   = self["SetSpawnRemaining"   .. number]            ---@type fun(self, value: number)
+        local SetTime        = self["SetNextInkSpawnTime" .. number]            ---@type fun(self, value: number)
+        local frameoffset    = p["m" .. order .. "GroupBulletAfterFrameOffset"] ---@type number
         while spawnremaining > 0 and CurTime() > spawntime do
             self:CreateInk(number, spawnmax - spawnremaining)
             spawnremaining = spawnremaining - 1
@@ -280,6 +301,28 @@ function SWEP:Move(ply)
 end
 
 function SWEP:CustomDataTables()
+    ---@class SWEP.Slosher
+    ---@field GetADS               fun(self): boolean
+    ---@field GetIsBusy            fun(self): boolean
+    ---@field GetPreviousHasInk    fun(self): boolean
+    ---@field GetNextInkSpawnTime1 fun(self): number
+    ---@field GetNextInkSpawnTime2 fun(self): number
+    ---@field GetNextInkSpawnTime3 fun(self): number
+    ---@field GetSpawnTimeBase     fun(self): number
+    ---@field GetSpawnRemaining1   fun(self): integer
+    ---@field GetSpawnRemaining2   fun(self): integer
+    ---@field GetSpawnRemaining3   fun(self): integer
+    ---@field SetADS               fun(self, value: boolean)
+    ---@field SetIsBusy            fun(self, value: boolean)
+    ---@field SetPreviousHasInk    fun(self, value: boolean)
+    ---@field SetNextInkSpawnTime1 fun(self, value: number)
+    ---@field SetNextInkSpawnTime2 fun(self, value: number)
+    ---@field SetNextInkSpawnTime3 fun(self, value: number)
+    ---@field SetSpawnTimeBase     fun(self, value: number)
+    ---@field SetSpawnRemaining1   fun(self, value: integer)
+    ---@field SetSpawnRemaining2   fun(self, value: integer)
+    ---@field SetSpawnRemaining3   fun(self, value: integer)
+
     self:AddNetworkVar("Bool", "ADS")
     self:AddNetworkVar("Bool", "IsBusy")
     self:AddNetworkVar("Bool", "PreviousHasInk")

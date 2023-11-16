@@ -1,4 +1,5 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -27,8 +28,13 @@ end
 
 -- Inkling playermodels hull change fix
 if isfunction(FindMetaTable "Player".SplatoonOffsets) then
+    ---@class Player
+    ---@field SplatColors               fun(self)
+    ---@field DefaultOffsets            fun(self)
+    ---@field IsSplattedBySplatoonSWEPs boolean?
+
     local cvarflags = {FCVAR_ARCHIVE, FCVAR_REPLICATED, FCVAR_SERVER_CAN_EXECUTE}
-    CreateConVar("splt_Colors", 1, cvarflags, "Toggles skin/eye colors on Splatoon playermodels.")
+    CreateConVar("splt_Colors", "1", cvarflags, "Toggles skin/eye colors on Splatoon playermodels.")
     if SERVER then
         hook.Remove("KeyPress", "splt_KeyPress")
         hook.Remove("PlayerSpawn", "splt_Spawn")
@@ -67,9 +73,18 @@ end
 -- View Extension disables FOV changes so "fix" it
 local ht = hook.GetTable()
 if CLIENT and ht.CalcView and ht.CalcView["ViewExtension:CalcView"] then
+    ---@type fun(ply: Player, origin: Vector, angles: Angle, fov: number, znear: number, zfar: number): CamData?
     ss.ViewExtensionCalcView = ss.ViewExtensionCalcView or hook.GetTable().CalcView["ViewExtension:CalcView"]
     hook.Remove("CalcView", "ViewExtension:CalcView")
-    hook.Add("CalcView", "ViewExtension:CalcView", function( ply, org, ang, fov, zn, zf)
+    hook.Add("CalcView", "ViewExtension:CalcView",
+    ---@param ply Player
+    ---@param org Vector
+    ---@param ang Angle
+    ---@param fov number
+    ---@param zn number
+    ---@param zf number
+    ---@return table?
+    function( ply, org, ang, fov, zn, zf)
         local w = ss.IsValidInkling(ply)
         local t = ss.ViewExtensionCalcView(ply, org, ang, fov, zn, zf)
         if not t then return end

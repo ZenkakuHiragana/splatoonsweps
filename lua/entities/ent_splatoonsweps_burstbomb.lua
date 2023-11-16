@@ -1,7 +1,14 @@
 
+local ENT = ENT
+---@cast ENT ENT.BurstBomb
+---@class ENT.BurstBomb : ENT.Throwable
+---@field BaseClass ENT.Throwable
+---@field Parameters table
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_throwable"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.CollisionGroup = COLLISION_GROUP_PROJECTILE
@@ -10,14 +17,14 @@ ENT.Model = Model "models/splatoonsweps/subs/burstbomb/burstbomb.mdl"
 ENT.SubWeaponName = "burstbomb"
 
 function ENT:Initialize()
-    local p = ss[self.SubWeaponName].Parameters
+    local p = ss[self.SubWeaponName].Parameters ---@type SubParameters.BurstBomb
     self.Parameters = p
     self.StraightFrame = p.Fly_AirFrm
     self.AirResist = p.Fly_VelKd - 1
     self.AngleAirResist = p.Fly_RotKd - 1
     self.Gravity = p.Fly_Gravity
-    local base = self.BaseClass
-    while base.ClassName ~= "ent_splatoonsweps_throwable" do base = base.BaseClass end
+    local base = self.BaseClass ---@type ENT|ENT.Throwable
+    while base and base.ClassName ~= "ent_splatoonsweps_throwable" do base = base.BaseClass end
     base.Initialize(self)
     if CLIENT then return end
     local ph = self:GetPhysicsObject()

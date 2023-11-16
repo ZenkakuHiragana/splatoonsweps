@@ -1,4 +1,5 @@
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -49,7 +50,7 @@ function ss.OpenMiniMap()
     end
 
     local frame = vgui.Create("DFrame")
-    local panel = vgui.Create("DButton", frame)
+    local panel = vgui.Create("DButton", frame) ---@cast panel +PANEL
     frame:SetSizable(true)
     frame:SetPos(windowMarginX, windowMarginY)
     frame:SetSize(ScrW() - windowMarginX * 2, ScrH() - windowMarginY * 2)
@@ -69,6 +70,8 @@ function ss.OpenMiniMap()
             angularRate.yaw * RealFrameTime())
     end
 
+    ---@return number
+    ---@return number
     local function GetPanOffset()
         local frac = math.Remap(currentAngle.yaw, inclinedYaw, upYaw, 0, 1)
         local dx = Lerp(frac, cameraInfo.pan.x, cameraInfoUp.pan.x)
@@ -76,6 +79,10 @@ function ss.OpenMiniMap()
         return dx, dy
     end
 
+    ---@param windowWidth number
+    ---@param windowHeight number
+    ---@return Vector
+    ---@return table
     local function GetOrthoTable(windowWidth, windowHeight)
         -- +--------------=====------------------------------+
         -- |             /     ^^^^^-----_____  H = bbsize.y |
@@ -137,9 +144,14 @@ function ss.OpenMiniMap()
         }
     end
 
+    ---@param x number
+    ---@param y number
+    ---@param w number
+    ---@param h number
     local function DrawMap(x, y, w, h)
         local origin, ortho = GetOrthoTable(w, h)
         ss.IsDrawingMinimap = true
+        local old = render.EnableClipping(true)
         render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
         render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
         render.PushCustomClipPlane(Vector(-1,  0,  0), -bbmaxs.x - 0.5)
@@ -162,9 +174,17 @@ function ss.OpenMiniMap()
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
+        render.EnableClipping(old)
         ss.IsDrawingMinimap = false
     end
 
+    ---@param pos Vector
+    ---@param w number
+    ---@param h number
+    ---@param ortho { left: number, right: number, top: number, bottom: number }
+    ---@param origin Vector
+    ---@return number
+    ---@return number
     local function TransformPosition(pos, w, h, ortho, origin)
         local localpos = WorldToLocal(pos, angle_zero, origin, currentAngle)
         local x = math.Remap(localpos.y, ortho.left, ortho.right,  w, 0)
@@ -174,11 +194,13 @@ function ss.OpenMiniMap()
 
     local rgbmin = 64
     local beakonmat = Material("splatoonsweps/icons/beakon.png", "alphatest")
+    ---@param w number
+    ---@param h number
     local function DrawBeakons(w, h)
         local origin, ortho = GetOrthoTable(w, h)
         local s = math.min(w, h) * 0.025 -- beakon icon size
         surface.SetMaterial(beakonmat)
-        for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
+        for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do ---@cast b ENT.SquidBeakon
             local pos = b:GetPos()
             local x, y = TransformPosition(pos, w, h, ortho, origin)
             local c = b:GetInkColorProxy():ToColor()
@@ -232,7 +254,7 @@ function ss.OpenMiniMap()
         local origin, ortho = GetOrthoTable(w, h)
         local pc = weapon:GetNWInt "inkcolor"
         local s = math.min(w, h) * 0.025 -- beakon icon size
-        for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do
+        for _, b in ipairs(ents.FindByClass "ent_splatoonsweps_squidbeakon") do ---@cast b ENT.SquidBeakon
             local c = b:GetNWInt "inkcolor"
             if c ~= pc then continue end
             local pos = b:WorldSpaceCenter()
@@ -251,6 +273,7 @@ function ss.OpenMiniMap()
     function panel:OnMouseWheeled(scrollDelta)
         local t = inclined and cameraInfo or cameraInfoUp
         t.zoom = math.min(t.zoom + scrollDelta, maxzoom)
+        return false
     end
 
     function panel:Paint(w, h)

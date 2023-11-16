@@ -2,6 +2,8 @@
 -- Sound script registrations
 
 AddCSLuaFile()
+
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
@@ -13,6 +15,7 @@ ss.EnemyInkSound = Sound "splatoonsweps/player/onenemyink.wav"
 ss.SwimSound = Sound "splatoonsweps/player/swimloop.wav"
 ss.TakeDamage = Sound "splatoonsweps/player/takedamage.wav"
 ss.TankEmpty = Sound "splatoonsweps/player/tankempty.wav"
+---@param soundList SoundData[]
 function ss.PrecacheSoundList(soundList)
     for _, soundData in ipairs(soundList) do
         local i = 0

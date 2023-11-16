@@ -1,13 +1,37 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
+
+local SWEP = SWEP
+---@cast SWEP SWEP.Shooter
+---@class SWEP.Shooter : SplatoonWeaponBase
+---@field HeroColor               Color[]
+---@field Parameters              Parameters.Shooter
+---@field TripleSchedule          EntityNetworkSchedule?
+---@field SplashInitTable         number[]
+---@field ShootSound              string
+---@field PreviousHasInk          boolean
+---@field ModifyWeaponSize        number
+---@field GetRange                fun(self, ping: boolean?): number
+---@field GetInitVelocity         fun(self): number
+---@field GetColRadius            fun(self): number
+---@field GetSplashInitRate       fun(self): number
+---@field GetFirePosition         fun(self, ping: boolean?): Vector, Vector, integer
+---@field GetSpreadJumpFraction   fun(self): number
+---@field GetSpreadAmount         fun(self): number, number
+---@field GenerateSplashInitTable fun(self)
+---@field GetSpread               fun(self): number, number
+---@field CreateInk               fun(self)
+---@field PlayEmptySound          fun(self)
+---@field GetAnimWeight           fun(self): number
+
 SWEP.Base = "weapon_splatoonsweps_inklingbase"
 SWEP.IsShooter = true
-SWEP.HeroColor = {ss.GetColor(8), ss.GetColor(11), ss.GetColor(2), ss.GetColor(5)}
+SWEP.HeroColor = { ss.GetColor(8), ss.GetColor(11), ss.GetColor(2), ss.GetColor(5) }
 
 local FirePosition = 10
 local randsplash = "SplatoonSWEPs: SplashNum"
-function SWEP:GetRange() return self.Range end
+function SWEP:GetRange(ping) return self.Range end
 function SWEP:GetInitVelocity() return self.Parameters.mInitVel end
 function SWEP:GetColRadius() return self.Parameters.mColRadius end
 function SWEP:GetSplashInitRate()
@@ -36,16 +60,16 @@ function SWEP:GetFirePosition(ping)
     t.start, t.endpos = pos, tr.HitPos
     local trtest = util.TraceHull(t)
     if self:GetNWBool "avoidwalls" and tr.HitPos:DistToSqr(shootpos) > trtest.HitPos:DistToSqr(pos) * 9 then
-        for dir, negate in ipairs {false, "y", "z", "yz", 0} do -- right, left, up
-            if negate then
-                if negate == 0 then
+        for dir, negate in ipairs { "", "y", "z", "yz", "0" } do -- right, left, up
+            if negate ~= "" then
+                if negate == "0" then
                     dp = vector_up * -FirePosition
                     pos = shootpos
                 else
                     dp = -Vector(0, dy, FirePosition)
                     for i = 1, negate:len() do
                         local s = negate:sub(i, i)
-                        dp[s] = -dp[s]
+                        dp[s] = -dp[s] ---@type number
                     end
                     dp:Rotate(ang)
                     pos = shootpos + dp
@@ -185,7 +209,11 @@ function SWEP:CreateInk()
         local proj = self.Projectile
         ss.SetEffectColor(e, proj.Color)
         ss.SetEffectColRadius(e, proj.ColRadiusWorld)
-        ss.SetEffectDrawRadius(e, self.IsBlaster and p.mSphereSplashDropDrawRadius or p.mDrawRadius)
+        if self.IsBlaster then ---@cast p Parameters.Blaster
+            ss.SetEffectDrawRadius(e, p.mSphereSplashDropDrawRadius)
+        else
+            ss.SetEffectDrawRadius(e, p.mDrawRadius)
+        end
         ss.SetEffectEntity(e, self)
         ss.SetEffectFlags(e, self)
         ss.SetEffectInitPos(e, proj.InitPos)
@@ -246,13 +274,28 @@ function SWEP:SharedPrimaryAttack(able, auto)
 end
 
 function SWEP:CustomDataTables()
-    self:AddNetworkVar("Bool", "ADS")
-    self:AddNetworkVar("Bool", "PreviousHasInk")
+    ---@class SWEP.Shooter
+    ---@field GetADS            fun(self): boolean
+    ---@field GetPreviousHasInk fun(self): boolean
+    ---@field GetAimTimer       fun(self): number
+    ---@field GetBias           fun(self): number
+    ---@field GetJump           fun(self): number
+    ---@field GetNextPlayEmpty  fun(self): number
+    ---@field GetSplashInitMul  fun(self): integer
+    ---@field SetADS            fun(self, value: boolean)
+    ---@field SetPreviousHasInk fun(self, value: boolean)
+    ---@field SetAimTimer       fun(self, value: number)
+    ---@field SetBias           fun(self, value: number)
+    ---@field SetJump           fun(self, value: number)
+    ---@field SetNextPlayEmpty  fun(self, value: number)
+    ---@field SetSplashInitMul  fun(self, value: integer)
+    self:AddNetworkVar("Bool",  "ADS")
+    self:AddNetworkVar("Bool",  "PreviousHasInk")
     self:AddNetworkVar("Float", "AimTimer")
     self:AddNetworkVar("Float", "Bias")
     self:AddNetworkVar("Float", "Jump")
     self:AddNetworkVar("Float", "NextPlayEmpty")
-    self:AddNetworkVar("Int", "SplashInitMul")
+    self:AddNetworkVar("Int",   "SplashInitMul")
 
     if self.Parameters.mTripleShotSpan > 0 then
         self.TripleSchedule = self:AddNetworkSchedule(0, function(_, schedule)
@@ -260,7 +303,7 @@ function SWEP:CustomDataTables()
                 if self:GetNextPrimaryFire() > CurTime() then
                     schedule:SetDone(schedule:GetDone() - 1)
                 else
-                    self:PrimaryAttack(true)
+                    self:PrimaryAttackEntryPoint(true)
                 end
 
                 return
@@ -291,7 +334,7 @@ function SWEP:CustomMoveSpeed()
 end
 
 function SWEP:Move(ply)
-    if ply:IsPlayer() then
+    if ply:IsPlayer() then ---@cast ply Player
         if self:GetNWBool "toggleads" then
             if ply:KeyPressed(IN_USE) then
                 self:SetADS(not self:GetADS())

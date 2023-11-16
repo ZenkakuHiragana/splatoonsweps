@@ -1,14 +1,49 @@
 
 -- Structures used in UV packing process.
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@param a ss.LinkedListCell
+---@return string
 local function CellTs(a)    return tostring(a.value)  end
+---@param a ss.LinkedListCell
+---@param b ss.LinkedListCell
+---@return boolean
 local function CellEq(a, b) return a.value == b.value end
+---@param a ss.LinkedListCell
+---@param b ss.LinkedListCell
+---@return boolean
 local function CellLe(a, b) return a.value <= b.value end
+---@param a ss.LinkedListCell
+---@param b ss.LinkedListCell
+---@return boolean
 local function CellLt(a, b) return a.value <  b.value end
+
+---@param values any
+---@return ss.LinkedList
 function ss.LinkedList(values)
+    ---@class ss.LinkedList
+    ---@field count  integer
+    ---@field first  ss.LinkedListCell?
+    ---@field last   ss.LinkedListCell?
+    ---@field __type "SplatoonSWEPsLinkedList"
+    ---@field append fun(self: ss.LinkedList, value: any)
+    ---@field insert fun(self: ss.LinkedList, value: any, index: integer|ss.LinkedListCell)
+    ---@field remove fun(self: ss.LinkedList, index: integer|ss.LinkedListCell)
+    ---@overload fun(): fun(): integer?, ss.LinkedListCell?
+
+    ---@param parent ss.LinkedList
+    ---@param value any
+    ---@return ss.LinkedListCell
     local function Cell(parent, value)
+        ---@class ss.LinkedListCell
+        ---@field after  ss.LinkedListCell?
+        ---@field before ss.LinkedListCell?
+        ---@field parent ss.LinkedList
+        -- @field value  any
+        ---@field remove fun(self: ss.LinkedListCell)
+        ---@field __type "SplatoonSWEPsLinkedListCell"
         return setmetatable({
             after = nil,
             before = nil,
@@ -24,9 +59,10 @@ function ss.LinkedList(values)
         })
     end
 
-    local meta = {}
-    local t = { count = 0, first = nil, last = nil }
-    function meta:__call() -- iterator
+    ---Iterate through all values in the list
+    ---@param self ss.LinkedList
+    ---@return fun(): integer?, ss.LinkedListCell?
+    local function __call(self) -- iterator
         local index, current = 1, self.first
         return function()
             local i, v = index, current
@@ -35,15 +71,22 @@ function ss.LinkedList(values)
             return i, v
         end
     end
-    function meta:__index(key)
+    ---@param self ss.LinkedList
+    ---@param key any
+    ---@return ss.LinkedListCell?
+    local function __index(self, key)
         if not isnumber(key) then return end
         for i, v in self() do
             if i == key then return v end
         end
     end
-    function meta:__newindex(key, value)
+    ---@param self ss.LinkedList
+    ---@param key any
+    ---@param value any
+    local function __newindex(self, key, value)
         if key == "first" or key == "last" then
-            return rawset(self, key, value)
+            rawset(self, key, value)
+            return
         elseif not isnumber(key) then
             return
         end
@@ -55,11 +98,16 @@ function ss.LinkedList(values)
             end
         end
     end
-    function meta:__tostring()
+    ---@param self ss.LinkedList
+    ---@return string
+    local function __tostring(self)
         local s = ""
         for _, v in self() do s = s .. "\n  " .. tostring(v.value) end
         return "[" .. s .. "\n]"
     end
+
+    local t = { count = 0, first = nil, last = nil } ---@cast t ss.LinkedList
+    ---@param value any
     function t:append(value)
         local cell = Cell(self, value)
         if self.count == 0 then
@@ -70,10 +118,14 @@ function ss.LinkedList(values)
         self.last = cell
         self.count = self.count + 1
     end
+    ---@param value any
+    ---@param i integer|ss.LinkedListCell
     function t:insert(value, i) -- insert before that element
         if self.count == 0 then
-            return self:append(value)
+            self:append(value)
+            return
         elseif istable(i) and i.__type == "SplatoonSWEPsLinkedListCell" then
+            ---@cast i ss.LinkedListCell
             local before = i.before
             local cell = Cell(self, value)
             cell.after, i.before = i, cell
@@ -84,9 +136,11 @@ function ss.LinkedList(values)
                 self.first = cell
             end
         elseif isnumber(i) then
-            return self:insert(value, self[i])
+            self:insert(value, self[i])
+            return
         end
     end
+    ---@param i integer|ss.LinkedListCell
     function t:remove(i)
         if istable(i) then
             self.count = self.count - 1
@@ -101,39 +155,62 @@ function ss.LinkedList(values)
                 self.last = i.before
             end
         elseif isnumber(i) then
-            return self:remove(self[i])
+            self:remove(self[i])
+            return
         end
     end
 
     if values ~= nil and not istable(values) then
         t:append(values)
     elseif istable(values) then
-        if values.__type == "SplatoonSWEPsLinkedList" then
+        if values.__type == "SplatoonSWEPsLinkedList" then ---@cast values ss.LinkedList
             for _, v in values() do t:append(ss.deepcopy(v.value)) end
-        else
+        else ---@cast values table[]
             for _, v in ipairs(values) do t:append(ss.deepcopy(v)) end
         end
     end
 
     t.__type = "SplatoonSWEPsLinkedList"
-    return setmetatable(t, meta)
+    return setmetatable(t, {
+        __call = __call,
+        __index = __index,
+        __newindex = __newindex,
+        __tostring = __tostring,
+    })
 end
 
+---@return ss.AVLTree
 function ss.MakeAVL()
+    ---@param key any
+    ---@param value any
+    ---@param parent ss.AVLNode?
+    ---@return ss.AVLNode
     local function Node(key, value, parent)
-        local meta = {}
+        ---@class ss.AVLNode
+        ---@field left   ss.AVLNode?
+        ---@field right  ss.AVLNode?
+        ---@field parent ss.AVLNode?
+        ---@field key    any
+        ---@field value  any
+        ---@field bias   integer
         local t = {
             bias = 0,
             parent = parent,
             key = key, value = value,
             left = nil, right = nil,
         }
-        function meta:__tostring()
+        ---@param self ss.AVLNode
+        ---@return string
+        local function __tostring(self)
             local s = self.parent and "" or "^"
             s = s .. tostring(self.key) .. " = " .. tostring(self.value)
             .. " (" .. tostring(self.bias) .. ")"
             return s
         end
+        ---@return string[]
+        ---@return number
+        ---@return integer
+        ---@return number
         function t:display()
             local textroot = tostring(self)
             local widthroot = string.len(textroot)
@@ -183,12 +260,15 @@ function ss.MakeAVL()
         end
 
         t.__type = "SplatoonSWEPsAVLNode"
-        return setmetatable(t, meta)
+        return setmetatable(t, { __tostring = __tostring })
     end
 
-    local meta = {}
+    ---@class ss.AVLTree
+    ---@field root ss.AVLNode?
     local t = { root = nil }
-    function meta:__tostring()
+    ---@param self ss.AVLTree
+    ---@return string
+    local function __tostring(self)
         if not self.root then return "*Empty AVL Tree*" end
         local s = ""
         local lines = (self.root:display())
@@ -196,10 +276,11 @@ function ss.MakeAVL()
         return s
     end
 
+    ---@param node ss.AVLNode
     function t:rotateleft(node)
         if not node.right then return end
         local grandchild = node.right.left
-        local parent, child = node.parent, node.right
+        local parent, child = node.parent, node.right ---@cast child -?
         child.left, child.parent = node, parent
         node.right, node.parent  = grandchild, child
         if grandchild then grandchild.parent = node end
@@ -214,10 +295,11 @@ function ss.MakeAVL()
         child.bias = child.bias + 1 + math.max(0, node.bias)
     end
 
+    ---@param node ss.AVLNode
     function t:rotateright(node)
         if not node.left then return end
         local grandchild = node.left.right
-        local parent, child = node.parent, node.left
+        local parent, child = node.parent, node.left ---@cast child -?
         child.right, child.parent = node, parent
         node.left,   node.parent  = grandchild, child
         if grandchild then grandchild.parent = node end
@@ -232,10 +314,11 @@ function ss.MakeAVL()
         child.bias = child.bias - (1 - math.min(0, node.bias))
     end
 
+    ---@param node ss.AVLNode
     function t:updateinsert(node)
         while node.parent do
             if node.parent.left == node then
-                node = node.parent
+                node = node.parent ---@cast node -?
                 node.bias = node.bias + 1
                 if node.bias == 0 then
                     return
@@ -245,7 +328,7 @@ function ss.MakeAVL()
                     return
                 end
             else
-                node = node.parent
+                node = node.parent ---@cast node -?
                 node.bias = node.bias - 1
                 if node.bias == 0 then
                     return
@@ -258,10 +341,11 @@ function ss.MakeAVL()
         end
     end
 
+    ---@param node ss.AVLNode?
     function t:updateremove(node)
         while node and node.parent do
             if node.parent.left == node then
-                node = node.parent
+                node = node.parent ---@cast node ss.AVLNode
                 node.bias = node.bias - 1
                 if node.bias == -1 then
                     return
@@ -273,7 +357,7 @@ function ss.MakeAVL()
                     if bias == 0 then return end
                 end
             else
-                node = node.parent
+                node = node.parent ---@cast node ss.AVLNode
                 node.bias = node.bias + 1
                 if node.bias == 1 then
                     return
@@ -288,6 +372,8 @@ function ss.MakeAVL()
         end
     end
 
+    ---@param key number
+    ---@param value integer
     function t:insert(key, value)
         local node = self:lowerbound(key, value)
         local new = Node(key, value, node)
@@ -297,25 +383,29 @@ function ss.MakeAVL()
         elseif node and not node.left then
             node.left = new
         else
-            node = node and node.left or self.root
-            while node.right do node = node.right end
+            node = node and node.left or self.root ---@cast node -?
+            while node.right do node = node.right --[[@as ss.AVLNode]] end
             node.right = new
             new.parent = node
         end
         self:updateinsert(new)
     end
 
+    ---@param key number|ss.AVLNode
+    ---@param value integer?
+    ---@return ss.AVLTree?
     function t:remove(key, value)
-        local node = istable(key) and key or self:lowerbound(key, value)
+        ---@type ss.AVLNode
+        local node = istable(key) and key --[[@as ss.AVLNode]] or self:lowerbound(key --[[@as number]], value)
         if not node then return end
         if node.left then
-            local rightmost = node.left
-            while rightmost.right do rightmost = rightmost.right end
+            local rightmost = node.left ---@cast rightmost -?
+            while rightmost.right do rightmost = rightmost.right --[[@as ss.AVLNode]] end
             node.key, node.value = rightmost.key, rightmost.value
             return self:remove(rightmost)
         elseif node.right then
-            local leftmost = node.right
-            while leftmost.left do leftmost = leftmost.left end
+            local leftmost = node.right ---@cast leftmost -?
+            while leftmost.left do leftmost = leftmost.left --[[@as ss.AVLNode]] end
             node.key, node.value = leftmost.key, leftmost.value
             return self:remove(leftmost)
         elseif not node.parent then
@@ -332,6 +422,9 @@ function ss.MakeAVL()
         return self
     end
 
+    ---@param key number
+    ---@param value integer?
+    ---@return ss.AVLNode?
     function t:lowerbound(key, value)
         local node = self.root
         local candidate = nil
@@ -350,12 +443,18 @@ function ss.MakeAVL()
     end
 
     t.__type = "SplatoonSWEPsAVLTree"
-    return setmetatable(t, meta)
+    return setmetatable(t, { __tostring = __tostring })
 end
 
+---@param a ss.Rectangle
+---@param b ss.Rectangle
+---@return boolean
 local function REQ(a, b)
     return a.width == b.width and a.height == b.height
 end
+---@param a ss.Rectangle
+---@param b ss.Rectangle
+---@return boolean
 local function RLT(a, b)
     if a.width == b.width then
         return a.height < b.height
@@ -363,16 +462,38 @@ local function RLT(a, b)
         return a.width < b.width
     end
 end
+---@param a ss.Rectangle
+---@param b ss.Rectangle
+---@return boolean
 local function RLE(a, b)
     return RLT(a, b) or REQ(a, b)
 end
+---@param a ss.Rectangle
+---@return string
 local function RTS(a)
     return string.format(
         "(%6.2f, %6.2f)@(%6.2f, %6.2f)",
         a.width, a.height, a.left, a.bottom)
 end
 
+---@param width number
+---@param height number
+---@param x number?
+---@param y number?
+---@param tag any
+---@return ss.Rectangle
 function ss.MakeRectangle(width, height, x, y, tag)
+    ---@class ss.Rectangle
+    ---@field left       number
+    ---@field bottom     number
+    ---@field bottomleft Vector
+    ---@field width      number
+    ---@field height     number
+    ---@field right      number
+    ---@field top        number
+    ---@field topright   Vector
+    ---@field istall     boolean
+    ---@field tag        any
     local t = {}
     local meta = { __eq = REQ, __lt = RLT, __le = RLE, __tostring = RTS }
     function t:rotate()
@@ -410,6 +531,10 @@ function ss.MakeRectangle(width, height, x, y, tag)
     return setmetatable(t, meta)
 end
 
+---@param widthrange number[]
+---@param aspectrange number[]
+---@param tag any
+---@return ss.Rectangle
 function ss.RectangleRand(widthrange, aspectrange, tag)
     local aspect = math.Remap(math.random(), 0, 1, aspectrange[1], aspectrange[2])
     local width = math.Remap(math.random(), 0, 1, widthrange[1], widthrange[2])

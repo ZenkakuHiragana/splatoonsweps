@@ -3,6 +3,16 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@class SplatoonWeaponBase
+---@field ViewModel0    string?
+---@field ViewModel1    string?
+---@field ViewModel2    string?
+---@field Customized    boolean?
+---@field SheldonsPicks boolean?
+---@field SpecialWeapon string
+---@field SubWeapon     string
+---@field ClassID       integer
+local SWEP = SWEP
 if CLIENT then
     SWEP.Author = ss.Text.Author
     SWEP.BobScale = 1
@@ -10,8 +20,8 @@ if CLIENT then
     SWEP.DrawAmmo = true
     SWEP.DrawCrosshair = true
     SWEP.DrawWeaponInfoBox = true
-    SWEP.Instructions = ss.Text.Instructions
-    SWEP.Purpose = ss.Text.Purpose
+    SWEP.Instructions = ss.Text.Instructions --[[@as string]]
+    SWEP.Purpose = ss.Text.Purpose --[[@as string]]
     SWEP.RenderGroup = RENDERGROUP_BOTH
     SWEP.SpeechBubbleLid = surface.GetTextureID "gui/speech_lid"
     SWEP.SwayScale = 1

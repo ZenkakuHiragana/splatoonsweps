@@ -1,11 +1,15 @@
 
 -- Weapon names, descriptions, and other texts.
-require "greatzenkakuman/localization"
 
+---@class ss
 local ss = SplatoonSWEPs
-local gl = greatzenkakuman.localization
+local gl = require "greatzenkakuman/localization" or greatzenkakuman.localization
+
+---@param t string|string[]
+---@return string
 local function TableToString(t)
-    local str = ""
+    if isstring(t) then return t --[[@as string]] end
+    local str = "" ---@cast t string[]
     for i, v in ipairs(t) do
         if i > 1 then str = str .. "\n" end
         str = str .. tostring(i) .. ":\t" .. tostring(v)
@@ -20,6 +24,6 @@ ss.Text.CVars.InkColor = ss.Text.CVars.InkColor .. TableToString(ss.Text.ColorNa
 ss.Text.CVars.Playermodel = ss.Text.CVars.Playermodel .. TableToString(ss.Text.PlayermodelNames)
 
 if SERVER then return end
-language.Add("Cleanup_" .. ss.CleanupTypeInk, ss.Text.CleanupInk)
-language.Add("Cleaned_" .. ss.CleanupTypeInk, ss.Text.CleanupInkMessage)
+language.Add("Cleanup_" .. ss.CleanupTypeInk, ss.Text.CleanupInk --[[@as string]])
+language.Add("Cleaned_" .. ss.CleanupTypeInk, ss.Text.CleanupInkMessage --[[@as string]])
 steamworks.RequestPlayerInfo("76561198013738310", function(name) ss.Text.Author = name end)

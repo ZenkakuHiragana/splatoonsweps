@@ -4,6 +4,10 @@ if not ss then return end
 AddCSLuaFile "shared.lua"
 include "shared.lua"
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Shooter
+---@class SWEP.Shooter : SplatoonWeaponBase
+
 function SWEP:NPCBurstSettings()
     if self.Parameters.mTripleShotSpan > 0 then
         return 1, 1, self.NPCDelay
@@ -44,9 +48,9 @@ function SWEP:ServerThink()
 end
 
 function SWEP:NPCShoot_Primary(ShootPos, ShootDir)
-    self:PrimaryAttack()
+    self:PrimaryAttackEntryPoint()
     if self.IsBlaster then return end
     self:AddSchedule(self.Parameters.mRepeatFrame, 2, function(_, schedule)
-        self:PrimaryAttack()
+        self:PrimaryAttackEntryPoint()
     end)
 end

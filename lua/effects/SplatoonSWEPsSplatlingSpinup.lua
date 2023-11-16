@@ -10,8 +10,31 @@ local Swirl = Material "particle/particle_crescent"
 local dr = math.rad(30)
 local drdt = math.rad(-2700)
 local dzDefault = -3
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.SplatlingSpinup
+---@class EFFECT.SplatlingSpinup : EFFECT
+---@field Attachment number
+---@field b          number
+---@field Count      number
+---@field Emitter    CLuaEmitter
+---@field Entity     Entity
+---@field Flags      number
+---@field g          number
+---@field Offset     number
+---@field r          number
+---@field Radius     number
+---@field Time       number
+---@field TPS        boolean
+---@field Weapon     SWEP.Splatling
+
+---@class CLuaParticle.SplatlingSpinup : CLuaParticle
+---@field Attachment number
+---@field Entity     Entity
+---@field Offset     number
+
+---@param self CLuaParticle.SplatlingSpinup
 local function Think(self)
-    if not IsValid(self.Enttiy) then return end
+    if not IsValid(self.Entity) then return end
     local a = self.Entity:GetAttachment(self.Attachment)
     self:SetPos(a.Pos + a.Ang:Forward() * self.Offset + a.Ang:Up() * dzDefault)
     self:SetNextThink(CurTime())
@@ -34,7 +57,7 @@ function EFFECT:Think()
     self.Emitter:SetPos(a.Pos)
     while t < EmissionDuration and self.Count < math.floor(t / dt) do
         local dx2 = math.Remap(self.Count * dt, EmissionDuration, 0, dx, 0)
-        local p = self.Emitter:Add(Swirl, a.Pos + a.Ang:Forward() * dx2 + a.Ang:Up() * dz)
+        local p = self.Emitter:Add(Swirl, a.Pos + a.Ang:Forward() * dx2 + a.Ang:Up() * dz) --[[@as CLuaParticle.SplatlingSpinup]]
         local r = math.Remap(t, 0, EmissionDuration, 1, 2 - self.Flags)
         p.Attachment, p.Entity, p.Offset = i, ent, dx2
         p:SetColor(self.r, self.g, self.b)
@@ -59,7 +82,7 @@ function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetMaterial(ss.Materials.Effects.Invisible:GetName())
     self:SetNoDraw(true)
-    local w = e:GetEntity()
+    local w = e:GetEntity() --[[@as SWEP.Splatling]]
     if not IsValid(w) then return end
     local t = w:IsTPS()
     if not (t or drawviewmodel:GetBool()) then return end

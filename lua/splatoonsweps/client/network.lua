@@ -1,10 +1,11 @@
 
 -- net.Receive()
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 net.Receive("SplatoonSWEPs: Change throwing", function()
-    local w = net.ReadEntity()
+    local w = net.ReadEntity() --[[@as SplatoonWeaponBase]]
     if not (IsValid(w) and w.IsSplatoonWeapon) then return end
     w.WorldModel = w.ModelPath .. (net.ReadBool() and "w_left.mdl" or "w_right.mdl")
 end)
@@ -32,7 +33,7 @@ net.Receive("SplatoonSWEPs: Redownload ink data", function()
     file.Write(string.format("splatoonsweps/%s.txt", game.GetMap()), buffer)
     notification.Kill "SplatoonSWEPs: Redownload ink data"
     ss.PrepareInkSurface(util.JSONToTable(util.Decompress(buffer)))
-    notification.AddLegacy(ss.Text.LateReadyToSplat, NOTIFY_HINT, 8)
+    notification.AddLegacy(ss.Text.LateReadyToSplat --[[@as string]], NOTIFY_HINT, 8)
 end)
 
 net.Receive("SplatoonSWEPs: Send a sound", function()
@@ -47,7 +48,7 @@ end)
 net.Receive("SplatoonSWEPs: Send an error message", function()
     local icon = net.ReadUInt(ss.SEND_ERROR_NOTIFY_BITS)
     local duration = net.ReadUInt(ss.SEND_ERROR_DURATION_BITS)
-    local msg = ss.Text.Error[net.ReadString()]
+    local msg = ss.Text.Error[net.ReadString()] --[[@as string?]]
     if not msg then return end
     notification.AddLegacy(msg, icon, duration)
 end)
@@ -64,7 +65,7 @@ end)
 
 net.Receive("SplatoonSWEPs: Send turf inked", function()
     local inked = net.ReadFloat()
-    local classname = assert(ss.WeaponClassNames[net.ReadUInt(8)], "SplatoonSWEPs: Invalid classname!")
+    local classname = assert(ss.WeaponClassNames[net.ReadUInt(8)], "SplatoonSWEPs: Invalid classname!") ---@type string
     ss.WeaponRecord[LocalPlayer()].Inked[classname] = inked
 end)
 

@@ -1,11 +1,14 @@
 
 AddCSLuaFile()
+---@class ss
 local ss = SplatoonSWEPs
-if not ss then return {} end
+if not ss then return end
+---@type ISubWeaponDef
 ss.sprinkler = {
     Merge = {
         IsSubWeaponThrowable = true,
     },
+    ---@class SubParameters.Sprinkler
     Parameters = {
         BringCloseRateCrossVec = 0.7,
         BringCloseRateMoveVec = 0.7,
@@ -171,6 +174,7 @@ ss.sprinkler = {
 
 ss.ConvertUnits(ss.sprinkler.Parameters, ss.sprinkler.Units)
 
+---@type SplatoonWeaponBase
 local module = ss.sprinkler.Merge
 local p = ss.sprinkler.Parameters
 function module:CanSecondaryAttack()
@@ -188,7 +192,7 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    local e = ents.Create "ent_splatoonsweps_sprinkler"
+    local e = ents.Create "ent_splatoonsweps_sprinkler" --[[@as ENT.Sprinkler]]
     e.Weapon = self
     e.DestroyOnLand = self.ExistingSprinkler
     e:SetOwner(self:GetOwner())

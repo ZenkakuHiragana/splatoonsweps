@@ -3,6 +3,36 @@ local ss = SplatoonSWEPs
 if not ss then return end
 include "shared.lua"
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Slosher
+---@class SWEP.Slosher : SplatoonWeaponBase
+---@field SwayTime              number
+---@field IronSightsAng         Angle[]
+---@field IronSightsPos         Vector[]
+---@field IronSightsFlip        boolean[]
+---@field ArmPos                integer
+---@field ArmBegin              number
+---@field BasePos               Vector
+---@field BaseAng               Angle
+---@field OldPos                Vector
+---@field OldAng                Angle
+---@field OldArmPos             integer
+---@field TransitFlip           boolean
+---@field ModifyWeaponSize      number
+---@field ADSAngOffset          Angle
+---@field ADSOffset             Vector
+---@field GetMuzzlePosition     fun(self): Vector, Angle
+---@field DrawFourLines         fun(self, t: SWEP.CrosshairData)
+---@field DrawCenterCircleNoHit fun(self, t: SWEP.CrosshairData)
+---@field DrawHitCrossBG        fun(self, t: SWEP.CrosshairData)
+---@field DrawHitCross          fun(self, t: SWEP.CrosshairData)
+---@field DrawOuterCircleBG     fun(self, t: SWEP.CrosshairData)
+---@field DrawOuterCircle       fun(self, t: SWEP.CrosshairData)
+---@field DrawInnerCircle       fun(self, t: SWEP.CrosshairData)
+---@field DrawCenterDot         fun(self, t: SWEP.CrosshairData)
+---@field GetArmPos             fun(self): number?
+---@field SetupDrawCrosshair    fun(self, linenum: integer): table
+
 SWEP.SwayTime = 12 * ss.FrameToSec
 SWEP.IronSightsAng = {
     Angle(), -- right
@@ -42,8 +72,7 @@ end
 
 function SWEP:ClientThink()
     if self.IsOctoShot then
-        self.Skin = self:GetNWBool "advanced"
-        self.Skin = self.Skin and 1 or 0
+        self.Skin = self:GetNWBool "advanced" and 1 or 0
     elseif self.IsHeroWeapon then
         self.Skin = self:GetNWInt "level"
         if not self.IsHeroShot then return end
@@ -65,7 +94,7 @@ end
 
 function SWEP:DrawFourLines(t)
     local bgcolor = t.IsSplatoon2 and t.Trace.Hit and ss.CrosshairBaseColor or color_white
-    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor")
+    local forecolor = t.HitEntity and ss.GetColor(self:GetNWInt "inkcolor") or nil
     local dir = self:GetAimVector() * t.Distance
     local org = self:GetShootPos()
     local right = EyeAngles():Right()
@@ -88,9 +117,8 @@ end
 
 function SWEP:DrawHitCrossBG(t) -- Hit cross pattern, background
     if not t.HitEntity then return end
-    local mul = ss.ProtectedCall(self.GetScopedSize, self) or 1
     local frac = 1 - (t.Distance / self:GetRange()) / 2
-    ss.DrawCrosshair.LinesHitBG(t.HitPosScreen.x, t.HitPosScreen.y, frac, mul)
+    ss.DrawCrosshair.LinesHitBG(t.HitPosScreen.x, t.HitPosScreen.y, frac, 1)
 end
 
 function SWEP:DrawHitCross(t) -- Hit cross pattern, foreground
@@ -205,7 +233,7 @@ function SWEP:SetupDrawCrosshair()
     return t
 end
 
-function SWEP:DrawCrosshair(x, y)
+function SWEP:CustomDrawCrosshair(x, y)
     local p = self.Parameters
     for linenum = 1, p.mLineNum do
         local t = self:SetupDrawCrosshair(linenum)

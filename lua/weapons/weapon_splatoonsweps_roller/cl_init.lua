@@ -3,9 +3,38 @@ local ss = SplatoonSWEPs
 if not ss then return end
 include "shared.lua"
 
+local SWEP = SWEP
+---@cast SWEP SWEP.Roller
+---@class SWEP.Roller : SplatoonWeaponBase
+---@field SwayTime               number
+---@field IronSightsAng          Angle[]
+---@field IronSightsPos          Vector[]
+---@field IronSightsFlip         boolean[]
+---@field CrosshairDrawDelay     number
+---@field CrosshairSpawnDelay    number
+---@field NextCrosshairDrawTime  number
+---@field NextCrosshairSpawnTime number
+---@field ArmPos                 integer
+---@field ArmBegin               number
+---@field BasePos                Vector
+---@field BaseAng                Angle
+---@field OldPos                 Vector
+---@field OldAng                 Angle
+---@field OldArmPos              integer
+---@field TransitFlip            boolean
+---@field Bones                  { Neck: integer,  Roll: integer, Root: integer }
+---@field VMBones                { Neck: integer,  Roll: integer, Root: integer }
+---@field Crosshair              number[]
+---@field Mode                   integer
+---@field RotateRollPos          Vector
+---@field GetMuzzlePosition      fun(self): Vector, Angle
+
 local Pitch = Angle(1, 0, 0)
 local LerpSpeed = 360 -- degs/sec
 local drawhud = GetConVar "cl_drawhud"
+---@param self SWEP.Roller
+---@param tracelength number
+---@param vm Entity?
 local function AdjustRollerAngles(self, tracelength, vm)
     local traceheight = 32
     local tracedown = 128
@@ -59,6 +88,8 @@ local function AdjustRollerAngles(self, tracelength, vm)
     target:ManipulateBoneAngles(bone, ang)
 end
 
+---@param self SWEP.Roller
+---@param vm Entity?
 local function RotateRoll(self, vm)
     if self.IsBrush then return end
     if not self:GetOwner():OnGround() then return end
@@ -75,12 +106,14 @@ local function RotateRoll(self, vm)
     self.RotateRollPos = self:GetOwner():GetPos()
 end
 
+---@param self SWEP.Roller
+---@param isfirstperson boolean?
 local function DrawVCrosshair(self, isfirstperson)
     if self:GetOwner() ~= LocalPlayer() then return end
     if self:GetThrowing() then return end
     if CurTime() > self.NextCrosshairSpawnTime then
         ss.tablepush(self.Crosshair, CurTime())
-        self.NextCrosshairSpawnTime = CurTime() + (self.CrosshairSpawnDelay or delay)
+        self.NextCrosshairSpawnTime = CurTime() + self.CrosshairSpawnDelay
     end
 
     if self.Mode ~= self.MODE.READY and self:GetMode() == self.MODE.READY then
@@ -132,6 +165,7 @@ function SWEP:PreViewModelDrawn(vm, weapon, ply)
         Roll = vm:LookupBone "roll_root_1" or self:LookupBone "roll_1",
         Root = vm:LookupBone "root_1",
     }
+    ---@cast vm Entity.Colorable
     function vm.GetInkColorProxy()
         return ss.ProtectedCall(self.GetInkColorProxy, self) or ss.vector_one
     end
@@ -147,7 +181,7 @@ function SWEP:PreViewModelDrawn(vm, weapon, ply)
     RotateRoll(self, vm)
 end
 
-function SWEP:PreDrawWorldModel(vm, weapon, ply)
+function SWEP:PreDrawWorldModel()
     self.Bones = {
         Neck = self:LookupBone "neck_1",
         Roll = self:LookupBone "roll_root_1" or self:LookupBone "roll_1",
@@ -159,7 +193,7 @@ function SWEP:PreDrawWorldModel(vm, weapon, ply)
     local neck, start = 0, self:GetMousePressedTime()
     if mode ~= self.MODE.PAINT then
         if not self.IsBrush then
-            local duration, n1, n2 -- Animate the neck
+            local duration, n1, n2 ---@type number, integer, integer Animate the neck
             if mode == self.MODE.READY then
                 duration = self.CollapseRollTime
                 n1, n2 = 0, -90

@@ -4,18 +4,173 @@ include "sh_anim.lua"
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@class ss.WeaponRecord
+---@field Recent   table<string, number>
+---@field Duration table<string, number>?
+---@field Inked    table<string, number>?
+
+---@class Entity.Colorable : Entity
+---@field GetInkColorProxy fun(self): Vector
+
+---@class SWEP.ActivityTranslationTable
+---@field [string] table<integer, integer>
+
+---@class SWEP.Variation : SplatoonWeaponBase
+---@field ClassName     string?
+---@field Bodygroup     integer[]?
+---@field Customized    boolean?
+---@field SheldonsPicks boolean?
+---@field Skin          integer?
+---@field IsHeroShot    boolean?
+---@field IsHeroWeapon  boolean?
+---@field IsOctoShot    boolean?
+---@field ShootSound    string?
+---@field Sub           string?
+---@field Special       string?
+---@field Suffix        string?
+
+---@class ISubWeapon
+---@field CanSecondaryAttack        fun(self): boolean
+---@field GetSubWeaponInkConsume    fun(self): number
+---@field GetSubWeaponInitVelocity (fun(self): Vector)?
+---@field ServerSecondaryAttack     fun(self)?
+---@field ClientSecondaryAttack     fun(self)?
+---@field SharedSecondaryAttack     fun(self)?
+---@field DrawOnSubTriggerDown      fun(self)?
+
+---Overridable functions implemented in inherited classes
+---@class IMainWeapon
+---@field ClientDeploy          fun(self)
+---@field ClientHolster         fun(self)
+---@field ClientInit            fun(self)
+---@field ClientOnRemove        fun(self)
+---@field ClientPrimaryAttack   fun(self, able: boolean?, auto: boolean?)
+---@field ClientThink           fun(self)
+---@field CustomActivity        fun(self): string?
+---@field CustomDataTables      fun(self)
+---@field CustomDrawCrosshair   fun(self, x: number, y: number): boolean?
+---@field CustomMoveSpeed       fun(self): number?
+---@field InitNetworkSlots      fun(self)
+---@field KeyPress              fun(self, ply: Player, key: integer)
+---@field KeyRelease            fun(self, ply: Player, key: integer)
+---@field Move                  fun(self, ply: Entity, mv: CMoveData)
+---@field NPCBurstSettings      fun(self): number?, number?, number?
+---@field NPCRestTimes          fun(self): number?, number?
+---@field NPCShoot_Primary      fun(self, ShootPos: Vector, ShootDir: Vector)
+---@field ServerDeploy          fun(self)
+---@field ServerHolster         fun(self)
+---@field ServerInit            fun(self)
+---@field ServerOnRemove        fun(self)
+---@field ServerPrimaryAttack   fun(self, able: boolean?, auto: boolean?)
+---@field ServerSecondaryAttack fun(self, able: boolean?)
+---@field ServerThink           fun(self)
+---@field SharedDeploy          fun(self)
+---@field SharedHolster         fun(self)
+---@field SharedInit            fun(self)
+---@field SharedOnRemove        fun(self)
+---@field SharedPrimaryAttack   fun(self, able: boolean?, auto: boolean?)
+---@field SharedSecondaryAttack fun(self, able: boolean?)
+---@field SharedThink           fun(self)
+---@field UpdateAnimation       fun(self, ply: Player, velocity: Vector, maxSeqGroundSpeed: number)
+
+local SWEP = SWEP
+---@cast SWEP SplatoonWeaponBase
+---@class SplatoonWeaponBase : IMainWeapon, ISubWeapon, INetworkVar, INetworkSchedule, SWEP, ENT
+---@field BaseClass SWEP
+---@field ActivityTranslate        table<integer, integer>
+---@field ActivityTranslateAI      SWEP.ActivityTranslationTable
+---@field Bodygroup                integer[]
+---@field BotInkColor              integer
+---@field Buttons                  integer
+---@field ExistingBeakons          Entity[]?
+---@field ExistingSplashWall       Entity?
+---@field ExistingSprinkler        Entity?
+---@field HealSchedule             EntityNetworkSchedule
+---@field HoldType                 string
+---@field IgnorePrediction         boolean
+---@field InklingSpeed             number
+---@field IsBamboozler             boolean?
+---@field IsBlaster                boolean?
+---@field IsBrush                  boolean?
+---@field IsCharger                boolean?
+---@field IsHeroShot               boolean?
+---@field IsHeroWeapon             boolean?
+---@field IsOctoShot               boolean?
+---@field IsRoller                 boolean?
+---@field IsShooter                boolean?
+---@field IsSlosher                boolean?
+---@field IsSloshingMachine        boolean?
+---@field IsSplatling              boolean?
+---@field IsSubWeaponThrowable     boolean
+---@field JumpPower                number
+---@field KeyPressedOrder          integer[]
+---@field LoopSounds               {[string]: { SoundName: string, SoundPatch: CSoundPatch? }}
+---@field ModelPath                string
+---@field NextEnemyInkDamage       number
+---@field NumBeakons               integer?
+---@field NumInkmines              integer?
+---@field OldButtons               integer
+---@field OnEnemyInkSpeed          number
+---@field OnOutofInk               boolean?
+---@field Parameters               Parameters
+---@field Projectile               Projectile
+---@field Range                    number
+---@field ReloadSchedule           EntityNetworkSchedule
+---@field RestrictedFieldsToCopy   {[string]: boolean}
+---@field SeekerPreviousTarget     Entity?
+---@field SeekerTargetSearched     number?
+---@field Skin                     integer
+---@field Special                  string
+---@field SquidSpeed               number
+---@field Sub                      string
+---@field SuperJumpVoicePlayed     boolean?
+---@field Translate                SWEP.ActivityTranslationTable
+---@field Variations               SWEP.Variation[]
+---@field ApplySkinAndBodygroups   fun(self)
+---@field ChangeThrowing           fun(self, name: string, old: boolean, new: boolean)
+---@field CheckCanStandup          fun(self): boolean
+---@field ConsumeInk               fun(self, amount: number)
+---@field Crouching                fun(self): boolean
+---@field DisplayAmmo              fun(self): number
+---@field EndRecording             fun(self)
+---@field GetBase                  fun(self, BaseClassName: string?): SWEP|SplatoonWeaponBase
+---@field GetFOV                   fun(self): number
+---@field GetHandPos               fun(self): Vector
+---@field GetInkColor              fun(self): Color
+---@field GetInklingSpeed          fun(self): number
+---@field GetOptions               fun(self)
+---@field GetSquidSpeed            fun(self): number
+---@field GetSubWeaponInitVelocity fun(self): Vector
+---@field GetViewModel             fun(self, index: number?): Entity
+---@field IsFirstTimePredicted     fun(self): boolean
+---@field IsMine                   fun(self): boolean
+---@field Ping                     fun(self): number
+---@field PlayLoopSound            fun(self)
+---@field PrimaryAttackEntryPoint  fun(self, auto: boolean?)
+---@field SetReloadDelay           fun(self, delay: number)
+---@field SetWeaponAnim            fun(self, act: number, index: number?)
+---@field SharedDeployBase         fun(self): boolean
+---@field SharedHolsterBase        fun(self): boolean
+---@field SharedInitBase           fun(self)
+---@field SharedThinkBase          fun(self)
+---@field StartRecording           fun(self)
+---@field StopLoopSound            fun(self)
+---@field UpdateInkState           fun(self)
+
+ss.AddTimerFramework(SWEP)
 SWEP.RestrictedFieldsToCopy = {
-    FunctionQueue = true,
-    NetworkSlot = true,
-    Projectile = true,
-    HealSchedule = true,
+    FunctionQueue  = true,
+    NetworkSlot    = true,
+    Projectile     = true,
+    HealSchedule   = true,
     ReloadSchedule = true,
 }
 SWEP.LoopSounds = {
-    SwimSound = {SoundName = ss.SwimSound},
-    EnemyInkSound = {SoundName = ss.EnemyInkSound},
+    SwimSound     = { SoundName = ss.SwimSound },
+    EnemyInkSound = { SoundName = ss.EnemyInkSound },
 }
-ss.AddTimerFramework(SWEP)
+
+---Starts playing registered loop sounds
 function SWEP:PlayLoopSound()
     for _, s in pairs(self.LoopSounds) do
         if not s.SoundPatch then
@@ -26,6 +181,7 @@ function SWEP:PlayLoopSound()
     end
 end
 
+---Stops playing registered loop sounds
 function SWEP:StopLoopSound()
     for _, s in pairs(self.LoopSounds) do
         if not s.SoundPatch then
@@ -36,6 +192,7 @@ function SWEP:StopLoopSound()
     end
 end
 
+---Starts recording statistics for this weapon
 function SWEP:StartRecording()
     local o = self:GetOwner()
     if not (o:IsPlayer() and ss.WeaponRecord[o]) then return end
@@ -43,6 +200,7 @@ function SWEP:StartRecording()
     ss.WeaponRecord[o].Recent[self.ClassName] = -os.time()
 end
 
+---Stops recording statistics for this weapon
 function SWEP:EndRecording()
     local o = IsValid(self:GetOwner()) and self:GetOwner() or self:GetNWEntity "Owner"
     local r = ss.WeaponRecord[o]
@@ -52,17 +210,24 @@ function SWEP:EndRecording()
     r.Duration[c] = (r.Duration[o] or 0) - (t + (r.Recent[c] or -t))
 end
 
+---Basically shared version of IsCarriedByLocalPlayer
+---@return boolean result True if this is carried by local player
 function SWEP:IsMine()
     return SERVER or self:IsCarriedByLocalPlayer()
 end
 
+---Shared version of IsFirstTimePredicted, also considers singleplayer
+---@return boolean result True if this tick is first time predicted
 function SWEP:IsFirstTimePredicted()
     return SERVER or ss.sp or IsFirstTimePredicted() or not self:IsCarriedByLocalPlayer()
 end
 
+---Get base entity with given class name recursively
+---@param BaseClassName string? The class name to find
+---@return SWEP|SplatoonWeaponBase # The associated base class table
 function SWEP:GetBase(BaseClassName)
     BaseClassName = BaseClassName or "weapon_splatoonsweps_inklingbase"
-    local base = self.BaseClass
+    local base = self.BaseClass --[[@as SWEP|SplatoonWeaponBase]]
     while base and base.Base ~= BaseClassName do
         base = base.BaseClass
     end
@@ -70,35 +235,61 @@ function SWEP:GetBase(BaseClassName)
     return base
 end
 
--- Speed on humanoid form = base speed * ability factor
+---Speed on humanoid form = base speed * ability factor
+---@return number speed The walking speed in Hammer Units per second
 function SWEP:GetInklingSpeed()
     return ss.InklingBaseSpeed
 end
 
--- Speed on squid form = base speed * ability factor
+---Speed on squid form = base speed * ability factor
+---@return number speed The swimming speed in Hammer Units per second
 function SWEP:GetSquidSpeed()
     return ss.SquidBaseSpeed
 end
 
+---Get actual color of current ink
+---@return Color color 
 function SWEP:GetInkColor()
     return ss.GetColor(self:GetNWInt "inkcolor")
 end
 
--- Returns the owner ping in seconds.
--- Returns 0 if the owner is invalid or an NPC.
+---Returns the owner ping in seconds, 0 if the owner is invalid or an NPC.
+---@return number seconds Ping in seconds
 function SWEP:Ping()
-    return IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() and self:GetOwner():Ping() / 1000 or 0
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return 0 end
+    if not Owner:IsPlayer() then return 0 end
+    ---@cast Owner Player
+    return Owner:Ping() / 1000
 end
 
+---Returns if the owner is crouching
+---@return boolean result True if the owner is crouching
 function SWEP:Crouching()
-    return IsValid(self:GetOwner()) and Either(self:GetOwner():IsPlayer(),
-    ss.ProtectedCall(self:GetOwner().Crouching, self:GetOwner()), self:GetOwner():IsFlagSet(FL_DUCKING))
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return false end
+    if Owner:IsPlayer() then
+        ---@cast Owner Player
+        return ss.ProtectedCall(Owner.Crouching, self:GetOwner())
+    else
+        return Owner:IsFlagSet(FL_DUCKING)
+    end
 end
 
+---Get current FOV
+---@return number fov FOV in degrees
 function SWEP:GetFOV()
-    return self:GetOwner():GetFOV()
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return 0 end
+    if not Owner:IsPlayer() then return 90 end
+    ---@cast Owner Player
+    return Owner:GetFOV()
 end
 
+---Retrieves various options for the weapon owner and stores them to NW var
+---@param self SplatoonWeaponBase The weapon entity
+---@param name string             Name of the preference
+---@param pt   cvartree.CVarItem  Definition of the preference
 local function RetrieveOption(self, name, pt)
     if pt.options and (pt.options.serverside or pt.options.clientside) then return end
     if #pt.location > 1 then
@@ -106,49 +297,56 @@ local function RetrieveOption(self, name, pt)
         if #pt.location > 2 and pt.location[3] ~= self.ClassName then return end
     end
 
-    local value = greatzenkakuman.cvartree.GetValue(pt, self:GetOwner())
-    if isbool(value) and self:GetNWBool(name) ~= value then
+    local Owner = self:GetOwner()
+    local cvartree = require "greatzenkakuman/cvartree" or greatzenkakuman.cvartree
+    local value = cvartree.GetValue(pt, Owner)
+    if isbool(value) and self:GetNWBool(name) ~= value then ---@cast value boolean
         self:SetNWBool(name, value)
     end
 
-    if isnumber(value) and self:GetNWInt(name) ~= value then
+    if isnumber(value) and self:GetNWInt(name) ~= value then ---@cast value number
         if name == "inkcolor" then
-            if self:GetOwner():IsNPC() then return end
-            if self:GetOwner():IsPlayer() and self:GetOwner():IsBot() then return end
+            if Owner:IsNPC() then return end
+            if Owner:IsPlayer() --[[@cast Owner Player]] and Owner:IsBot() then return end
         end
 
         self:SetNWInt(name, value)
     end
 end
 
+---Retrieves all preferences for the weapon
 function SWEP:GetOptions()
     if ss.mp and CLIENT and not IsFirstTimePredicted() then return end
     if not self:IsMine() then return end
-    for name, pt in greatzenkakuman.cvartree.IteratePreferences "splatoonsweps" do
+    local cvartree = require "greatzenkakuman/cvartree" or greatzenkakuman.cvartree
+    for name, pt in cvartree.IteratePreferences "splatoonsweps" do
         RetrieveOption(self, name, pt)
     end
 
-    if self:GetOwner():IsPlayer() and not self:GetOwner():IsBot() then return end
-    local inkcolor
-    if self:GetOwner():IsPlayer() and self:GetOwner():IsBot() then
+    local inkcolor ---@type integer
+    local Owner = self:GetOwner()
+    if Owner:IsPlayer() then ---@cast Owner Player
+        if not Owner:IsBot() then return end
         inkcolor = ss.GetBotInkColor(self)
     else
-        inkcolor = ss.GetNPCInkColor(self:GetOwner())
+        inkcolor = ss.GetNPCInkColor(Owner)
     end
 
     if self:GetNWInt "inkcolor" == inkcolor then return end
     self:SetNWInt("inkcolor", inkcolor)
 end
 
+---Applies skin and bodygroups for this weapon
 function SWEP:ApplySkinAndBodygroups()
     self:SetSkin(self.Skin or 0)
     for k, v in pairs(self.Bodygroup or {}) do
         self:SetBodygroup(k, v)
     end
 
-    if not IsValid(self:GetOwner()) or not self:GetOwner():IsPlayer() then return end
-    for i = 0, 2 do
-        local vm = self:GetOwner():GetViewModel(i)
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) or not Owner:IsPlayer() then return end
+    for i = 0, 2 do ---@cast Owner Player
+        local vm = Owner:GetViewModel(i)
         if IsValid(vm) then
             vm:SetSkin(self.Skin or 0)
             for k, v in pairs(self.Bodygroup or {}) do
@@ -160,21 +358,23 @@ end
 
 local InkTraceLength = 30
 local InkTraceDepth = 20
-function SWEP:UpdateInkState() -- Set if player is in ink
-    local ang = Angle(0, self:GetOwner():GetAngles().yaw)
+---Set if player is in ink
+function SWEP:UpdateInkState()
+    local Owner = self:GetOwner()
+    local ang = Angle(0, Owner:GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
-    local org = self:GetOwner():GetPos()
+    local org = Owner:GetPos()
     local fw, right = ang:Forward() * InkTraceLength, ang:Right() * InkTraceLength
-    local gtrace = util.QuickTrace(org, -vector_up * InkTraceDepth, self:GetOwner())
+    local gtrace = util.QuickTrace(org, -vector_up * InkTraceDepth, Owner)
     local gcolor = gtrace.Hit and ss.GetSurfaceColor(gtrace.HitPos, gtrace.HitNormal) or -1
     local onink = gcolor >= 0
     local onourink = gcolor == c
     local onenemyink = onink and not onourink
 
-    local center = self:GetOwner():WorldSpaceCenter()
+    local center = Owner:WorldSpaceCenter()
     local normal, onwallink = Vector(), false
     for _, p in ipairs { fw + right, fw - right, -fw + right, -fw - right } do
-        local tr = util.QuickTrace(center, p, self:GetOwner())
+        local tr = util.QuickTrace(center, p, Owner)
         if not tr.Hit or tr.HitNormal.z > ss.MAX_COS_DIFF then continue end
         if ss.GetSurfaceColor(tr.HitPos, tr.HitNormal) == c then
             normal = tr.HitNormal
@@ -191,10 +391,14 @@ function SWEP:UpdateInkState() -- Set if player is in ink
     if not onenemyink and self:GetOnEnemyInk() then
         self.LoopSounds.EnemyInkSound.SoundPatch:ChangeVolume(0, .5)
     end
-    if inink and not self:GetInInk() then self:GetOwner():SetDSP(14) end
-    if not inink and self:GetInInk() then self:GetOwner():SetDSP(1) end
-    if self:GetOwner():IsPlayer() and not (self:GetOnEnemyInk() and self:GetOwner():KeyDown(IN_DUCK)) then
-        self:SetEnemyInkTouchTime(CurTime())
+
+    if Owner:IsPlayer() then
+        ---@cast Owner Player
+        if inink and not self:GetInInk() then Owner:SetDSP(14, false) end
+        if not inink and self:GetInInk() then Owner:SetDSP(1, false) end
+        if not (self:GetOnEnemyInk() and Owner:KeyDown(IN_DUCK)) then
+            self:SetEnemyInkTouchTime(CurTime())
+        end
     end
 
     self:SetGroundColor(gcolor)
@@ -208,52 +412,67 @@ function SWEP:UpdateInkState() -- Set if player is in ink
     self:SetInkColorProxy(self:GetInkColor():ToVector())
 end
 
+---Returns the position of the right hand of the owner
+---@return Vector pos The hand position
 function SWEP:GetHandPos()
-    if not self:GetOwner():IsPlayer() then return self:GetShootPos() end
+    local Owner = self:GetOwner()
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return self:GetShootPos() end
 
-    local e = (SERVER or self:IsTPS()) and self:GetOwner() or self:GetViewModel()
+    ---@cast Owner Player
+    local e = (SERVER or self:IsTPS()) and Owner or self:GetViewModel()
     local boneid = e:LookupBone "ValveBiped.Bip01_R_Hand"
     or e:LookupBone "ValveBiped.Weapon_bone" or 0
     return e:GetBoneMatrix(boneid):GetTranslation()
 end
 
+---Returns the index-th view model entity
+---@param index integer? The index that should range from 0 to 3
+---@return Entity # The view model entity if available
 function SWEP:GetViewModel(index)
-    if not (IsValid(self:GetOwner()) and self:GetOwner():IsPlayer()) then return end
-    return self:GetOwner():GetViewModel(index)
+    local Owner = self:GetOwner() --[[@as Player]]
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return NULL end
+    return Owner:GetViewModel(index)
 end
 
+---Set sequence for the weapon
+---@param act   integer  ACT_ enum
+---@param index integer? View model index that should range from 0 to 3
 function SWEP:SetWeaponAnim(act, index)
     if not index then self:SendWeaponAnim(act) end
     if index == 0 then self:SendWeaponAnim(act) return end
     if not self:IsFirstTimePredicted() then return end
-    if not (IsValid(self:GetOwner()) and self:GetOwner():IsPlayer()) then return end
+    local Owner = self:GetOwner() --[[@as Player]]
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return end
     for i = 1, 2 do
         if not (index and i ~= index) then
             -- Entity:GetSequenceCount() returns nil on an invalid viewmodel
-            local vm = self:GetOwner():GetViewModel(i)
+            local vm = Owner:GetViewModel(i)
             if IsValid(vm) and (vm:GetSequenceCount() or 0) > 0 then
                 local seq = vm:SelectWeightedSequence(act)
                 if seq > -1 then
                     vm:SendViewModelMatchingSequence(seq)
-                    vm:SetPlaybackRate(rate or 1)
+                    vm:SetPlaybackRate(1)
                 end
             end
         end
     end
 end
 
+---Consumes given ink
+---@param amount number the amount of ink to consume
 function SWEP:ConsumeInk(amount)
     if not isnumber(amount) then return end
     if self:GetIsDisrupted() then amount = amount * 2 end
     self:SetInk(math.max(self:GetInk() - amount, 0))
 end
 
+---Base function of Initialize hook for both realms
 function SWEP:SharedInitBase()
     self:SetCooldown(CurTime())
     self:ApplySkinAndBodygroups()
     self.KeyPressedOrder = {} -- Pressed keys are added here, most recent key will go last
 
-    local translate = {}
+    local translate = {} ---@type SWEP.ActivityTranslationTable
     for _, t in ipairs {
         "ar2",
         "crossbow",
@@ -265,7 +484,7 @@ function SWEP:SharedInitBase()
         "rpg",
         "shotgun",
         "smg",
-    } do
+    } do ---@cast t string
         self:SetWeaponHoldType(t)
         translate[t] = self.ActivityTranslate
     end
@@ -280,7 +499,11 @@ function SWEP:SharedInitBase()
 end
 
 -- Predicted hooks
+
+---Base function of Deploy hook for both realms
+---@return boolean allowSwitch True to allow switching away from this weapon using lastinv command
 function SWEP:SharedDeployBase()
+    local Owner = self:GetOwner()
     self:PlayLoopSound()
     self:SetHolstering(false)
     self:SetThrowing(false)
@@ -294,14 +517,15 @@ function SWEP:SharedDeployBase()
     self.SquidSpeed = self:GetSquidSpeed()
     self.OnEnemyInkSpeed = ss.OnEnemyInkSpeed
     self.JumpPower = ss.InklingJumpPower
-    self.IgnorePrediction = SERVER and ss.mp and not self:GetOwner():IsPlayer() or nil
-    self:GetOwner():SetHealth(self:GetOwner():Health() * self:GetNWInt "BackupInklingMaxHealth" / self:GetNWInt "BackupHumanMaxHealth")
-    if self:GetOwner():IsPlayer() then
-        self:GetOwner():SetJumpPower(self.JumpPower)
-        self:GetOwner():SetCrouchedWalkSpeed(.5)
+    self.IgnorePrediction = SERVER and ss.mp and not Owner:IsPlayer()
+    Owner:SetHealth(Owner:Health() * self:GetNWInt "BackupInklingMaxHealth" / self:GetNWInt "BackupHumanMaxHealth")
+    if Owner:IsPlayer() then
+        ---@cast Owner Player
+        Owner:SetJumpPower(self.JumpPower)
+        Owner:SetCrouchedWalkSpeed(.5)
         for _, k in ipairs(ss.KeyMask) do
-            if self:GetOwner():KeyDown(k) then
-                ss.KeyPress(self, self,Owner, k)
+            if Owner:KeyDown(k) then
+                ss.KeyPress(self, Owner, k)
             end
         end
     end
@@ -310,6 +534,8 @@ function SWEP:SharedDeployBase()
     return true
 end
 
+---Base function of Holster hook for both realms
+---@return boolean allowHolster True to allow weapon to holster
 function SWEP:SharedHolsterBase()
     self:SetHolstering(true)
     ss.ProtectedCall(self.SharedHolster, self)
@@ -318,10 +544,13 @@ function SWEP:SharedHolsterBase()
     return true
 end
 
+---Returns amount for displaying ammo HUD
+---@return number ammo The amount for displaying
 function SWEP:DisplayAmmo()
     return ss.GetMaxInkAmount()
 end
 
+---Base function of Think hook for both realms
 function SWEP:SharedThinkBase()
     local vm = self:GetViewModel()
     if IsValid(vm) and vm:IsSequenceFinished()
@@ -329,40 +558,48 @@ function SWEP:SharedThinkBase()
         self:SetWeaponAnim(ACT_VM_IDLE)
     end
 
-    if IsValid(self:GetOwner()) and self:GetOwner():IsPlayer() then
+    local Owner = self:GetOwner()
+    if IsValid(Owner) and Owner:IsPlayer() then
+        ---@cast Owner Player
         self:SetClip1(math.Round(self:GetInk()))
-        self:GetOwner():SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
+        Owner:SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
     end
 
     local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
-    self:GetOwner():DrawShadow(not ShouldNoDraw)
+    Owner:DrawShadow(not ShouldNoDraw)
     self:DrawShadow(not ShouldNoDraw)
     self:ApplySkinAndBodygroups()
     ss.ProtectedCall(self.SharedThink, self)
 end
 
--- Begin to use special weapon.
+---Reload hook begins special weapon
 function SWEP:Reload()
     if self:GetHolstering() then return end
 end
 
+---Returns if the owner can stand up at current position
+---@return boolean result True if the owner can stand up
 function SWEP:CheckCanStandup()
-    if not IsValid(self:GetOwner()) then return end
-    if not self:GetOwner():IsPlayer() then return true end
+    local Owner = self:GetOwner()
+    if not IsValid(Owner) then return true end
+    if not Owner:IsPlayer() then return true end
     if self:GetSuperJumpState() == 0 then return false end
     if self:GetSuperJumpState() == 1 then return false end
     if self:GetSuperJumpState() == 2 then return false end
-    local plmins, plmaxs = self:GetOwner():GetHull()
+    ---@cast Owner Player
+    local plmins, plmaxs = Owner:GetHull()
     return not (self:Crouching() and util.TraceHull {
-        start = self:GetOwner():GetPos(),
-        endpos = self:GetOwner():GetPos(),
-        mins = plmins, maxs = plmaxs,
-        filter = {self, self:GetOwner()},
-        mask = MASK_PLAYERSOLID,
+        start  = Owner:GetPos(),
+        endpos = Owner:GetPos(),
+        mins   = plmins, maxs = plmaxs,
+        filter = { self, Owner },
+        mask   = MASK_PLAYERSOLID,
         collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT,
     } .Hit)
 end
 
+---Sets cooldown time of reloading ink
+---@param delay number The cooldown time in seconds
 function SWEP:SetReloadDelay(delay)
     local reloadtime = delay / ss.GetTimeScale(self:GetOwner())
     if self.ReloadSchedule:SinceLastCalled() < -reloadtime then return end
@@ -370,48 +607,57 @@ function SWEP:SetReloadDelay(delay)
     self.ReloadSchedule:SetLastCalled(-reloadtime)
 end
 
-function SWEP:PrimaryAttack(auto) -- Shoot ink.  bool auto | is a scheduled shot
+---The Primary Attack hook for both realms
+---@param auto boolean? True if this is called from a timer instead of predicted hook
+function SWEP:PrimaryAttackEntryPoint(auto)
+    local Owner = self:GetOwner()
     if self:GetHolstering() then return end
     if self:GetThrowing() then return end
     if CurTime() < self:GetNextPrimaryFire() then return end
     if not self:CheckCanStandup() then return end
     if auto and ss.sp and CLIENT then return end
     if not auto and CurTime() < self:GetCooldown() then return end
-    if not auto and self:GetOwner():IsPlayer() and self:GetKey() ~= IN_ATTACK then return end
+    if not auto and Owner:IsPlayer() and self:GetKey() ~= IN_ATTACK then return end
     local able = self:GetInk() > 0 and self:CheckCanStandup()
-    ss.SuppressHostEventsMP(self:GetOwner())
+    ss.SuppressHostEventsMP(Owner)
     ss.ProtectedCall(self.SharedPrimaryAttack, self, able, auto)
     ss.ProtectedCall(Either(SERVER, self.ServerPrimaryAttack, self.ClientPrimaryAttack), self, able, auto)
-    ss.EndSuppressHostEventsMP(self:GetOwner())
+    ss.EndSuppressHostEventsMP(Owner)
 end
 
-function SWEP:SecondaryAttack() -- Use sub weapon
+function SWEP:PrimaryAttack()
+    self:PrimaryAttackEntryPoint()
+end
+
+function SWEP:SecondaryAttack()
     if self:GetHolstering() then return end
     if self:GetKey() ~= IN_ATTACK2 then self:SetThrowing(false) return end
     if self:GetThrowing() then return end
     if self:GetSuperJumpState() >= 0 then return end
     if CurTime() < self:GetCooldown() then return end
     if not self:CheckCanStandup() then return end
-    if self:GetOwner():IsPlayer() then
+    local Owner = self:GetOwner()
+    if IsValid(Owner) and Owner:IsPlayer() then
+        ---@cast Owner Player
         self:SetThrowing(true)
         self:SetWeaponAnim(ss.ViewModel.Throwing)
 
         if self.IsSubWeaponThrowable then
-            local filter = self.IgnorePrediction
-            if SERVER and ss.mp and self:GetOwner():IsPlayer() then
+            local filter = self.IgnorePrediction ---@type boolean|CRecipientFilter
+            if SERVER and ss.mp then
                 filter = RecipientFilter()
-                filter:AddPlayer(self:GetOwner())
+                filter:AddPlayer(Owner)
             end
 
             local e = EffectData()
             e:SetEntity(self)
             e:SetScale(1.5)
-            ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsLandingPoint", e, true, filter)
+            ss.UtilEffectPredicted(Owner, "SplatoonSWEPsLandingPoint", e, true, filter)
         end
 
         if not self:IsFirstTimePredicted() then return end
         if self.HoldType ~= "grenade" then
-            self:GetOwner():AnimResetGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD)
+            Owner:AnimResetGestureSlot(GESTURE_SLOT_ATTACK_AND_RELOAD)
         end
     else
         local able = self:GetInk() > 0 and self:CheckCanStandup() and self:CanSecondaryAttack()
@@ -421,7 +667,10 @@ function SWEP:SecondaryAttack() -- Use sub weapon
 end
 -- End of predicted hooks
 
--- Set up by NetworkVarNotify.  Called when SetThrowing() is executed.
+---Set up by NetworkVarNotify.  Called when SetThrowing() is executed.
+---@param name string Name of the variable
+---@param old boolean The old value
+---@param new boolean The new value
 function SWEP:ChangeThrowing(name, old, new)
     if old == new then return end
     if self:GetHolstering() then return end
@@ -437,52 +686,119 @@ function SWEP:ChangeThrowing(name, old, new)
     net.Send(ss.PlayersReady) -- Properly changes it on other clients
 end
 
+---Called when the weapon entity is reloaded from a Source Engine
 function SWEP:OnRestore()
     self:PlayLoopSound()
     self.NextEnemyInkDamage = CurTime()
     if ss[self.Sub] then table.Merge(self, ss[self.Sub].Merge) end
 end
 
+---Called when the SWEP should set up its Data Tables.
 function SWEP:SetupDataTables()
+    ---@class SplatoonWeaponBase
+    ---@field GetInInk              fun(self): boolean
+    ---@field GetInFence            fun(self): boolean
+    ---@field GetInWallInk          fun(self): boolean
+    ---@field GetIsDisrupted        fun(self): boolean
+    ---@field GetOldCrouching       fun(self): boolean
+    ---@field GetOnEnemyInk         fun(self): boolean
+    ---@field GetHolstering         fun(self): boolean
+    ---@field GetThrowing           fun(self): boolean
+    ---@field GetNPCTarget          fun(self): Entity
+    ---@field GetSuperJumpEntity    fun(self): Entity
+    ---@field GetCooldown           fun(self): number
+    ---@field GetEnemyInkTouchTime  fun(self): number
+    ---@field GetDisruptorEndTime   fun(self): number
+    ---@field GetInk                fun(self): number
+    ---@field GetOldSpeed           fun(self): number
+    ---@field GetSuperJumpStartTime fun(self): number
+    ---@field GetThrowAnimTime      fun(self): number
+    ---@field GetGroundColor        fun(self): integer
+    ---@field GetKey                fun(self): integer
+    ---@field GetSuperJumpState     fun(self): integer
+    ---@field GetInkColorProxy      fun(self): Vector
+    ---@field GetAimVector          fun(self): Vector
+    ---@field GetShootPos           fun(self): Vector
+    ---@field GetSuperJumpFrom      fun(self): Vector
+    ---@field GetSuperJumpTo        fun(self): Vector
+    ---@field GetWallNormal         fun(self): Vector
+    ---@field SetInInk              fun(self, value: boolean)
+    ---@field SetInFence            fun(self, value: boolean)
+    ---@field SetInWallInk          fun(self, value: boolean)
+    ---@field SetIsDisrupted        fun(self, value: boolean)
+    ---@field SetOldCrouching       fun(self, value: boolean)
+    ---@field SetOnEnemyInk         fun(self, value: boolean)
+    ---@field SetHolstering         fun(self, value: boolean)
+    ---@field SetThrowing           fun(self, value: boolean)
+    ---@field SetNPCTarget          fun(self, value: Entity)
+    ---@field SetSuperJumpEntity    fun(self, value: Entity)
+    ---@field SetCooldown           fun(self, value: number)
+    ---@field SetEnemyInkTouchTime  fun(self, value: number)
+    ---@field SetDisruptorEndTime   fun(self, value: number)
+    ---@field SetInk                fun(self, value: number)
+    ---@field SetOldSpeed           fun(self, value: number)
+    ---@field SetSuperJumpStartTime fun(self, value: number)
+    ---@field SetThrowAnimTime      fun(self, value: number)
+    ---@field SetGroundColor        fun(self, value: integer)
+    ---@field SetKey                fun(self, value: integer)
+    ---@field SetSuperJumpState     fun(self, value: integer)
+    ---@field SetInkColorProxy      fun(self, value: Vector)
+    ---@field SetAimVector          fun(self, value: Vector)
+    ---@field SetShootPos           fun(self, value: Vector)
+    ---@field SetSuperJumpFrom      fun(self, value: Vector)
+    ---@field SetSuperJumpTo        fun(self, value: Vector)
+    ---@field SetWallNormal         fun(self, value: Vector)
+
     local gain = ss.GetOption "gain"
     self:InitNetworkSlots()
-    self:AddNetworkVar("Bool", "InInk") -- If owner is in ink.
-    self:AddNetworkVar("Bool", "InFence") -- If owner is in fence.
-    self:AddNetworkVar("Bool", "InWallInk") -- If owner is on wall.
-    self:AddNetworkVar("Bool", "IsDisrupted") -- If owner is getting Disruptor mist.
-    self:AddNetworkVar("Bool", "OldCrouching") -- If owner was crouching a tick ago.
-    self:AddNetworkVar("Bool", "OnEnemyInk") -- If owner is on enemy ink.
-    self:AddNetworkVar("Bool", "Holstering") -- The weapon is being holstered.
-    self:AddNetworkVar("Bool", "Throwing") -- Is about to use sub weapon.
-    self:AddNetworkVar("Entity", "NPCTarget") -- Target entity for NPC.
-    self:AddNetworkVar("Entity", "SuperJumpEntity") -- Target entity to perform super jump onto.
-    self:AddNetworkVar("Float", "Cooldown") -- Cannot crouch, fire, or use sub weapon.
-    self:AddNetworkVar("Float", "EnemyInkTouchTime") -- Delay timer to force to stand up.
-    self:AddNetworkVar("Float", "DisruptorEndTime") -- The time when Disruptor is worn off
-    self:AddNetworkVar("Float", "Ink") -- Ink remainig. 0 to ss.GetMaxInkAmount()
-    self:AddNetworkVar("Float", "OldSpeed") -- Old Z-velocity of the player.
-    self:AddNetworkVar("Float", "SuperJumpStartTime")
-    self:AddNetworkVar("Float", "ThrowAnimTime") -- Time to adjust throw anim. speed.
-    self:AddNetworkVar("Int", "GroundColor") -- Surface ink color.
-    self:AddNetworkVar("Int", "Key") -- A valid key input.
-    self:AddNetworkVar("Int", "SuperJumpState") -- Super jump animation progress (< 0 for normal state)
-    self:AddNetworkVar("Vector", "InkColorProxy") -- For material proxy.
-    self:AddNetworkVar("Vector", "AimVector") -- NPC:GetAimVector() doesn't exist in clientside.
-    self:AddNetworkVar("Vector", "ShootPos") -- NPC:GetShootPos() doesn't, either.
-    self:AddNetworkVar("Vector", "SuperJumpFrom") -- The location where player starts super jump.
-    self:AddNetworkVar("Vector", "SuperJumpTo") -- Destination of super jump in case of having invalid target entity.
-    self:AddNetworkVar("Vector", "WallNormal") -- The normal vector of a wall when climbing.
+    self:AddNetworkVar("Bool",   "InInk")             -- If owner is in ink.
+    self:AddNetworkVar("Bool",   "InFence")           -- If owner is in fence.
+    self:AddNetworkVar("Bool",   "InWallInk")         -- If owner is on wall.
+    self:AddNetworkVar("Bool",   "IsDisrupted")       -- If owner is getting Disruptor mist.
+    self:AddNetworkVar("Bool",   "OldCrouching")      -- If owner was crouching a tick ago.
+    self:AddNetworkVar("Bool",   "OnEnemyInk")        -- If owner is on enemy ink.
+    self:AddNetworkVar("Bool",   "Holstering")        -- The weapon is being holstered.
+    self:AddNetworkVar("Bool",   "Throwing")          -- Is about to use sub weapon.
+    self:AddNetworkVar("Entity", "NPCTarget")         -- Target entity for NPC.
+    self:AddNetworkVar("Entity", "SuperJumpEntity")   -- Target entity to perform super jump onto.
+    self:AddNetworkVar("Float",  "Cooldown")          -- Cannot crouch, fire, or use sub weapon.
+    self:AddNetworkVar("Float",  "EnemyInkTouchTime") -- Delay timer to force to stand up.
+    self:AddNetworkVar("Float",  "DisruptorEndTime")  -- The time when Disruptor is worn off
+    self:AddNetworkVar("Float",  "Ink")               -- Ink remainig. 0 to ss.GetMaxInkAmount()
+    self:AddNetworkVar("Float",  "OldSpeed")          -- Old Z-velocity of the player.
+    self:AddNetworkVar("Float",  "SuperJumpStartTime")
+    self:AddNetworkVar("Float",  "ThrowAnimTime")     -- Time to adjust throw anim. speed.
+    self:AddNetworkVar("Int",    "GroundColor")       -- Surface ink color.
+    self:AddNetworkVar("Int",    "Key")               -- A valid key input.
+    self:AddNetworkVar("Int",    "SuperJumpState")    -- Super jump animation progress (< 0 for normal state)
+    self:AddNetworkVar("Vector", "InkColorProxy")     -- For material proxy.
+    self:AddNetworkVar("Vector", "AimVector")         -- NPC:GetAimVector() doesn't exist in clientside.
+    self:AddNetworkVar("Vector", "ShootPos")          -- NPC:GetShootPos() doesn't, either.
+    self:AddNetworkVar("Vector", "SuperJumpFrom")     -- The location where player starts super jump.
+    self:AddNetworkVar("Vector", "SuperJumpTo")       -- Destination of super jump in case of having invalid target entity.
+    self:AddNetworkVar("Vector", "WallNormal")        -- The normal vector of a wall when climbing.
     local getaimvector = self.GetAimVector
     local getshootpos = self.GetShootPos
+
+    ---Get aim direction vector
+    ---@return Vector dir The aim vector
     function self:GetAimVector()
-        if not IsValid(self:GetOwner()) then return self:GetForward() end
-        if self:GetOwner():IsPlayer() then return self:GetOwner():GetAimVector() end
+        local Owner = self:GetOwner()
+        if not IsValid(Owner) then return self:GetForward() end
+        if Owner:IsPlayer() then ---@cast Owner Player
+            return Owner:GetAimVector()
+        end
         return getaimvector(self)
     end
 
+    ---Get muzzle position
+    ---@return Vector pos The muzzle position
     function self:GetShootPos()
-        if not IsValid(self:GetOwner()) then return self:GetPos() end
-        if self:GetOwner():IsPlayer() then return self:GetOwner():GetShootPos() end
+        local Owner = self:GetOwner()
+        if not IsValid(Owner) then return self:GetPos() end
+        if Owner:IsPlayer() then ---@cast Owner Player
+            return Owner:GetShootPos()
+        end
         return getshootpos(self)
     end
 

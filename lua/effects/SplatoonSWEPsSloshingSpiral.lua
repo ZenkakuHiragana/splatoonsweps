@@ -1,8 +1,16 @@
 
 local ss = SplatoonSWEPs
 if not ss then return end
-
 local mdl = Model "models/splatoonsweps/effects/sloshing_spiral.mdl"
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.SloshingSpiral
+---@class EFFECT.SloshingSpiral : EFFECT
+---@field Duration  number
+---@field DecayTime number
+---@field InitAngle Angle
+---@field InitPos   Vector
+---@field InitTime  number
+
 function EFFECT:Init(e)
     local ang = e:GetAngles()
     ang:RotateAroundAxis(ang:Forward(), e:GetScale())

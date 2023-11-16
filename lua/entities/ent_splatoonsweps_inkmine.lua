@@ -1,7 +1,28 @@
 
+local ENT = ENT
+---@cast ENT ENT.Inkmine
+---@class ENT.Inkmine : ENT
+---@field BaseClass ENT
+---@field AlertSoundPlayed boolean
+---@field AnimFasterTime   number
+---@field EmitDLight       boolean
+---@field Explode          fun(self)
+---@field ExplodeStartTime number
+---@field ExplosionDelay   number
+---@field ExplosionTime    number
+---@field InitTime         number
+---@field IsEnemyNearby    fun(self): boolean
+---@field IsForgotten      boolean
+---@field IsSplatoonBomb   boolean
+---@field Model            string
+---@field ShouldExplode    fun(self): boolean
+---@field Weapon           SplatoonWeaponBase
+---@field WeaponClassName  string
+
 AddCSLuaFile()
 ENT.Type = "anim"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.Model = Model "models/splatoonsweps/subs/inkmine/inkmine.mdl"
@@ -38,7 +59,7 @@ if CLIENT then
         self.EmitDLight = true
         self.InitTime = CurTime() - self.ExplodeStartTime
         local d = DynamicLight(self:EntIndex())
-        if not d then return end
+        if not d then return true end
         local c = ss.GetColor(self:GetNWInt "inkcolor")
         d.pos = self:GetPos() + self:GetUp() * 10
         d.r, d.g, d.b = c.r, c.g, c.b
@@ -83,13 +104,14 @@ function ENT:IsEnemyNearby()
             return true
         end
     end
+
+    return false
 end
 
 function ENT:ShouldExplode()
     local elapsed = CurTime() - self.InitTime
     if elapsed > self.ExplodeStartTime then return true end
     if self:IsEnemyNearby() then return true end
-    local p = ss.inkmine.Parameters
     local maxs = ss.vector_one * 16
     local mins = -maxs
     local gcolor = ss.GetSurfaceColorArea(self:GetPos(), mins, maxs, 1, 0.5)

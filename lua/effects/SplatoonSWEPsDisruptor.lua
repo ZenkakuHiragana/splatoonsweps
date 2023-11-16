@@ -2,6 +2,10 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 local mdl = Model "models/hunter/misc/sphere2x2.mdl"
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.Disruptor
+---@class EFFECT.Disruptor : EFFECT
+
 function EFFECT:Init(e)
     self:SetModel(mdl)
     local color = ss.GetColor(e:GetColor())

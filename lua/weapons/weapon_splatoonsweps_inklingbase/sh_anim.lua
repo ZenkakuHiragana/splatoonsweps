@@ -3,6 +3,8 @@ AddCSLuaFile()
 local ss = SplatoonSWEPs
 if not ss then return end
 
+---@class SplatoonWeaponBase
+local SWEP = SWEP
 local ActIndex = {
     pistol   = ACT_HL2MP_IDLE_PISTOL,
     smg      = ACT_HL2MP_IDLE_SMG1,
@@ -25,6 +27,8 @@ local ActIndex = {
     revolver = ACT_HL2MP_IDLE_REVOLVER,
 }
 
+---Sets the hold type of the weapon.
+---@param t string
 function SWEP:SetWeaponHoldType(t)
     if not isstring(t) then return end
     t = t:lower()
@@ -51,17 +55,21 @@ function SWEP:SetWeaponHoldType(t)
     self:SetupWeaponHoldTypeForAI(t)
 end
 
+---base class name -> hold type
 local NPCHoldType = {
     weapon_splatoonsweps_blaster_base = "smg",
-    weapon_splatoonsweps_charger = "smg",
-    weapon_splatoonsweps_shooter = "smg",
+    weapon_splatoonsweps_charger      = "smg",
+    weapon_splatoonsweps_shooter      = "smg",
     weapon_splatoonsweps_slosher_base = "smg",
-    weapon_splatoonsweps_splatling = "smg",
-    weapon_splatoonsweps_roller = "melee",
+    weapon_splatoonsweps_splatling    = "smg",
+    weapon_splatoonsweps_roller       = "melee",
 }
+---Translates generic ACT to specific one for NPCs
+---@param act integer ACT enum
+---@return integer translated Translated ACT enum
 function SWEP:TranslateActivity(act)
     if self:GetOwner():IsNPC() then
-        local h = NPCHoldType[self.Base]
+        local h = NPCHoldType[self.Base] ---@type string
         local a = self.ActivityTranslateAI
         local invalid = self:GetOwner():SelectWeightedSequence(a[h][act] or 0) < 0
         return not invalid and a[h][act] or a.smg[act] or -1
@@ -77,11 +85,18 @@ function SWEP:TranslateActivity(act)
     return translate and translate[act] or -1
 end
 
+---Called before firing animation events, such as muzzle flashes or shell ejections.
+---@param pos Vector
+---@param ang Angle
+---@param event integer
+---@param options string
+---@return boolean disabled True to disable the effect.
 function SWEP:FireAnimationEvent(pos, ang, event, options)
     return ss.FireAnimationEvent(self, pos, ang, event, options)
 end
 
-function SWEP:MakeSquidModel(id)
+---Creates squid entity
+function SWEP:MakeSquidModel()
     if CLIENT then return end
     local squid = self:GetNWEntity "Squid"
     if IsValid(squid) then squid:Remove() end

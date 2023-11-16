@@ -1,5 +1,6 @@
 
 AddCSLuaFile()
+local SWEP = SWEP ---@cast SWEP SWEP.Roller
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 SWEP.Bodygroup = {0}

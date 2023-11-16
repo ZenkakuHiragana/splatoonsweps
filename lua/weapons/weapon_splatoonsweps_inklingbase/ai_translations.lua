@@ -1,10 +1,10 @@
 
--------------------------------------------------------------
--- Name: SetupWeaponHoldTypeForAI
--- Desc: Mainly a Todo. In a seperate file to clean up the init.lua
--------------------------------------------------------------
-function SWEP:SetupWeaponHoldTypeForAI(t)
+---@class SplatoonWeaponBase
+local SWEP = SWEP
 
+---Sets up ACT translation table for given hold type t.
+---@param t string The hold type to construct.
+function SWEP:SetupWeaponHoldTypeForAI(t)
     self.ActivityTranslateAI    = self.ActivityTranslateAI    or {}
     self.ActivityTranslateAI[t] = self.ActivityTranslateAI[t] or {}
     local a = self.ActivityTranslateAI[t]
@@ -125,7 +125,7 @@ function SWEP:SetupWeaponHoldTypeForAI(t)
         a[ ACT_RANGE_ATTACK1 ]         = ACT_RANGE_ATTACK_SHOTGUN
         a[ ACT_MELEE_ATTACK1 ]         = ACT_IDLE_ANGRY_SHOTGUN
         a[ ACT_RELOAD ]                = ACT_RELOAD_SHOTGUN
-        a[ ACT_IDLE ]                  = ACT_IDLE_SHOTGUN
+        a[ ACT_IDLE ]                  = ACT_IDLE_RIFLE
         a[ ACT_IDLE_ANGRY ]            = ACT_IDLE_ANGRY_SHOTGUN
         a[ ACT_WALK ]                  = ACT_WALK_RIFLE
         a[ ACT_IDLE_RELAXED ]          = ACT_IDLE_SMG1_RELAXED

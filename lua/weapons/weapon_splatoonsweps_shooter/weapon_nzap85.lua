@@ -1,5 +1,13 @@
 
 AddCSLuaFile()
+
+local SWEP = SWEP
+---@cast SWEP SWEP.NZap
+---@class SWEP.NZap : SWEP.Shooter
+---@field BaseClass SWEP.Shooter
+---@field ADSAngOffset2 Angle Alternative view model angle offset for pistol-style wielding
+---@field ADSOffset2 Vector Alternative view model offset for pistol-style wielding
+
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 SWEP.ADSAngOffset = Angle(0, 0, 0)
@@ -59,10 +67,11 @@ ss.SetPrimary(SWEP, {
     mDegJumpBiasFrame = 60,
 })
 
+---@param self SWEP.NZap
 local function RefreshViewModel(self)
     if not (IsValid(self:GetOwner()) and self:GetOwner():IsPlayer()) then return end
     local ispistol = self:GetNWBool "nzap_pistolstyle"
-    local mdl = ispistol and self.ViewModel1 or self.ViewModel0
+    local mdl = ispistol and self.ViewModel1 or self.ViewModel0 or ""
     local vm = self:GetViewModel()
     if not IsValid(vm) then return end
     if vm:GetModel() == mdl then return end
@@ -88,6 +97,7 @@ function SWEP:Think()
 end
 
 function SWEP:CustomActivity()
+    ---@type string?
     local armpos = ss.ProtectedCall(self.BaseClass.CustomActivity, self)
     if not armpos then return end
     if self:GetNWBool "nzap_pistolstyle" then return "revolver" end
@@ -96,6 +106,7 @@ end
 
 if SERVER then return end
 function SWEP:GetArmPos()
+    ---@type number?
     local armpos = ss.ProtectedCall(self.BaseClass.GetArmPos, self)
     if not armpos then return end
     local pistol = self:GetNWBool "nzap_pistolstyle"

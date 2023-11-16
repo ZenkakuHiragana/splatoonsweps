@@ -1,7 +1,30 @@
 
+local ENT = ENT
+---@cast ENT ENT.SquidBeakon
+---@class ENT.SquidBeakon : ENT.Throwable
+---@field BaseClass ENT.Throwable
+---@field ContactStartTime      number
+---@field GetLightEmitState     fun(self): integer
+---@field GetLightEmitTime      fun(self): number
+---@field HitNormal             Vector
+---@field IsSquidBeakon         boolean
+---@field LightEmitTimeTable    number[]
+---@field MinimapEffectDuration number
+---@field MinimapEffectInterval number
+---@field MinimapEffectTime     number
+---@field NextRadioPlayTime     number
+---@field Parameters            SubParameters.SquidBeakon
+---@field SetLightEmitState     fun(self, value: integer)
+---@field SetLightEmitTime      fun(self, value: number)
+---@field UpdateLightEmission   fun(self)
+---@field UpdateMinimapEffect   fun(self)
+---@field UpdateRadio           fun(self)
+---@field Weapon                SplatoonWeaponBase
+
 AddCSLuaFile()
 ENT.Base = "ent_splatoonsweps_throwable"
 
+---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.AutomaticFrameAdvance = true
@@ -25,15 +48,14 @@ function ENT:Initialize()
         if w then self.WeaponClassName = w:GetClass() end
     end
 
-    local p = ss[self.SubWeaponName].Parameters
+    local p = ss[self.SubWeaponName].Parameters ---@type SubParameters.SquidBeakon
     self.Parameters = p
     self.LightEmitTimeTable = { p.LightEmitTime, p.LightEmitRestTime, p.LightEmitTime, p.LightEmitInterval }
-    self.StraightFrame = p.Fly_AirFrm or 0
+    self.StraightFrame = 0
     self.AirResist = (p.Fly_VelKd or 1) - 1
-    self.AngleAirResist = (p.Fly_RotKd or 1) - 1
+    self.AngleAirResist = 0
     self.Gravity = p.Fly_Gravity or 0
-
-    local base = self.BaseClass
+    local base = self.BaseClass ---@type ENT|ENT.Throwable
     while base.ClassName ~= "ent_splatoonsweps_throwable" do base = base.BaseClass end
     base.Initialize(self)
     self:ResetSequence "deploy"

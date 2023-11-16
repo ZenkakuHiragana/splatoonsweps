@@ -9,6 +9,14 @@ local r2 = 70 * ss.ToHammerUnits -- Maximum radius
 local tr = 0.2 -- Time to maximize the radius
 local n = 15 -- Number of beams
 local ns = 6 -- Number of segments for a beam
+local EFFECT = EFFECT
+---@cast EFFECT EFFECT.PointSensor
+---@class EFFECT.PointSensor : EFFECT
+---@field AngleOffsets Angle[]
+---@field Color       Color
+---@field ColorVector Vector
+---@field InitTime    number
+
 function EFFECT:Init(e)
     self:SetModel(mdl)
     self:SetPos(e:GetOrigin())
@@ -34,7 +42,7 @@ function EFFECT:Render()
 
     render.SetMaterial(BeamMaterial)
     for i = 1, n do
-        local pos = {}
+        local pos = {} ---@type Vector[]
         for k = 1, ns do
             local di = (k - 1) / ns * 45
             local a = Angle(self.AngleOffsets[i])
