@@ -420,6 +420,7 @@ local function MakeElement(parent, admin, pt)
     ---@cast panel +cvartree.Panel
     panel.CVarName = cvar:GetName()
     panel:SetText(pt.options.printname)
+    pt[panelname] = panel ---@type Panel
 
     local override = nil
     if admin then
@@ -463,7 +464,7 @@ local function MakeElement(parent, admin, pt)
             EnablePanel(self, pt.options.type, pt.sv:GetInt() == -1, pt.options.enablepanel)
         end
     end
-    pt[panelname] = panel ---@type Panel
+
     parent:AddItem(override or panel, override and panel)
     if override then
         local t = (panel:GetTall() - 15) / 2

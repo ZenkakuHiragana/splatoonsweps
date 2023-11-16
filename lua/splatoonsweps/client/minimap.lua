@@ -151,6 +151,7 @@ function ss.OpenMiniMap()
     local function DrawMap(x, y, w, h)
         local origin, ortho = GetOrthoTable(w, h)
         ss.IsDrawingMinimap = true
+        local old = render.EnableClipping(true)
         render.PushCustomClipPlane(Vector( 0,  0, -1), -bbmaxs.z - 0.5)
         render.PushCustomClipPlane(Vector( 0,  0,  1),  bbmins.z - 0.5)
         render.PushCustomClipPlane(Vector(-1,  0,  0), -bbmaxs.x - 0.5)
@@ -173,6 +174,7 @@ function ss.OpenMiniMap()
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
         render.PopCustomClipPlane()
+        render.EnableClipping(old)
         ss.IsDrawingMinimap = false
     end
 

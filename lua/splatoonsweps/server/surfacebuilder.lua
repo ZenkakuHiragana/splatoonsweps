@@ -501,7 +501,7 @@ local function processStaticPropConvex(origin, angle, triangles)
         surf.Origin:Div(#surf.Vertices3D)
         surf.maxs = maxs_all[k]
         surf.mins = mins_all[k]
-        surf.Angles = PROJECTION_ANGLES[k]
+        surf.Angles = Angle(PROJECTION_ANGLES[k])
         surf.Normal = n
         get2DComponents(surf)
     end
@@ -608,19 +608,20 @@ local function buildStaticProp(prop)
     mdl:SetModel(name)
     mdl:Spawn()
     local ph ---@type PhysObj
-    local mins, maxs = mdl:GetModelBounds()
-    local size = maxs - mins
+    -- local mins, maxs = mdl:GetModelBounds()
+    -- local size = maxs - mins
     if prop.solid == SOLID_VPHYSICS then
         mdl:PhysicsInit(SOLID_VPHYSICS)
         ph = mdl:GetPhysicsObject()
     end
     mdl:Remove()
 
-    if math.max(size.x, size.y, size.z) > 100 then
-        return buildFacesFromPropMesh(ph, name, prop.origin, prop.angle), false
-    else
-        return buildStaticPropSurface(ph, name, prop.origin, prop.angle, mins, maxs), true
-    end
+    -- if math.max(size.x, size.y, size.z) > 10 then
+        -- Always use physics collision mesh instead of model mesh for now
+        return buildFacesFromPropMesh(ph, nil, prop.origin, prop.angle), false
+    -- else
+    --     return buildStaticPropSurface(ph, name, prop.origin, prop.angle, mins, maxs), true
+    -- end
 end
 
 ---@param surf PaintableSurface?
