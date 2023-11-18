@@ -822,11 +822,9 @@ function ss.PerformSuperJump(w, ply, mv)
 
         return true
     else
-        local dz = -vector_up * ply:GetViewOffset().z
-        local trstart = endpos - dz
         local tr = util.TraceHull {
-            start = trstart,
-            endpos = trstart + dz,
+            start = mv:GetOrigin(),
+            endpos = endpos,
             filter = { ply, targetentity },
             mins = ply:OBBMins(),
             maxs = ply:OBBMaxs(),
