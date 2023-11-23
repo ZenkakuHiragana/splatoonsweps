@@ -68,6 +68,7 @@ ss.SetPrimary(SWEP, {
     mSniperCameraMoveStartChargeRate = 0.5,
     mSniperCameraMoveEndChargeRate = 1,
     mSniperCameraFovy = 20,
+    mSniperCameraFovy_RTScope = 8,
     mSniperCameraPlayerAlphaChargeRate = 0.5,
     mSniperCameraPlayerInvisibleChargeRate = 0.85,
     mMinChargeColRadiusForPlayer = 1,

@@ -212,6 +212,7 @@ if not ss then return end
 ---@field mSniperCameraMoveStartChargeRate       number
 ---@field mSniperCameraMoveEndChargeRate         number
 ---@field mSniperCameraFovy                      number
+---@field mSniperCameraFovy_RTScope              number
 ---@field mSniperCameraPlayerAlphaChargeRate     number
 ---@field mSniperCameraPlayerInvisibleChargeRate number
 ---@field mMinChargeColRadiusForPlayer           number
@@ -821,6 +822,7 @@ function ss.DefaultParams.weapon_splatoonsweps_charger(weapon)
         mSniperCameraMoveStartChargeRate = 0.5,
         mSniperCameraMoveEndChargeRate = 1,
         mSniperCameraFovy = 28,
+        mSniperCameraFovy_RTScope = 11,
         mSniperCameraPlayerAlphaChargeRate = 0.5,
         mSniperCameraPlayerInvisibleChargeRate = 0.85,
         mMinChargeColRadiusForPlayer = 1,
