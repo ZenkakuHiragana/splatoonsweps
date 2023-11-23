@@ -183,7 +183,7 @@ function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
             local bk = util.TraceLine(t)
             if fw.Fraction < bk.Fraction == mv:KeyDown(IN_FORWARD) then
                 vz = math.max(math.abs(vz) * -.75,
-                vz + math.min(12 + (mv:KeyPressed(IN_JUMP) and maxspeed / 4 or 0), maxspeed))
+                vz + math.min(12 + (mv:KeyPressed(IN_JUMP) and maxspeed or 0), maxspeed))
                 if ply:OnGround() then
                     t.endpos = sp + ply:GetRight() * 32768
                     local r = util.TraceLine(t)
@@ -213,8 +213,7 @@ function ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
             speed = math.min(speed, maxspeed)
         end
 
-        v.z = w.OnOutofInk and not w:GetInWallInk()
-        and math.min(vz, ply:GetJumpPower() * .7) or vz
+        v.z = math.min(vz, ply:GetJumpPower())
         if i then mv:SetVelocity(v) end
     end
 end
