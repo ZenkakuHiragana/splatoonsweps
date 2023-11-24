@@ -11,6 +11,7 @@
 ---@field WaterSurfaces       PaintableSurface[]
 ---@field Lightmap            ss.Lightmap
 
+if not SplatoonSWEPs then
 ---@class ss
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
@@ -34,6 +35,7 @@ SplatoonSWEPs = {
     WeaponRecord            = {}, ---@type table<Entity, ss.WeaponRecord>
     WaterSurfaces           = {}, ---@type PaintableSurface[]
 }
+end
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"

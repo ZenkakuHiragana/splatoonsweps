@@ -1,6 +1,7 @@
 
 -- Clientside SplatoonSWEPs structure
 
+if not SplatoonSWEPs then
 ---@class ss
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
@@ -23,6 +24,7 @@ SplatoonSWEPs = {
     WaterSurfaces           = {}, ---@type PaintableSurface[]
     WeaponRecord            = {}, ---@type table<Entity, ss.WeaponRecord>
 }
+end
 
 include "splatoonsweps/const.lua"
 include "splatoonsweps/shared.lua"
