@@ -167,7 +167,7 @@ function ss.BuildInkMesh()
             ContinueMesh()
         end
 
-        surf.Triangles, surf.Vertices3D, surf.Vertices2D = nil, nil, nil
+        -- surf.Triangles, surf.Vertices3D, surf.Vertices2D = nil, nil, nil
     end
     mesh.End()
 end

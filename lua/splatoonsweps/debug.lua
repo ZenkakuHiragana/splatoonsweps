@@ -63,7 +63,7 @@ function sd.ShowInkDrawn(s, c, b, surf)
     d.DPoly(surf.Vertices3D)
 end
 
-local gridsize = 12 -- [Hammer Units]
+local gridsize = ss.InkGridSize -- [Hammer Units]
 local ShowInkStatePos = Vector()
 local ShowInkStateID = 0
 local ShowInkStateSurf = {}
@@ -83,7 +83,7 @@ function sd.ShowInkStateMesh(pos, id, surf)
     local p = ss.To3D(pos * gridsize, surf.Origin, surf.Angles)
     d.DTick()
     d.DColor(c.r, c.g, c.b, colorid and 64 or 16)
-    d.DABox(p, vector_origin, Vector(0, gridsize - 1, gridsize - 1), surf.Angles)
+    d.DABox(p, vector_origin, Vector(0, gridsize, gridsize), surf.Angles)
 end
 
 if ShowBlasterRadius then
@@ -216,10 +216,19 @@ if ShowInkSurface then
         local p = ply:GetPos()
         local mins, maxs = p - ss.vector_one, p + ss.vector_one
         for s in ss.CollectSurfaces(mins, maxs, vector_up) do
-            local v = {} ---@type Vector[]
-            for i, w in ipairs(s.Vertices3D) do v[i] = w end
+            if s.IsDisplacement then
+                for i = 1, #s.Triangles, 3 do
+                    local v1 = s.Vertices3D[s.Triangles[i]]
+                    local v2 = s.Vertices3D[s.Triangles[i + 1]]
+                    local v3 = s.Vertices3D[s.Triangles[i + 2]]
+                    d.DLine(v1, v2, true)
+                    d.DLine(v2, v3, true)
+                    d.DLine(v3, v1, true)
+                end
+            else
+                d.DPoly(s.Vertices3D)
+            end
             d.DPoint(s.Origin)
-            d.DPoly(v)
         end
     end
 end
@@ -251,7 +260,7 @@ if ShowInkStateMesh then
                 local cid = ink[x * 32768 + y]
                 local c = ss.GetColor(cid) or color_white
                 d.DColor(c.r, c.g, c.b, cid and 64 or 16)
-                d.DABox(org, vector_origin, Vector(0, gridsize - 1, gridsize - 1), surf.Angles)
+                d.DABox(org, vector_origin, Vector(0, gridsize, gridsize), surf.Angles)
             end
         end
     end

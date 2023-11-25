@@ -160,12 +160,13 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
     for s in CollectSurfaces(mins, maxs, normal) do
         local ang = s.Angles
         local localang = ang.roll + ang.yaw - angle
-        area = area + AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
+        local areaAdded = AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
+        area = area + math.max(areaAdded * s.Normal.z, 0)
     end
 
     ---@cast ply Player
     if not ply:IsPlayer() or ply:IsBot() then return end
-    ss.WeaponRecord[ply].Inked[classname] = (ss.WeaponRecord[ply].Inked[classname] or 0) - area * gridarea
+    ss.WeaponRecord[ply].Inked[classname] = ss.WeaponRecord[ply].Inked[classname] - area * gridarea
     if ss.sp and SERVER then
         net_Start "SplatoonSWEPs: Send turf inked"
         net_WriteFloat(ss.WeaponRecord[ply].Inked[classname])

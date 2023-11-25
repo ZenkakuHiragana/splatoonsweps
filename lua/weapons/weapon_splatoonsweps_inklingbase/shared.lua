@@ -125,6 +125,7 @@ local SWEP = SWEP
 ---@field Sub                      string
 ---@field SuperJumpVoicePlayed     boolean?
 ---@field Translate                SWEP.ActivityTranslationTable
+---@field TurfInkedAtStart         number
 ---@field Variations               SWEP.Variation[]
 ---@field ApplySkinAndBodygroups   fun(self)
 ---@field ChangeThrowing           fun(self, name: string, old: boolean, new: boolean)
@@ -138,6 +139,8 @@ local SWEP = SWEP
 ---@field GetHandPos               fun(self): Vector
 ---@field GetInkColor              fun(self): Color
 ---@field GetInklingSpeed          fun(self): number
+---@field GetTurfInkedThisTime     fun(self): integer
+---@field GetTurfInkedSoFar        fun(self): integer
 ---@field GetOptions               fun(self)
 ---@field GetSquidSpeed            fun(self): number
 ---@field GetSubWeaponInitVelocity fun(self): Vector
@@ -194,20 +197,32 @@ end
 
 ---Starts recording statistics for this weapon
 function SWEP:StartRecording()
-    local o = self:GetOwner()
-    if not (o:IsPlayer() and ss.WeaponRecord[o]) then return end
-    self:SetNWEntity("Owner", o)
-    ss.WeaponRecord[o].Recent[self.ClassName] = -os.time()
+    self.TurfInkedAtStart = 0
+    local Owner = self:GetOwner()
+    if not Owner:IsPlayer() then return end
+    local record = ss.WeaponRecord[Owner]
+    if not record then return end
+    if not record.Inked[self.ClassName] then
+        record.Inked[self.ClassName] = 0
+    end
+    if not record.Duration[self.ClassName] then
+        record.Duration[self.ClassName] = 0
+    end
+
+    self:SetNWEntity("Owner", Owner)
+    record.Recent[self.ClassName] = -os.time()
+    self.TurfInkedAtStart = record.Inked[self.ClassName]
 end
 
 ---Stops recording statistics for this weapon
 function SWEP:EndRecording()
-    local o = IsValid(self:GetOwner()) and self:GetOwner() or self:GetNWEntity "Owner"
-    local r = ss.WeaponRecord[o]
-    local c = self.ClassName
-    local t = os.time()
-    if not (o:IsPlayer() and r) then return end
-    r.Duration[c] = (r.Duration[o] or 0) - (t + (r.Recent[c] or -t))
+    local Owner = IsValid(self:GetOwner()) and self:GetOwner() or self:GetNWEntity "Owner"
+    if not Owner:IsPlayer() then return end
+    local record = ss.WeaponRecord[Owner]
+    if not record then return end
+    local classname = self.ClassName
+    local time = os.time()
+    record.Duration[classname] = record.Duration[classname] - (time + record.Recent[classname])
 end
 
 ---Basically shared version of IsCarriedByLocalPlayer
@@ -245,6 +260,27 @@ end
 ---@return number speed The swimming speed in Hammer Units per second
 function SWEP:GetSquidSpeed()
     return ss.SquidBaseSpeed
+end
+
+---Returns the points of turf inked with this instance
+---@return integer
+function SWEP:GetTurfInkedThisTime()
+    local record = ss.WeaponRecord[self:GetOwner()]
+    if not record then return 0 end
+    local raw = record.Inked[self.ClassName]
+    if not raw then return 0 end
+    raw = raw - self.TurfInkedAtStart
+    return ss.GetTurfInkedInPoints(raw)
+end
+
+---Returns the points of turf this owner has inked so far
+---@return integer
+function SWEP:GetTurfInkedSoFar()
+    local record = ss.WeaponRecord[self:GetOwner()]
+    if not record then return 0 end
+    local raw = record.Inked[self.ClassName]
+    if not raw then return 0 end
+    return ss.GetTurfInkedInPoints(raw)
 end
 
 ---Get actual color of current ink
@@ -545,10 +581,8 @@ function SWEP:SharedHolsterBase()
 end
 
 ---Returns amount for displaying ammo HUD
----@return number ammo The amount for displaying
-function SWEP:DisplayAmmo()
-    return ss.GetMaxInkAmount()
-end
+---@return number? ammo The amount for displaying
+function SWEP:DisplayAmmo() return nil end
 
 ---Base function of Think hook for both realms
 function SWEP:SharedThinkBase()
@@ -562,7 +596,7 @@ function SWEP:SharedThinkBase()
     if IsValid(Owner) and Owner:IsPlayer() then
         ---@cast Owner Player
         self:SetClip1(math.Round(self:GetInk()))
-        Owner:SetAmmo(self:DisplayAmmo(), self:GetPrimaryAmmoType())
+        Owner:SetAmmo(self:GetTurfInkedThisTime(), self:GetPrimaryAmmoType())
     end
 
     local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())

@@ -475,6 +475,14 @@ function ss.GetMaxInkAmount() return gain "inkamount" --[[@as number]] end
 ---@return number
 function ss.GetDamageScale() return gain "damagescale" / 100 end
 
+---Get the area of turf inked in points from internal value
+---@param raw number
+---@return integer
+function ss.GetTurfInkedInPoints(raw)
+    local inSplatoonUnits = -raw / (ss.ToHammerUnits * ss.ToHammerUnits)
+    return math.floor(inSplatoonUnits / 330)
+end
+
 ---@param pt cvartree.CVarItem
 ---@return any
 function ss.GetBotOption(pt) return (pt.cl or pt.sv):GetDefault() end

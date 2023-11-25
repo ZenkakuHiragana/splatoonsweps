@@ -411,11 +411,12 @@ end
 
 -- Show remaining amount of ink tank
 function SWEP:CustomAmmoDisplay()
-    self.AmmoDisplay = self.AmmoDisplay or {}
-    self.AmmoDisplay.Draw = true
-    self.AmmoDisplay.PrimaryClip = math.Round(self:GetInk())
-    self.AmmoDisplay.PrimaryAmmo = self:DisplayAmmo()
-    return self.AmmoDisplay
+    return {
+        Draw = true,
+        PrimaryClip = math.Round(self:GetInk()),
+        PrimaryAmmo = self:GetTurfInkedThisTime(),
+        SecondaryAmmo = self:DisplayAmmo(),
+    }
 end
 
 function SWEP:DrawWeaponSelection(x, y, wide, tall, alpha)
