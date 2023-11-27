@@ -269,8 +269,8 @@ function SWEP:GetTurfInkedThisTime()
     if not record then return 0 end
     local raw = record.Inked[self.ClassName]
     if not raw then return 0 end
-    raw = raw - self.TurfInkedAtStart
-    return ss.GetTurfInkedInPoints(raw)
+    raw = math.min(raw - self.TurfInkedAtStart, 0)
+    return math.Round(ss.GetTurfInkedInPoints(raw))
 end
 
 ---Returns the points of turf this owner has inked so far
@@ -280,7 +280,7 @@ function SWEP:GetTurfInkedSoFar()
     if not record then return 0 end
     local raw = record.Inked[self.ClassName]
     if not raw then return 0 end
-    return ss.GetTurfInkedInPoints(raw)
+    return math.Round(ss.GetTurfInkedInPoints(raw))
 end
 
 ---Get actual color of current ink

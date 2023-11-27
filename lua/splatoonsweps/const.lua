@@ -273,9 +273,31 @@ else
 end
 
 local fps = 60
-local inklingspeed = .96 * fps
-local dutohu = .1 * 3.28084 * 16 * (1.00965 / 1.5)        -- Distance units to Hammer units
-ss.eps                      = 1e-9                        -- Epsilon, representing "close-to-zero"
+local inklingspeed = .96 * fps -- Distance units per second
+
+---1 meter = 39.3701 inches
+local meterToInch = 39.3701
+
+---1 for entity scale, 16 / 12 for map scale
+---I don't know why but using reciprocal of this fits the shooting range map
+---(gm_shootingrange_splat1)
+local inchToHammerUnits = 1 and 1 / (16 / 12)
+
+---Height of Inkling girl from Splatoon Inkling Playermodel in Hammer units
+local inklingPlayermodelHeight = 53
+local inklingPlayermodelHeightInMeters = inklingPlayermodelHeight / meterToInch
+
+---The real height of inkling model ripped from the original game in distance units
+local inklingRealHeight = 13.5641
+local inklingRealHeightInMeters = inklingRealHeight * 0.1
+local unitConversionFix = inklingPlayermodelHeightInMeters / inklingRealHeightInMeters
+
+---DU to HU, Distance units in Splatoon to Hammer units
+---Distance between two lines in the shooting range = 50 DU = 5 meters
+--- -> 1 DU = 0.1 meters = 0.1 * 39.3701 [inches = Hammer units (entity scale)]
+local dutohu = 0.1 * meterToInch * inchToHammerUnits * unitConversionFix
+
+ss.eps                      = 1e-9 -- Epsilon, representing "close-to-zero"
 ss.vector_one               = Vector(1, 1, 1)
 ss.MaxInkAmount             = 100
 ss.SquidBoundHeight         = 32
