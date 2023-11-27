@@ -1,11 +1,3 @@
----
-name: Bug Report (Markdown)
-about: Issues for bugs and incorrect behavior compared to the original game
-title: ''
-labels: bug
-assignees: ''
-
----
 
 ### 1. Describe the bug
 

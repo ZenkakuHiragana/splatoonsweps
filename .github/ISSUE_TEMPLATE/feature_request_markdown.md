@@ -1,11 +1,3 @@
----
-name: Feature Request (Markdown)
-about: Suggest an idea for this project
-title: ''
-labels: features
-assignees: ''
-
----
 
 ### Describe the idea you'd like
 
