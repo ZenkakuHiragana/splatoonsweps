@@ -11,6 +11,11 @@
 ---@field WaterSurfaces       PaintableSurface[]
 ---@field Lightmap            ss.Lightmap
 
+---@class ss.InkShotMask
+---@field width     integer
+---@field height    integer
+---@field [integer] boolean[]
+
 if not SplatoonSWEPs then
 ---@class ss
 SplatoonSWEPs = {
@@ -22,7 +27,9 @@ SplatoonSWEPs = {
     MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     InkColors               = {}, ---@type Color[]
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
-    InkShotMaterials        = {}, ---@type { width: integer, height: integer, [integer]: boolean[] }[]
+    InkShotMaskSwim         = {}, ---@type ss.InkShotMask[]
+    InkShotMaskTurf         = {}, ---@type ss.InkShotMask[]
+    InkShotTypes            = {}, ---@type table<string, integer[]>
     PaintSchedule           = {}, ---@type table<table, true>
     PlayerHullChanged       = {}, ---@type table<Player, boolean>
     PlayerID                = {}, ---@type table<Player, string>
@@ -245,6 +252,7 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     ss.SURFACE_ID_BITS = select(2, math.frexp(#ss.SurfaceArray))
     resource.AddSingleFile("data/" .. txtPath)
 
+    ss.PrecachePaintTextures()
     ss.GenerateHashTable()
     ss.ClearAllInk()
 end)

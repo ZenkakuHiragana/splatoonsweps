@@ -1,0 +1,8 @@
+"Patch"
+{
+    include materials/splatoonsweps/paints/roller/1-1.vmt
+    insert
+    {
+        "$basetexture" "splatoonsweps/paints/roller/a2"
+    }
+}

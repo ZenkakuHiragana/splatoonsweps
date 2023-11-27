@@ -1,0 +1,9 @@
+"Patch"
+{
+    include materials/splatoonsweps/paints/shot/1-1n.vmt
+    insert
+    {
+        "$basetexture" "splatoonsweps/paints/shot/n3"
+        "$alphatestreference" "0.125"
+    }
+}

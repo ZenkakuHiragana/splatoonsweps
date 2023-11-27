@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+    "$basetexture" "splatoonsweps/paints/explosion/a1"
+    "$alphatest" "1"
+    "$alphatestreference" "0.0625"
+    "$vertexcolor" "1"
+}

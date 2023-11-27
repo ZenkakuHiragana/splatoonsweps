@@ -58,8 +58,9 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local pos2d = To2D(pos, s.Origin, s.Angles) * griddivision
     local x0, y0 = pos2d.x, pos2d.y
     local ink = s.InkColorGrid
-    local t = ss.InkShotMaterials[inktype]
-    local w, h = t.width, t.height
+    local ms = ss.InkShotMaskSwim[inktype] -- Mask for swimmable pixels
+    local mt = ss.InkShotMaskTurf[inktype] -- Mask for counting turf inked
+    local w, h = ms.width, ms.height
     local sw, sh = s.GridArraySizeX, s.GridArraySizeY
     local dy = radius * griddivision
     local dx = ratio * dy
@@ -71,22 +72,26 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local area = 0
     local paint_threshold = floor(gridarea / (dx * dy)) + 1
     for x = 0, w - 1, 0.5 do
-        local tx = t[floor(x)]
+        local fx = floor(x)
+        local tx = ms[fx]
         if not tx then continue end
         for y = 0, h - 1, 0.5 do
-            if not tx[floor(y)] then continue end
+            local fy = floor(y)
+            if not tx[fy] then continue end
             local p = x * x_const - dx
             local q = y * y_const - dy
             local i = floor(p * cosd - q * sind + x0)
             local j = floor(p * sind + q * cosd + y0)
             local k = i * 32768 + j
-            if 0 <= i and i <= sw and 0 <= j and j <= sh then
-                pointcount[k] = (pointcount[k] or 0) + 1
-                if pointcount[k] > paint_threshold then
-                    if ink[k] ~= color then area = area + 1 end
-                    ink[k] = color
-                end
+            if not (0 <= i and i <= sw) then continue end
+            if not (0 <= j and j <= sh) then continue end
+            if not pointcount[k] then pointcount[k] = 0 end
+            pointcount[k] = pointcount[k] + 1
+            if pointcount[k] < paint_threshold then continue end
+            if ink[k] ~= color and mt[fx] and mt[fy] then
+                area = area + 1
             end
+            ink[k] = color
         end
     end
 

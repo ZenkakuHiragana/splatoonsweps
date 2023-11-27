@@ -222,6 +222,15 @@ function ss.GetTimeScale(ply)
     end
 end
 
+---Get path of squid model from PlayerType enum
+---@param pmid PlayerType
+---@return string?
+function ss.GetSquidmodel(pmid)
+    if pmid == ss.PLAYER.NOCHANGE then return end
+    local squid = ss.Squidmodel[ss.SquidmodelIndex[pmid] or ss.SQUID.INKLING]
+    return file.Exists(squid, "GAME") and squid or nil
+end
+
 ---Checks if the given entity is a valid inkling (if it has a SplatoonSWEPs weapon)
 ---@param ply Entity? The entity to be chekcked
 ---@return SplatoonWeaponBase? # The weapon it has, if any

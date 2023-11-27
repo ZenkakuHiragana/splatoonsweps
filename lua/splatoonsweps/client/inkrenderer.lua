@@ -6,20 +6,9 @@ local ss = SplatoonSWEPs
 if not ss then return end
 local CVarWireframe = GetConVar "mat_wireframe"
 local CVarMinecraft = GetConVar "mat_showlowresimage"
-local inkmaterials = {} ---@type IMaterial[][]
-local inknormals   = {} ---@type IMaterial[][]
 local rt = ss.RenderTarget
 local MAX_QUEUE_TIME = ss.FrameToSec
 local MAX_QUEUES_TOLERANCE = 5 -- Possible number of queues to be processed at once without losing FPS.
-for i = 1, 14 do
-    inkmaterials[i] = {}
-    inknormals[i] = {}
-    for j = 1, 4 do
-        inkmaterials[i][j] = Material(string.format("splatoonsweps/inkshot/%d/%d.vmt", i, j))
-        inknormals[i][j] = Material(string.format("splatoonsweps/inkshot/%d/%dn.vmt", i, j))
-    end
-end
-
 local grey = Material "grey":GetTexture "$basetexture"
 local function DrawMeshes(bDrawingDepth, bDrawingSkybox)
     if ss.GetOption "hideink" then return end
@@ -78,7 +67,7 @@ function ss.ReceiveInkQueue(radius, ang, normal, ratio, color, inktype, pos, ord
                 center = center,
                 color = GetColor(color),
                 colorid = color,
-                done = 0,
+                done = 1,
                 endpos = endpos,
                 height = 2 * r,
                 lightmapradius = r,
@@ -104,6 +93,8 @@ local function ProcessPaintQueue()
     local BaseTexture = rt.BaseTexture
     local Bumpmap = rt.Bumpmap
     local Clamp = math.Clamp
+    local InkShotMaterials = ss.InkShotMaterials
+    local InkShotNormals = ss.InkShotNormals
     local Lerp = Lerp
     local PaintQueue = ss.PaintQueue
     local SortedPairs = SortedPairs
@@ -123,10 +114,9 @@ local function ProcessPaintQueue()
         Benchmark = SysTime()
         NumRepetition = ceil(Lerp(Painted / MAX_QUEUES_TOLERANCE, 4, 0))
         for order, q in SortedPairs(PaintQueue) do
-            local alpha = Clamp(NumRepetition - q.done, 1, 4)
-            if q.t > 12 then alpha = 1 end
-            local inkmaterial = inkmaterials[q.t][alpha]
-            local inknormal = inknormals[q.t][alpha]
+            local alpha = Clamp(q.done, 1, 4)
+            local inkmaterial = InkShotMaterials[q.t][alpha]
+            local inknormal = InkShotNormals[q.t][alpha]
             local angle = q.surf.AnglesUV.roll + q.surf.AnglesUV.yaw - q.angle
 
             PushRenderTarget(BaseTexture)
@@ -155,7 +145,7 @@ local function ProcessPaintQueue()
 
             q.done = q.done + 1
             Painted = Painted + 1
-            if q.done > NumRepetition then
+            if q.done > NumRepetition or not InkShotMaterials[q.t][alpha + 1] then
                 local localang = q.surf.Angles.roll + q.surf.Angles.yaw - q.angle
                 ss.AddInkRectangle(q.colorid, q.t, localang, q.pos, q.radius, q.ratio, q.surf)
                 PaintQueue[order] = nil

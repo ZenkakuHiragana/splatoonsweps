@@ -363,24 +363,6 @@ function ss.CreateHitEffect(color, flags, pos, normal, owner)
     util.Effect("SplatoonSWEPsMuzzleSplash", e, true, SERVER)
 end
 
----@param offset number?
----@return integer
-function ss.GetDropType(offset) -- math.floor(1 <= x < 4) -> 1, 2, 3
-    return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 1, 4, CurTime() + (offset or 0)))
-end
-
----@param offset number?
----@return integer
-function ss.GetShooterInkType(offset) -- math.floor(4 <= x < 10) -> 4, 5, 6, 7, 8
-    return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 4, 9, CurTime() * 2 + (offset or 0)))
-end
-
----@param offset number?
----@return integer
-function ss.GetRollerRollInkType(offset)
-    return math.floor(util.SharedRandom("SplatoonSWEPs: Ink type", 10, 12, CurTime() * 3 + (offset or 0)))
-end
-
 ---@param params      Parameters
 ---@param pos         Vector
 ---@param color       integer

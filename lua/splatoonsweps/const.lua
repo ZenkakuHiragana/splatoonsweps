@@ -239,15 +239,6 @@ ss.SplatoonMapPorts = {
     humpback_pump_track_night           = true,
 }
 
----Get path of squid model from PlayerType enum
----@param pmid PlayerType
----@return string?
-function ss.GetSquidmodel(pmid)
-    if pmid == ss.PLAYER.NOCHANGE then return end
-    local squid = ss.Squidmodel[ss.SquidmodelIndex[pmid] or ss.SQUID.INKLING]
-    return file.Exists(squid, "GAME") and squid or nil
-end
-
 do -- Color tables
     ---@type table<integer, {[1]: integer, [2]: number, [3]: number, [4]: integer}>
     local inkcolors = include "splatoonsweps/constants/inkcolors.lua"
@@ -259,29 +250,6 @@ do -- Color tables
     end
 
     ss.COLOR_BITS = select(2, math.frexp(ss.MAX_COLORS)) ---@type integer
-end
-
-do -- Ink distribution map
-    local one = string.byte "1"
-    local path = "splatoonsweps/constants/inkdistributions/shot%d.lua"
-    for i = 1, 14 do
-        local f = path:format(i)
-        ---@type { w: integer, h: integer, data: string }
-        local map = include(f)
-        ---@type { width: integer, height: integer, [integer]: boolean[] }
-        local mask = { width = map.w, height = map.h }
-        local lines = map.data:Split "\n"
-        for y = 1, map.h do
-            for x, d in ipairs { lines[y]:byte(1, #lines[y]) } do
-                mask[x] = mask[x] or {}
-                mask[x][y] = d == one
-            end
-        end
-
-        ss.InkShotMaterials[i] = mask
-    end
-
-    ss.INK_TYPE_BITS = select(2, math.frexp(#ss.InkShotMaterials)) ---@type integer
 end
 
 game.AddParticles "particles/splatoonsweps.pcf"

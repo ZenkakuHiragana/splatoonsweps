@@ -1,8 +1,0 @@
-"Patch"
-{
-    include materials/splatoonsweps/inkshot/7/1n.vmt
-    insert
-    {
-        $alphatestreference 0.25
-    }
-}
