@@ -1,5 +1,5 @@
 ---
-name: Bug report
+name: Bug Report (Markdown)
 about: Issues for bugs and incorrect behavior compared to the original game
 title: ''
 labels: bug
