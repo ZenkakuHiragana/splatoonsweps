@@ -274,6 +274,7 @@ function SWEP:CreateInk(createnum)
     local angsign = self:GetIsSecondSwing() and 1 or -1
     local insidestart = (splashnum - insidenum) / 2
     local nextskip = 1
+    local inkspawnTotal = 0
     local function SpawnInk(i, t)
         if not self:IsFirstTimePredicted() then return end
         local issub = t == "sub"
@@ -293,10 +294,11 @@ function SWEP:CreateInk(createnum)
         -- or p.mSplashCoverApertureFreeFrame
 
         if initvelocity.x == 0 and initvelocity.y == 0 then yaw = ang.yaw end
+        inkspawnTotal = inkspawnTotal + 1
         table.Merge(self.Projectile, {
             InitPos = pos + dp,
             InitVel = initvelocity,
-            Type = ss.GetShooterInkType(),
+            Type = ss.GetShooterInkType(inkspawnTotal),
             Yaw = yaw,
 
             ColRadiusEntity = colent,

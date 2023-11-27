@@ -4,6 +4,5 @@
     insert
     {
         "$basetexture" "splatoonsweps/paints/shot/a3"
-        "$alphatestreference" "0.25"
     }
 }

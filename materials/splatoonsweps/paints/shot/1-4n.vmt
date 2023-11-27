@@ -3,6 +3,6 @@
     include materials/splatoonsweps/paints/shot/1-1n.vmt
     insert
     {
-        "$alphatestreference" "0.0625"
+        "$alphatestreference" "0.03125"
     }
 }

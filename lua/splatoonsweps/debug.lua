@@ -259,7 +259,7 @@ if ShowInkStateMesh then
                 local org = ss.To3D(p, surf.Origin, surf.Angles)
                 local cid = ink[x * 32768 + y]
                 local c = ss.GetColor(cid) or color_white
-                d.DColor(c.r, c.g, c.b, cid and 64 or 16)
+                d.DColor(c.r, c.g, c.b, cid and 64 or 0)
                 d.DABox(org, vector_origin, Vector(0, gridsize, gridsize), surf.Angles)
             end
         end
