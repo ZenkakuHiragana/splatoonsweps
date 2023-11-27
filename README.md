@@ -41,9 +41,8 @@ The aim of this rework is the following:
 * If you see errors on map load and can't paint at all, try removing cache files.
     * They are located in `garrysmod/data/splatoonsweps/<mapname>.txt` for singleplayer and listen server host.
     * They are located in `garrysmod/download/data/splatoonsweps/<mapname>.txt` for multiplayer games.
-    * There are also `garrysmod/data/splatoonsweps/<mapname>_lightmapXX.png`.  
+    * There are also `garrysmod/data/splatoonsweps/<mapname>_lightmap.png`.  
       If you see strange shading for the ink, try removing them.
-* The ink surface doesn't cast multiple projected textures ([#2301](https://github.com/Facepunch/garrysmod-issues/issues/2301)).
 * The ink surface doesn't support multiple light styles on a map.
 
 ***
