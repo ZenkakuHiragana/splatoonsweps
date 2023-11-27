@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Bug report (Markdown)
+    url: https://github.com/ZenkakuHiragana/splatoonsweps/issues/new?assignees=&labels=bug&projects=ZenkakuHiragana/1&template=bug_report_markdown.md&title=
+    about: Report bugs or incorrect behavior using Markdown here.
+  - name: Feature request (Markdown)
+    url: https://github.com/ZenkakuHiragana/splatoonsweps/issues/new?assignees=&labels=features&projects=ZenkakuHiragana/1&template=feature_request_markdown.md&title=
+    about: Feature requests go here.
