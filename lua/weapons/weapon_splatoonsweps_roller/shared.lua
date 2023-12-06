@@ -298,7 +298,7 @@ function SWEP:CreateInk(createnum)
         table.Merge(self.Projectile, {
             InitPos = pos + dp,
             InitVel = initvelocity,
-            Type = ss.GetShooterInkType(inkspawnTotal),
+            Type = ss.GetRollerInkType(inkspawnTotal),
             Yaw = yaw,
 
             ColRadiusEntity = colent,

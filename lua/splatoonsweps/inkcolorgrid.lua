@@ -58,9 +58,12 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local pos2d = To2D(pos, s.Origin, s.Angles) * griddivision
     local x0, y0 = pos2d.x, pos2d.y
     local ink = s.InkColorGrid
-    local ms = ss.InkShotMaskSwim[inktype] -- Mask for swimmable pixels
-    local mt = ss.InkShotMaskTurf[inktype] -- Mask for counting turf inked
-    local w, h = ms.width, ms.height
+    local category = ss.InkShotTypeToCategory[inktype]
+    local maskIndex = ss.InkShotMaskIndices[category]
+    local mask = ss.InkShotMasks[inktype][maskIndex] -- Mask for swimmable pixels
+    if not mask then print(inktype, category, maskIndex) end
+    local maskInked = ss.InkShotMasks[inktype][ss.MASK_INDEX_INKED_POINTS] -- Mask for counting turf inked
+    local w, h = mask.width, mask.height
     local sw, sh = s.GridArraySizeX, s.GridArraySizeY
     local dy = radius * griddivision
     local dx = ratio * dy
@@ -73,7 +76,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
     local paint_threshold = floor(gridarea / (dx * dy)) + 1
     for x = 0, w - 1, 0.5 do
         local fx = floor(x)
-        local tx = ms[fx]
+        local tx = mask[fx]
         if not tx then continue end
         for y = 0, h - 1, 0.5 do
             local fy = floor(y)
@@ -88,7 +91,7 @@ function ss.AddInkRectangle(color, inktype, localang, pos, radius, ratio, s)
             if not pointcount[k] then pointcount[k] = 0 end
             pointcount[k] = pointcount[k] + 1
             if pointcount[k] < paint_threshold then continue end
-            if ink[k] ~= color and mt[fx] and mt[fy] then
+            if ink[k] ~= color and maskInked[fx] and maskInked[fx][fy] then
                 area = area + 1
             end
             ink[k] = color

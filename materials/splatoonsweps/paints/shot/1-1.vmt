@@ -2,6 +2,6 @@
 {
     "$basetexture" "splatoonsweps/paints/shot/a1"
     "$alphatest" "1"
-    "$alphatestreference" "0.25"
+    "$alphatestreference" "0.0859375" // = 22 / 256
     "$vertexcolor" "1"
 }

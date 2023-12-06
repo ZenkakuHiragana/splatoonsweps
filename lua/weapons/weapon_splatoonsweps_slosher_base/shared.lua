@@ -157,7 +157,7 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
         if initvelocity.x == 0 and initvelocity.y == 0 then yaw = ang.yaw end
         table.Merge(self.Projectile, {
             InitVel = initvelocity,
-            Type = ss.GetDropType(i),
+            Type = ss.GetSlosherInkType(i),
             Yaw = yaw,
         })
 

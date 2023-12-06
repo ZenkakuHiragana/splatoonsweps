@@ -90,7 +90,6 @@ ss.SquidmodelIndex = {
     [ss.PLAYER.PEARL]    = ss.SQUID.INKLING,
     [ss.PLAYER.MARINA]   = ss.SQUID.OCTO2,
 }
-
 ss.SuperJumpVoice = {
     [InkGirl]  = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
     [InkBoy]   = "SplatoonSWEPs_Voice.SuperJump_SquidMale",
@@ -102,7 +101,6 @@ ss.SuperJumpVoice = {
     [Pearl]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
     [Marina]   = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
 }
-
 ss.ChargingEyeSkin = {
     [Marie]   = 0,
     [Callie]  = 5,
@@ -123,7 +121,6 @@ ss.TwilightPlayermodels = {
     [OctoGirl] = true,
     [OctoBoy]  = true, -- Can't apply flex manipulation with Octoling boy.
 }
-
 ss.Materials = {
     Crosshair = {
         Flash     = Material "splatoonsweps/crosshair/charged.vmt",
@@ -137,7 +134,6 @@ ss.Materials = {
         Invisible   = Material "splatoonsweps/weapons/primaries/shared/weapon_hider",
     },
 }
-
 ss.Particles = {
     BlasterTrail         = "splatoonsweps_blaster_trail",
     BlasterExplosion     = "splatoonsweps_explosion",
@@ -152,6 +148,14 @@ ss.Particles = {
     RollerSplash         = "splatoonsweps_roller_splash",
     SplashWall           = "splatoonsweps_splash_wall",
     SplatlingMuzzleFlash = "splatoonsweps_splatling_muzzleflash",
+}
+---Counting turf inked uses this threshold index
+ss.MASK_INDEX_INKED_POINTS = 4
+---Pixels with alpha value greater than this threshold will be considered as paintable
+ss.InkShotMaskThresholds = { 7, 21, 41, 74 }
+---Index to InkShotMaskThresholds to define mask threshold for paint types
+ss.InkShotMaskIndices = {
+    drop = 2, explosion = 3, roller = 1, shot = 2, slosher = 1, trail = 2,
 }
 
 ss.KeyMask                     = {IN_ATTACK, IN_DUCK, IN_ATTACK2}

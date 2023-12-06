@@ -3,11 +3,7 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
----Pixels with alpha value greater than this threshold will be considered as swimmable
-local MASK_THRESHOLD_SWIM = 47
-
----Pixels with alpha value greater than this threshold will be counted as turf inked
-local MASK_THRESHOLD_TURF = 76
+local PAINT_TEXTURE_REDIRECT = { roller = "shot", slosher = "drop" }
 local PAINT_TEXTURES_ROOT = "materials/splatoonsweps/paints/"
 
 ---Reads the alpha channel of given paint texture to build a mask,
@@ -15,25 +11,31 @@ local PAINT_TEXTURES_ROOT = "materials/splatoonsweps/paints/"
 ---This is considered as some kind of what $alphatest and $alphatestreference do.
 ---@param category string
 ---@param variant integer
----@param threshold integer
----@return ss.InkShotMask
-local function BuildInkShotMask(category, variant, threshold)
+---@return ss.InkShotMask[]
+local function BuildInkShotMask(category, variant)
+    if PAINT_TEXTURE_REDIRECT[category] then
+        category = PAINT_TEXTURE_REDIRECT[category]
+    end
+
     local path = string.format(PAINT_TEXTURES_ROOT .. "%s/a%d.vtf", category, variant)
     local vtf = file.Open(path, "rb", "GAME")
-    local mask = { width = 0, height = 0 } ---@type ss.InkShotMask
+    local mask = {} ---@type ss.InkShotMask[]
     if not vtf then return mask end
     vtf:Seek(0x10)
-    mask.width = vtf:ReadUShort()
-    mask.height = vtf:ReadUShort()
+    local width = vtf:ReadUShort()
+    local height = vtf:ReadUShort()
     vtf:Seek(0x50)
-    local bin = vtf:Read(mask.width * mask.height * 4)
+    local bin = vtf:Read(width * height * 4)
     vtf:Close()
 
-    for y = 1, mask.height do
-        for x = 1, mask.width do
-            local offset = (x + (y - 1) * mask.width) * 4
-            mask[x] = mask[x] or {}
-            mask[x][y] = bin:byte(offset, offset) > threshold
+    for i, threshold in ipairs(ss.InkShotMaskThresholds) do
+        mask[i] = { width = width, height = height }
+        for y = 1, height do
+            for x = 1, width do
+                local offset = (x + (y - 1) * width) * 4
+                mask[i][x] = mask[i][x] or {}
+                mask[i][x][y] = bin:byte(offset, offset) > threshold
+            end
         end
     end
 
@@ -44,15 +46,15 @@ end
 ---@param category string
 local function LoadPaintTextureCategory(category)
     ss.InkShotTypes[category] = {}
-    local numVariants = #ss.InkShotMaskSwim
+    local numVariants = #ss.InkShotMasks
     local fmt = string.format(PAINT_TEXTURES_ROOT .. "%s/%%d-%%%%d.vmt", category)
     local fmtn = string.format(PAINT_TEXTURES_ROOT .. "%s/%%d-%%%%dn.vmt", category)
     local variant, fmt2, fmt2n = 1, fmt:format(1), fmtn:format(1)
     while file.Exists(fmt2:format(1), "GAME") do
         numVariants = numVariants + 1
         table.insert(ss.InkShotTypes[category], numVariants)
-        ss.InkShotMaskSwim[numVariants] = BuildInkShotMask(category, variant, MASK_THRESHOLD_SWIM)
-        ss.InkShotMaskTurf[numVariants] = BuildInkShotMask(category, variant, MASK_THRESHOLD_TURF)
+        ss.InkShotMasks[numVariants] = BuildInkShotMask(category, variant)
+        ss.InkShotTypeToCategory[numVariants] = category
         if CLIENT then
             ss.InkShotMaterials[numVariants] = {}
             ss.InkShotNormals[numVariants] = {}
@@ -73,9 +75,9 @@ local function LoadPaintTextureCategory(category)
 end
 
 function ss.PrecachePaintTextures()
+    table.Empty(ss.InkShotMasks)
     table.Empty(ss.InkShotTypes)
-    table.Empty(ss.InkShotMaskSwim)
-    table.Empty(ss.InkShotMaskTurf)
+    table.Empty(ss.InkShotTypeToCategory)
     if CLIENT then
         table.Empty(ss.InkShotMaterials)
         table.Empty(ss.InkShotNormals)
@@ -87,7 +89,7 @@ function ss.PrecachePaintTextures()
     end
 
     ---@type integer
-    ss.INK_TYPE_BITS = select(2, math.frexp(#ss.InkShotMaskSwim))
+    ss.INK_TYPE_BITS = select(2, math.frexp(#ss.InkShotMasks))
 end
 
 ---@param offset number? Additional random seed
@@ -108,8 +110,24 @@ end
 
 ---@param offset number? Additional random seed
 ---@return integer
-function ss.GetRollerRollInkType(offset)
+function ss.GetRollerInkType(offset)
     local t = ss.InkShotTypes["roller"]
+    local i = util.SharedRandom("SplatoonSWEPs: Ink type", 1, #t, CurTime() * 3 + (offset or 0))
+    return t[math.min(math.floor(i), #t)]
+end
+
+---@param offset number? Additional random seed
+---@return integer
+function ss.GetRollerRollInkType(offset)
+    local t = ss.InkShotTypes["trail"]
+    local i = util.SharedRandom("SplatoonSWEPs: Ink type", 1, #t, CurTime() * 4 + (offset or 0))
+    return t[math.min(math.floor(i), #t)]
+end
+
+---@param offset number? Additional random seed
+---@return integer
+function ss.GetSlosherInkType(offset)
+    local t = ss.InkShotTypes["slosher"]
     local i = util.SharedRandom("SplatoonSWEPs: Ink type", 1, #t, CurTime() * 3 + (offset or 0))
     return t[math.min(math.floor(i), #t)]
 end

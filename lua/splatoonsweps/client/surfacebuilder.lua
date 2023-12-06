@@ -268,6 +268,7 @@ function ss.PrepareInkSurface(data)
         rt.Material:SetVector("$envmaptint", value / 16)
     end
 
+    ss.PrecachePaintTextures()
     ss.GenerateHashTable()
     ss.BuildInkMesh()
     ss.BuildWaterMesh()

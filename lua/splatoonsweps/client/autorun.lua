@@ -9,11 +9,11 @@ SplatoonSWEPs = {
     EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
     IMesh                   = {}, ---@type IMesh[]
     InkColors               = {}, ---@type Color[]
-    InkShotMaskSwim         = {}, ---@type { width: integer, height: integer, [integer]: integer[] }[]
-    InkShotMaskTurf         = {}, ---@type { width: integer, height: integer, [integer]: integer[] }[]
+    InkShotMasks            = {}, ---@type ss.InkShotMask[][] Indexing order -> InkType, ThresholdIndex, x, y
     InkShotMaterials        = {}, ---@type IMaterial[][]
     InkShotNormals          = {}, ---@type IMaterial[][]
     InkShotTypes            = {}, ---@type table<string, integer[]>
+    InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap
@@ -140,7 +140,6 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Clientside initialization", function(
         return
     end
 
-    ss.PrecachePaintTextures()
     ss.PrepareInkSurface(dataTable)
 end)
 

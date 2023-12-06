@@ -94,7 +94,7 @@ function ENT:TracePaint()
     local t = util.QuickTrace(self:GetPos(), -vector_up * 10, self)
     if not t.Hit then return end
     ss.Paint(t.HitPos, t.HitNormal, self.TracePaintRadius, self:GetNWInt "inkcolor",
-    self:GetAngles().yaw + 90, math.random(10, 12), 0.5, self:GetOwner(), self.WeaponClassName)
+    self:GetAngles().yaw + 90, ss.GetRollerRollInkType(), 0.5, self:GetOwner(), self.WeaponClassName)
 end
 
 function ENT:Explode()

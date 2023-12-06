@@ -3,6 +3,6 @@
     include materials/splatoonsweps/paints/drop/1-1.vmt
     insert
     {
-        "$alphatestreference" "0.125"
+        "$alphatestreference" "0.171875" // = 3 * 22 / 256
     }
 }

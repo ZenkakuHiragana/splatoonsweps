@@ -4,6 +4,6 @@
     insert
     {
         "$basetexture" "splatoonsweps/paints/drop/a3"
-        "$alphatestreference" "0.0625"
+        "$alphatestreference" "0.0859375" // = 22 / 256
     }
 }
