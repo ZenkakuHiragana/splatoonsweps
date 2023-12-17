@@ -243,9 +243,10 @@ function ss.PrepareInkSurface(data)
 
     local lightmapmat ---@type IMaterial
     local lightmap = render.GetHDREnabled() and ss.Lightmap.hdr or ss.Lightmap.ldr or ""
-    file.Write("splatoonsweps/lightmap.png", lightmap)
+    local lightpng = "splatoonsweps/" .. game.GetMap() .. ".png"
+    file.Write(lightpng, lightmap)
     if lightmap and #lightmap > 0 then
-        lightmapmat = Material("../data/splatoonsweps/lightmap.png", "smooth")
+        lightmapmat = Material("../data/" .. lightpng, "smooth")
     else
         lightmapmat = Material "grey"
     end
