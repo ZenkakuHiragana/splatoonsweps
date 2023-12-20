@@ -223,7 +223,7 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
         local ang = dir:Angle()
         if math.NormalizeAngle(ang.pitch) < -72 then
             ang.pitch = -72
-            dir = ang:Forward()
+            dir = ang:Forward() ---@type Vector
         end
 
         if linenum > 0 then

@@ -125,7 +125,7 @@ local function DoRunover(self, t, mv)
         local effectpos = center + dir * dir:Dot(v:GetPos() - center)
         if self:IsMine() and (ss.sp or IsFirstTimePredicted()) then
             ss.SuppressHostEventsMP(self:GetOwner())
-            ss.CreateHitEffect(color, 0, effectpos, -forward)
+            ss.CreateHitEffect(color, 0, effectpos, -forward, NULL)
             ss.EndSuppressHostEventsMP()
         end
 
@@ -264,7 +264,7 @@ function SWEP:CreateInk(createnum)
     local ang = dir:Angle()
     if math.NormalizeAngle(ang.pitch) < -55 then
         ang.pitch = -55
-        dir = ang:Forward()
+        dir = ang:Forward() ---@type Vector
     end
     local pos = self:GetShootPos()
     local right = self:GetOwner():GetRight()
@@ -274,7 +274,6 @@ function SWEP:CreateInk(createnum)
     local insiderate = p.mSplashInsideDamageRate
     local insidenum = math.floor(splashnum * insiderate)
     local randomorder, skiptable = {}, {} ---@type integer[], table<integer, true>
-    local ang = dir:Angle()
     local angoffset = p.mPaintBrushRotYDegree
     local angsign = self:GetIsSecondSwing() and 1 or -1
     local insidestart = (splashnum - insidenum) / 2

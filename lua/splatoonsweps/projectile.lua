@@ -333,20 +333,21 @@ end
 ---@param flags integer
 ---@param pos Vector
 ---@param normal Vector
----@param owner Entity?
+---@param owner Entity
 function ss.CreateHitEffect(color, flags, pos, normal, owner)
     local filter = nil
-    if SERVER and IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
-        filter = RecipientFilter()
-        filter:AddPlayer(owner)
-    end
-
     local e = EffectData()
-    if ss.mp or IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
-        e:SetColor(color)
-        e:SetFlags(flags)
-        e:SetOrigin(pos)
-        util.Effect("SplatoonSWEPsOnHit", e, true, filter)
+    if IsValid(owner) and owner:IsPlayer() then ---@cast owner Player
+        if SERVER then
+            filter = RecipientFilter()
+            filter:AddPlayer(owner)
+        end
+        if ss.mp then
+            e:SetColor(color)
+            e:SetFlags(flags)
+            e:SetOrigin(pos)
+            util.Effect("SplatoonSWEPsOnHit", e, true, filter)
+        end
     end
 
     e:SetAngles(normal:Angle())

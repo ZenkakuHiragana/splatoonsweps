@@ -257,7 +257,9 @@ do -- Color tables
 end
 
 game.AddParticles "particles/splatoonsweps.pcf"
-for _, p in pairs(ss.Particles) do PrecacheParticleSystem(p) end
+timer.Simple(0.25, function() -- Trying to avoid "Attempt to precache unknown particle system" errors
+    for _, p in pairs(ss.Particles) do PrecacheParticleSystem(p) end
+end)
 
 ---Gets actual color from color ID
 ---@param colorid integer|string
