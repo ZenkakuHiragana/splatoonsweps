@@ -20,23 +20,7 @@ util.AddNetworkString "SplatoonSWEPs: Super jump"
 net.Receive("SplatoonSWEPs: Ready to splat", function(_, ply)
     ss.PlayersReady[#ss.PlayersReady + 1] = ply
     ss.InitializeMoveEmulation(ply)
-    ss.WeaponRecord[ply] = {
-        Duration = {},
-        Inked = {},
-        Recent = {},
-    }
-
-    local id = ss.PlayerID[ply]
-    if not id then return end
-    local record = "data/splatoonsweps/record/" .. id .. ".txt"
-    if not file.Exists(record, "GAME") then return end
-    local json = file.Read(record, "GAME")
-    local cmpjson = util.Compress(json)
-    ss.WeaponRecord[ply] = util.JSONToTable(json)
-    net.Start "SplatoonSWEPs: Send player data"
-    net.WriteUInt(cmpjson:len(), 16)
-    net.WriteData(cmpjson, cmpjson:len())
-    net.Send(ply)
+    ss.SynchronizePlayerStats(ply)
 end)
 
 local RedownloadProgress = {} ---@type table<Player, integer>

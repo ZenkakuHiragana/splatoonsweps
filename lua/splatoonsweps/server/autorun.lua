@@ -191,6 +191,27 @@ function ss.GetFallDamage(self, ply, speed)
     return 0
 end
 
+---@param ply Player
+function ss.SynchronizePlayerStats(ply)
+    ss.WeaponRecord[ply] = {
+        Duration = {},
+        Inked = {},
+        Recent = {},
+    }
+
+    local id = ss.PlayerID[ply]
+    if not id then return end
+    local record = "data/splatoonsweps/record/" .. id:lower():gsub(":", "_") .. ".txt"
+    if not file.Exists(record, "GAME") then return end
+    local json = file.Read(record, "GAME")
+    local cmpjson = util.Compress(json)
+    ss.WeaponRecord[ply] = util.JSONToTable(json)
+    net.Start "SplatoonSWEPs: Send player data"
+    net.WriteUInt(cmpjson:len(), 16)
+    net.WriteData(cmpjson, cmpjson:len())
+    net.Send(ply)
+end
+
 -- Parse the map and store the result to txt, then send it to the client.
 hook.Add("PostCleanupMap", "SplatoonSWEPs: Cleanup all ink", ss.ClearAllInk)
 hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function()
@@ -260,6 +281,7 @@ end)
 -- NOTE: PlayerInitialSpawn is called before InitPostEntity on changelevel
 hook.Add("PlayerInitialSpawn", "SplatoonSWEPs: Add a player", function(ply)
     ss.InitializeMoveEmulation(ply)
+    ss.SynchronizePlayerStats(ply)
     if not ply:IsBot() then ss.ClearAllInk() end
 end)
 
@@ -284,7 +306,7 @@ local function SavePlayerData(ply)
     if not ss.WeaponRecord[ply] then return end
     local id = ss.PlayerID[ply]
     if not id then return end
-    local record = "splatoonsweps/record/" .. id .. ".txt"
+    local record = "splatoonsweps/record/" .. id:lower():gsub(":", "_") .. ".txt"
     if not file.Exists("data/splatoonsweps/record", "GAME") then
         file.CreateDir "splatoonsweps/record"
     end
