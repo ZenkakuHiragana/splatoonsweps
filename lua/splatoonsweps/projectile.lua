@@ -337,12 +337,8 @@ end
 function ss.CreateHitEffect(color, flags, pos, normal, owner)
     local filter = nil
     if SERVER and IsValid(owner) and --[[@cast owner -?]] owner:IsPlayer() then
-        if player.GetCount() == 1 then
-            filter = true
-        else ---@cast owner Player
-            filter = RecipientFilter()
-            filter:AddPlayer(owner)
-        end
+        filter = RecipientFilter()
+        filter:AddPlayer(owner)
     end
 
     local e = EffectData()

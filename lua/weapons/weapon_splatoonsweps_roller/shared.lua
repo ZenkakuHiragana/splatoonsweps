@@ -261,6 +261,11 @@ end
 function SWEP:CreateInk(createnum)
     local p = self.Parameters
     local dir = self:GetAimVector()
+    local ang = dir:Angle()
+    if math.NormalizeAngle(ang.pitch) < -55 then
+        ang.pitch = -55
+        dir = ang:Forward()
+    end
     local pos = self:GetShootPos()
     local right = self:GetOwner():GetRight()
     local splashnum = p.mSplashNum

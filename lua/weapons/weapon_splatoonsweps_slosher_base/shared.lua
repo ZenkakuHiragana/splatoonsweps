@@ -131,7 +131,6 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
     local e = EffectData()
     local order = OrdinalNumbers[number]
     local p = self.Parameters
-    local dir = self:GetAimVector()
     local pos = self:GetShootPos()
     local iscenter = p["m" .. order .. "GroupCenterLine"] ---@type boolean
     local isside = p["m" .. order .. "GroupSideLine"] ---@type boolean
@@ -220,7 +219,13 @@ function SWEP:CreateInk(number, spawncount) -- Group #, spawncount-th bullet(0, 
     local linenum = p.mLineNum - 1
     local centerline = math.floor(p.mLineNum / 2)
     for i = 0, linenum do
+        local dir = self:GetAimVector()
         local ang = dir:Angle()
+        if math.NormalizeAngle(ang.pitch) < -72 then
+            ang.pitch = -72
+            dir = ang:Forward()
+        end
+
         if linenum > 0 then
             ang:RotateAroundAxis(ang:Up(), (i / linenum - 0.5) * p.mLineDegree)
         end
