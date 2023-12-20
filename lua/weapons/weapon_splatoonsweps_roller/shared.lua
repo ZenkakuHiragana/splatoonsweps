@@ -307,10 +307,10 @@ function SWEP:CreateInk(createnum)
             DamageMaxDistance = dmaxdist,
             DamageMin = dmin,
             DamageMinDistance = dmindist,
-            PaintFarDistance = pfd,
-            PaintFarRadius = pfr,
-            PaintNearDistance = pnd,
-            PaintNearRadius = pnr,
+            PaintFarDistance = math.max(pnd, pfd),
+            PaintFarRadius = math.min(pnr, pfr),
+            PaintNearDistance = math.min(pnd, pfd),
+            PaintNearRadius = math.max(pnr, pfr),
             StraightFrame = str,
         })
 
@@ -389,7 +389,7 @@ function SWEP:SharedInit()
     table.Merge(self.Projectile, {
         AirResist = ss.RollerAirResist,
         Gravity = ss.RollerGravityMul * ss.InkDropGravity,
-        PaintRatioNearDistance = 25 * ss.ToHammerUnits,
+        PaintRatioNearDistance = 30 * ss.ToHammerUnits,
     })
 end
 
