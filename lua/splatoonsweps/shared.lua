@@ -127,7 +127,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     jumppower = jumppower * (w:GetOnEnemyInk() and ss.JumpPowerMulOnEnemyInk or 1)
     jumppower = jumppower * (w:GetIsDisrupted() and ss.JumpPowerMulDisrupted or 1)
     ply:SetJumpPower(jumppower)
-    if CLIENT then w:UpdateInkState() end -- Ink state prediction
+    if CLIENT and w:GetNWInt "inkcolor" > 0 then w:UpdateInkState() end -- Ink state prediction
 
     -- Swimming on the wall
     ss.PerformWallSwim(w, ply, mv, crouching, maxspeed)
