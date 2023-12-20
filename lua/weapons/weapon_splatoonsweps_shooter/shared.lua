@@ -159,16 +159,18 @@ function SWEP:CreateInk()
     local pos, dir = self:GetFirePosition()
     local right = self:GetOwner():GetRight()
     local ang = dir:Angle()
-    local rx, ry = self:GetSpread()
     local splashnum = math.floor(p.mCreateSplashNum)
-    local AlreadyAiming = CurTime() < self:GetAimTimer()
     if CurTime() - self:GetJump() < p.mDegJumpBiasFrame then
         self:SetBias(p.mDegJumpBias)
     else
-        if not AlreadyAiming then self:SetBias(0) end
         self:SetBias(math.min(self:GetBias() + p.mDegBiasKf, p.mDegBias))
+        if CurTime() > self:GetAimTimer() then -- If this is the first shot
+            local t = CurTime() - self:GetAimTimer() -- decrease spread bias
+            self:SetBias(math.max(self:GetBias() - t / p.mRepeatFrame * p.mDegBiasKf, p.mDegBiasKf))
+        end
     end
 
+    local rx, ry = self:GetSpread()
     if util.SharedRandom(randsplash, 0, 1) < p.mCreateSplashNum % 1 then
         splashnum = splashnum + 1
     end

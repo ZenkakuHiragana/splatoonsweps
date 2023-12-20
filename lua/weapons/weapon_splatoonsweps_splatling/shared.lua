@@ -234,7 +234,6 @@ function SWEP:Move(ply)
         if self:GetNextPrimaryFire() > CurTime() then return end
 
         local ts = ss.GetTimeScale(ply)
-        local AlreadyAiming = CurTime() < self:GetAimTimer()
         local crouchdelay = math.min(p.mRepeatFrame, ss.CrouchDelay)
         self:CreateInk()
         self:SetNextPrimaryFire(CurTime() + p.mRepeatFrame / ts)
@@ -245,7 +244,6 @@ function SWEP:Move(ply)
         self:SetCooldown(math.max(self:GetCooldown(), CurTime() + crouchdelay / ts))
 
         if CurTime() - self:GetJump() > p.mDegJumpBiasFrame then
-            if not AlreadyAiming then self:SetBiasVelocity(0) end
             self:SetBiasVelocity(math.min(self:GetBiasVelocity() + p.mDegBiasKf, p.mInitVelSpeedBias))
         end
 
@@ -268,6 +266,8 @@ function SWEP:Move(ply)
             duration = Lerp(frac, d1, d2)
         end
 
+        self:SetBias(0)
+        self:SetBiasVelocity(0)
         self:SetFireAt(prog)
         self:ResetCharge()
         self:SetFireInk(math.floor(duration / p.mRepeatFrame) + 1)
