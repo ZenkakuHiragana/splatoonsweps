@@ -119,8 +119,14 @@ function SWEP:CreateRagdoll()
         table.Empty(data)
         table.Merge(data, duplicator.CopyEntTable(self))
     end
+    for i = 0, ragdoll:GetPhysicsObjectCount() - 1 do
+        local ph = ragdoll:GetPhysicsObjectNum(i)
+        if IsValid(ph) then
+            ph:Wake()
+            ph:ApplyForceCenter(ph:GetMass() * self:GetVelocity())
+        end
+    end
 
-    self:PhysicsDestroy()
     self:DrawShadow(false)
     self:SetMoveType(MOVETYPE_NONE)
     self:SetParent(ragdoll)
@@ -128,14 +134,14 @@ function SWEP:CreateRagdoll()
     self:DeleteOnRemove(ragdoll)
     self.Ragdoll = ragdoll
     local n = "SplatoonSWEPs: RagdollCollisionCheck" .. self:EntIndex()
-    timer.Create(n, 0, 0, function()
+    timer.Create(n, 0.5, 0, function()
+        timer.Adjust(n, 0)
         if not (IsValid(self) and IsValid(ragdoll)) then timer.Remove(n) return end
         local nearest, ply = self:BoundingRadius() ^ 2, NULL
         for _, p in ipairs(ss.PlayersReady) do
             local d = p:GetPos():DistToSqr(ragdoll:GetPos())
             if d < nearest then nearest, ply = d, p end
         end
-
         if not IsValid(ply) then return end
         self:RemoveRagdoll()
         timer.Remove(n)
@@ -145,12 +151,17 @@ end
 ---Removes ragdoll for weapons with multiple PhysObj
 function SWEP:RemoveRagdoll()
     if not UseRagdoll[self.Base] then return end
-    local ragdoll = self.Ragdoll
-    if not IsValid(ragdoll) then return end
     self:DrawShadow(true)
-    self:DontDeleteOnRemove(ragdoll)
-    self:RemoveEffects(EF_BONEMERGE)
+    self:SetMoveType(MOVETYPE_VPHYSICS)
     self:SetParent(NULL)
+    self:RemoveEffects(EF_BONEMERGE)
+    local n = "SplatoonSWEPs: RagdollCollisionCheck" .. self:EntIndex()
+    timer.Remove(n)
+
+    local ragdoll = self.Ragdoll
+    self.Ragdoll = nil
+    if not IsValid(ragdoll) then return end
+    self:DontDeleteOnRemove(ragdoll)
     ragdoll:DontDeleteOnRemove(self)
     ragdoll:Remove()
 end
@@ -278,7 +289,6 @@ function SWEP:Equip(newOwner)
     self:RemoveRagdoll()
     self:PlayLoopSound()
     self.SafeOwner = self:GetOwner()
-
     if IsValid(self:GetOwner()) and not self:GetOwner():IsPlayer() then
         self:SetSaveValue("m_fMinRange1", 0)
         self:SetSaveValue("m_fMinRange2", 0)
@@ -326,7 +336,7 @@ function SWEP:Deploy()
     self:SetInInk(false)
     self:SetOnEnemyInk(false)
     self:BackupInfo()
-    self.SafeOwner = Owner
+    self.SafeOwner = self:GetOwner()
     Owner:SetMaxHealth(self:GetNWInt "BackupInklingMaxHealth") -- NPCs also have inkling's standard health.
     if Owner:IsPlayer() then ---@cast Owner Player
         local PMPath = ss.Playermodel[self:GetNWInt "playermodel"]
@@ -366,14 +376,15 @@ end
 
 ---Called when weapon is dropped
 function SWEP:OnDrop()
-    self:SetOwner(self.SafeOwner)
     self.PMTable = nil
+    self:SetOwner(self.SafeOwner)
     local Owner = self:GetOwner()
-    if IsValid(Owner) and Owner:IsPlayer()
-    and Owner--[[@as Player]]:GetActiveWeapon() == self then
+    if IsValid(Owner) and Owner:IsPlayer() ---@cast Owner Player
+    and Owner:GetActiveWeapon() == self then
         self:RestoreInfo()
     end
 
+    self:SetOwner(NULL)
     ss.ProtectedCall(self.ServerHolster, self)
     self:SharedHolsterBase()
     self:CreateRagdoll()
