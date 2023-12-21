@@ -273,8 +273,14 @@ function ss.EmitSound(ply, soundName, soundLevel, pitchPercent, volume, channel)
         net.WriteFloat(volume or 1)
         net.WriteUInt((channel or CHAN_AUTO) + 1, 8)
         net.Send(ply)
-    elseif not istable(ply) and (CLIENT and IsFirstTimePredicted() or ss.sp) then
-        ply:EmitSound(soundName, soundLevel, pitchPercent, volume, channel)
+    elseif CLIENT and IsFirstTimePredicted() or ss.sp then
+        if not istable(ply) then
+            ply:EmitSound(soundName, soundLevel, pitchPercent, volume, channel)
+        else
+            for _, p in ipairs(ply) do
+                p:EmitSound(soundName, soundLevel, pitchPercent, volume, channel)
+            end
+        end
     end
 end
 

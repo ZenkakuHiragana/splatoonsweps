@@ -175,12 +175,37 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
 
     ---@cast ply Player
     if not ply:IsPlayer() or ply:IsBot() then return end
+    local w = ss.IsValidInkling(ply)
+    local progress = w and w:GetSpecialPointProgress() or 0
     ss.WeaponRecord[ply].Inked[classname] = ss.WeaponRecord[ply].Inked[classname] - area * gridarea
     if SERVER then
         net_Start "SplatoonSWEPs: Send turf inked"
         net_WriteFloat(ss.WeaponRecord[ply].Inked[classname])
         net_WriteUInt(table.KeyFromValue(ss.WeaponClassNames, classname), ss.WEAPON_CLASSNAMES_BITS)
         net_Broadcast()
+    end
+
+    if progress < 1 and w and w:GetSpecialPointProgress() >= 1 then
+        w:EmitSound "SplatoonSWEPs_Player.SpecialReady"
+        local p = ply:EyePos()
+        local data = EffectData()
+        data:SetOrigin(p)
+        util.Effect("cball_explode", data)
+        effects.BeamRingPoint(p, 0.2, 12, 256, 64, 0, Color(255, 255, 225, 32), {
+            speed = 0,
+            spread = 0,
+            delay = 0,
+            framerate = 2,
+            material = "sprites/lgtning.vmt"
+        })
+        -- Shockring
+        effects.BeamRingPoint(p, 0.5, 12, 256, 64, 0, Color(255, 255, 225, 64), {
+            speed = 0,
+            spread = 0,
+            delay = 0,
+            framerate = 2,
+            material = "sprites/lgtning.vmt"
+        })
     end
 end
 

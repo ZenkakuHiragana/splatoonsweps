@@ -163,10 +163,11 @@ function module:SharedSecondaryAttack(throwable)
 end
 
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
+    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 
@@ -193,7 +194,7 @@ if SERVER then
             ph:SetAngles(dir:Angle())
         end
 
-        self:ConsumeInk(p.InkConsume)
+        self:ConsumeInk(self:GetSubWeaponInkConsume())
         self:SetReloadDelay(p.InkRecoverStop)
     end
 else

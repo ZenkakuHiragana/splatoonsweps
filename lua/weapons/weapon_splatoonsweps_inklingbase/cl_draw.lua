@@ -411,10 +411,16 @@ end
 
 -- Show remaining amount of ink tank
 function SWEP:CustomAmmoDisplay()
+    local specialProgress = math.Clamp(math.Round(self:GetSpecialPointProgress() * 100), 0, 100)
+    if self:GetNWBool "IsUsingSpecial" then
+        local dt = CurTime() - self:GetSpecialStartTime()
+        local duration = self:GetSpecialDuration()
+        specialProgress = math.Clamp(100 - math.Round(dt / duration * 100), 0, 100)
+    end
     return {
         Draw = true,
         PrimaryClip = math.Round(self:GetInk()),
-        PrimaryAmmo = self:GetTurfInkedThisTime(),
+        PrimaryAmmo = specialProgress,
         SecondaryAmmo = self:DisplayAmmo(),
     }
 end

@@ -25,12 +25,21 @@ if not ss then return end
 ---| SubParameters.SquidBeakon
 ---| SubParameters.SuctionBomb
 
+---@alias SpecialParameters
+---| SpecialParameters.Bombrush
+
 ---@class ISubWeaponDef
 ---@field Merge      table<string, any>
 ---@field Parameters SubParameters
 ---@field Units      table<string, string>
 ---@field BurstSound string?
 ---@field GetDamage (fun(distance: number, ent: Entity?): number)?
+
+---@class ISpecialWeaponDef
+---@field PointsNeeded integer
+---@field Merge        table<string, any>
+---@field Parameters   SpecialParameters
+---@field Units        table<string, string>
 
 ---@class ss.InkQueue
 ---@field Data                   Projectile

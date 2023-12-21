@@ -178,10 +178,11 @@ ss.ConvertUnits(ss.sprinkler.Parameters, ss.sprinkler.Units)
 local module = ss.sprinkler.Merge
 local p = ss.sprinkler.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
+    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 
@@ -211,6 +212,6 @@ function module:ServerSecondaryAttack(throwable)
     end
 
     self.ExistingSprinkler = e
-    self:ConsumeInk(p.InkConsume)
+    self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
 end

@@ -118,10 +118,11 @@ ss.ConvertUnits(ss.suctionbomb.Parameters, ss.suctionbomb.Units)
 local module = ss.suctionbomb.Merge
 local p = ss.suctionbomb.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
+    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 
@@ -147,6 +148,6 @@ function module:ServerSecondaryAttack(throwable)
         ph:AddVelocity(self:GetSubWeaponInitVelocity() + self:GetVelocity())
     end
 
-    self:ConsumeInk(p.InkConsume)
+    self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
 end

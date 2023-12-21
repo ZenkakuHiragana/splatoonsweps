@@ -72,7 +72,7 @@ ss.ConvertUnits(ss.inkmine.Parameters, ss.inkmine.Units)
 local module = ss.inkmine.Merge
 local p = ss.inkmine.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
@@ -102,7 +102,7 @@ function module:ServerSecondaryAttack(throwable)
     e:SetAngles(ang)
     e:Spawn()
     self.NumInkmines = self.NumInkmines + 1
-    self:ConsumeInk(p.InkConsume)
+    self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
 
     ss.Paint(tr.HitPos, tr.HitNormal, p.InitInkRadius,

@@ -102,10 +102,11 @@ ss.ConvertUnits(ss.burstbomb.Parameters, ss.burstbomb.Units)
 local module = ss.burstbomb.Merge
 local p = ss.burstbomb.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
+    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 
@@ -132,6 +133,6 @@ function module:ServerSecondaryAttack(throwable)
         ph:SetAngles(dir:Angle())
     end
 
-    self:ConsumeInk(p.InkConsume)
+    self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
 end

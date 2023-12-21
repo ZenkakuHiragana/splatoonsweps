@@ -81,7 +81,7 @@ ss.ConvertUnits(ss.squidbeakon.Parameters, ss.squidbeakon.Units)
 local module = ss.squidbeakon.Merge
 local p = ss.squidbeakon.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
@@ -127,7 +127,7 @@ function module:ServerSecondaryAttack(throwable)
     self.NumBeakons = self.NumBeakons + 1
     table.insert(self.ExistingBeakons, e)
 
-    self:ConsumeInk(p.InkConsume)
+    self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
 
     ss.Paint(tr.HitPos, tr.HitNormal, p.InitInkRadius,

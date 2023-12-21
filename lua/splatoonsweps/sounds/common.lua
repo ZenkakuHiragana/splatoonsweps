@@ -37,8 +37,10 @@ include "charger.lua"
 include "roller.lua"
 include "shooter.lua"
 include "slosher.lua"
+include "special.lua"
 include "splatling.lua"
 include "sub.lua"
+include "voice.lua"
 
 sound.Add {
     channel = CHAN_STATIC,
@@ -129,6 +131,15 @@ sound.Add {
     pitch = ss.WeaponSoundPitch,
 }
 
+sound.Add {
+    channel = CHAN_AUTO,
+    name = "SplatoonSWEPs_Player.SpecialReady",
+    level = 85,
+    sound = "splatoonsweps/player/specialready.wav",
+    volume = 1,
+    pitch = 100,
+}
+
 ss.PrecacheSoundList {
     {
         channel = CHAN_BODY,
@@ -145,37 +156,5 @@ ss.PrecacheSoundList {
         sound = "splatoonsweps/player/footsteps/slime%d.wav",
         volume = 1,
         pitch = 80,
-    },
-    {
-        channel = CHAN_BODY,
-        name = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-        level = 75,
-        sound = "splatoonsweps/vo/superjump/squid_female%d.wav",
-        volume = 1,
-        pitch = 100,
-    },
-    {
-        channel = CHAN_BODY,
-        name = "SplatoonSWEPs_Voice.SuperJump_SquidMale",
-        level = 75,
-        sound = "splatoonsweps/vo/superjump/squid_male%d.wav",
-        volume = 1,
-        pitch = 100,
-    },
-    {
-        channel = CHAN_BODY,
-        name = "SplatoonSWEPs_Voice.SuperJump_OctoMale",
-        level = 75,
-        sound = "splatoonsweps/vo/superjump/octo_male%d.wav",
-        volume = 1,
-        pitch = 100,
-    },
-    {
-        channel = CHAN_BODY,
-        name = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
-        level = 75,
-        sound = "splatoonsweps/vo/superjump/octo_female%d.wav",
-        volume = 1,
-        pitch = 100,
     },
 }

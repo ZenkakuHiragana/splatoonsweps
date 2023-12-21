@@ -90,16 +90,16 @@ ss.SquidmodelIndex = {
     [ss.PLAYER.PEARL]    = ss.SQUID.INKLING,
     [ss.PLAYER.MARINA]   = ss.SQUID.OCTO2,
 }
-ss.SuperJumpVoice = {
-    [InkGirl]  = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-    [InkBoy]   = "SplatoonSWEPs_Voice.SuperJump_SquidMale",
-    [Marie]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-    [Callie]   = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-    [Octo]     = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
-    [OctoGirl] = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
-    [OctoBoy]  = "SplatoonSWEPs_Voice.SuperJump_OctoMale",
-    [Pearl]    = "SplatoonSWEPs_Voice.SuperJump_SquidFemale",
-    [Marina]   = "SplatoonSWEPs_Voice.SuperJump_OctoFemale",
+ss.VoiceSuffix = {
+    [ss.PLAYER.GIRL]     = "SquidFemale",
+    [ss.PLAYER.BOY]      = "SquidMale",
+    [ss.PLAYER.MARIE]    = "SquidFemale",
+    [ss.PLAYER.CALLIE]   = "SquidFemale",
+    [ss.PLAYER.OCTO]     = "OctoFemale",
+    [ss.PLAYER.OCTOGIRL] = "OctoFemale",
+    [ss.PLAYER.OCTOBOY]  = "OctoMale",
+    [ss.PLAYER.PEARL]    = "SquidFemale",
+    [ss.PLAYER.MARINA]   = "OctoFemale",
 }
 ss.ChargingEyeSkin = {
     [Marie]   = 0,

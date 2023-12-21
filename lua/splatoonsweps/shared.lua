@@ -73,9 +73,11 @@ include "structure.lua"
 include "weapons.lua"
 include "weaponregistration.lua"
 
-local path = "splatoonsweps/sub/%s"
-for _, filename in ipairs(file.Find("splatoonsweps/sub/*.lua", "LUA") or {}) do
-    include(path:format(filename))
+for _, filename in ipairs(file.Find("splatoonsweps/subs/*.lua", "LUA") or {}) do
+    include("splatoonsweps/subs/" .. filename)
+end
+for _, filename in ipairs(file.Find("splatoonsweps/specials/*.lua", "LUA") or {}) do
+    include("splatoonsweps/specials/" .. filename)
 end
 
 local CrouchMask = bit.bnot(IN_DUCK)
@@ -488,6 +490,18 @@ end
 ---@return any
 function ss.GetBotOption(pt) return (pt.cl or pt.sv):GetDefault() end
 
+---@param key string
+---@param id PlayerType | SplatoonWeaponBase
+---@return string?
+function ss.GetVoiceName(key, id)
+    if not isnumber(id) then ---@cast id SplatoonWeaponBase
+        id = id:GetNWInt "playermodel" ---@type PlayerType
+    end ---@cast id PlayerType
+    local suffix = ss.VoiceSuffix[id]
+    if not suffix then return end
+    return "SplatoonSWEPs_Voice." .. key .. "_" .. suffix
+end
+
 ---Play footstep sound of ink
 ---@param w SplatoonWeaponBase
 ---@param ply Player
@@ -822,10 +836,8 @@ function ss.PerformSuperJump(w, ply, mv)
 
         if not w.SuperJumpVoicePlayed and t > ss.SuperJumpVoiceDelay then
             w.SuperJumpVoicePlayed = true
-            local mdl = ply:GetModel()
-            if ss.SuperJumpVoice[mdl] then
-                w:EmitSound(ss.SuperJumpVoice[mdl])
-            end
+            local voice = ss.GetVoiceName("SuperJump", w)
+            if voice then w:EmitSound(voice) end
         end
 
         return true

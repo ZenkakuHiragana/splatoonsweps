@@ -212,6 +212,43 @@ function ss.SynchronizePlayerStats(ply)
     net.Send(ply)
 end
 
+---@param ourcolor integer
+---@param entities Entity[]
+function ss.MarkEntity(ourcolor, entities)
+    local hit = false
+    for _, ent in ipairs(entities) do
+        local w = ss.IsValidInkling(ent) ---@type Weapon?
+        if not (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) then continue end
+        if not (w and ss.IsAlly(ourcolor, w)) then
+            hit = true
+            ent:EmitSound "SplatoonSWEPs.PointSensorTaken"
+            ent:SetNWBool("SplatoonSWEPs: IsMarked", true)
+            ent:SetNWInt("SplatoonSWEPs: PointSensorMarkedBy", ourcolor)
+            ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", CurTime() + ss.PointSensorDuration)
+            local name = "SplatoonSWEPs: Timer for Point Sensor duration " .. ent:EntIndex()
+            timer.Create(name, 0, 0, function()
+                if not IsValid(ent) then timer.Remove(name) return end
+                if not ent:GetNWBool "SplatoonSWEPs: IsMarked" then timer.Remove(name) return end
+                if CurTime() < ent:GetNWFloat "SplatoonSWEPs: PointSensorEndTime" then return end
+                ent:SetNWBool("SplatoonSWEPs: IsMarked", false)
+                ent:EmitSound "SplatoonSWEPs.PointSensorLeft"
+                timer.Remove(name)
+            end)
+        end
+    end
+
+    if not hit then return end
+    local players = {}
+    for _, ent in ipairs(player.GetAll()) do
+        local w = ss.IsValidInkling(ent)
+        if w and ss.IsAlly(ourcolor, w) then
+            table.insert(players, ent)
+        end
+    end
+
+    ss.EmitSound(players, "SplatoonSWEPs.PointSensorHit")
+end
+
 -- Parse the map and store the result to txt, then send it to the client.
 hook.Add("PostCleanupMap", "SplatoonSWEPs: Cleanup all ink", ss.ClearAllInk)
 hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function()

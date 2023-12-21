@@ -38,6 +38,10 @@ if not ss then return end
 ---@field SharedSecondaryAttack     fun(self)?
 ---@field DrawOnSubTriggerDown      fun(self)?
 
+---@class ISpecialWeapon
+---@field GetSpecialDuration fun(self): number
+---@field OnSpecialStart     fun(self)
+
 ---Overridable functions implemented in inherited classes
 ---@class IMainWeapon
 ---@field ClientDeploy          fun(self)
@@ -75,7 +79,7 @@ if not ss then return end
 
 local SWEP = SWEP
 ---@cast SWEP SplatoonWeaponBase
----@class SplatoonWeaponBase : IMainWeapon, ISubWeapon, INetworkVar, INetworkSchedule, SWEP, ENT
+---@class SplatoonWeaponBase : IMainWeapon, ISubWeapon, ISpecialWeapon, INetworkVar, INetworkSchedule, SWEP, ENT
 ---@field BaseClass SWEP
 ---@field ActivityTranslate        table<integer, integer>
 ---@field ActivityTranslateAI      SWEP.ActivityTranslationTable
@@ -121,6 +125,7 @@ local SWEP = SWEP
 ---@field SeekerTargetSearched     number?
 ---@field Skin                     integer
 ---@field Special                  string
+---@field SpecialPointsNeeded      number Points needed for special weapon that can be overriden by per weapon definition
 ---@field SquidSpeed               number
 ---@field Sub                      string
 ---@field SuperJumpVoicePlayed     boolean?
@@ -141,6 +146,7 @@ local SWEP = SWEP
 ---@field GetTurfInkedThisTime     fun(self): integer
 ---@field GetTurfInkedSoFar        fun(self): integer
 ---@field GetOptions               fun(self)
+---@field GetSpecialPointProgress  fun(self): number
 ---@field GetSquidSpeed            fun(self): number
 ---@field GetSubWeaponInitVelocity fun(self): Vector
 ---@field GetViewModel             fun(self, index: number?): Entity
@@ -149,6 +155,7 @@ local SWEP = SWEP
 ---@field Ping                     fun(self): number
 ---@field PlayLoopSound            fun(self)
 ---@field PrimaryAttackEntryPoint  fun(self, auto: boolean?)
+---@field ResetSpecialState        fun(self)
 ---@field SetReloadDelay           fun(self, delay: number)
 ---@field SetWeaponAnim            fun(self, act: number, index: number?)
 ---@field SharedDeployBase         fun(self): boolean
@@ -160,6 +167,7 @@ local SWEP = SWEP
 ---@field UpdateInkState           fun(self)
 
 ss.AddTimerFramework(SWEP)
+SWEP.SpecialPointsNeeded = -1
 SWEP.RestrictedFieldsToCopy = {
     FunctionQueue  = true,
     NetworkSlot    = true,
@@ -211,6 +219,7 @@ function SWEP:StartRecording()
     record.Recent[self.ClassName] = -os.time()
     if self:GetNWInt "TurfInkedAtStart" >= 0 then
         self:SetNWInt("TurfInkedAtStart", record.Inked[self.ClassName])
+        self:SetNWInt("SpecialBasePoints", record.Inked[self.ClassName])
     end
 end
 
@@ -281,6 +290,25 @@ function SWEP:GetTurfInkedSoFar()
     local raw = record.Inked[self.ClassName]
     if not raw then return 0 end
     return math.Round(ss.GetTurfInkedInPoints(raw))
+end
+
+---Returns progress of special points = points earned / points needed
+---@return number
+function SWEP:GetSpecialPointProgress()
+    local record = ss.WeaponRecord[self:GetOwner()]
+    if not record then return 0 end
+    local raw = record.Inked[self.ClassName]
+    if not raw then return 0 end
+    raw = math.min(raw - self:GetNWInt "SpecialBasePoints", 0)
+    return math.Clamp(math.Round(ss.GetTurfInkedInPoints(raw)) / self.SpecialPointsNeeded, 0, 1)
+end
+
+function SWEP:ResetSpecialState()
+    local record = ss.WeaponRecord[self:GetOwner()]
+    if not record then return end
+    local raw = record.Inked[self.ClassName]
+    self:SetNWInt("SpecialBasePoints", raw)
+    self:SetNWBool("IsUsingSpecial", false)
 end
 
 ---Get actual color of current ink
@@ -506,7 +534,9 @@ end
 function SWEP:SharedInitBase()
     self:SetCooldown(CurTime())
     self:ApplySkinAndBodygroups()
+    self:SetNWBool("IsUsingSpecial", false)
     self:SetNWInt("TurfInkedAtStart", 0)
+    self:SetNWInt("SpecialBasePoints", 0)
     self.KeyPressedOrder = {} -- Pressed keys are added here, most recent key will go last
 
     local translate = {} ---@type SWEP.ActivityTranslationTable
@@ -528,6 +558,12 @@ function SWEP:SharedInitBase()
 
     if ss.sp then self.Buttons, self.OldButtons = 0, 0 end
     if ss[self.Sub] then table.Merge(self, ss[self.Sub].Merge) end
+    if ss[self.Special] then
+        table.Merge(self, ss[self.Special].Merge)
+        if self.SpecialPointsNeeded < 0 then
+            self.SpecialPointsNeeded = ss[self.Special].PointsNeeded
+        end
+    end
 
     self.Translate = translate
     self.Projectile = ss.MakeProjectileStructure()
@@ -610,6 +646,17 @@ end
 ---Reload hook begins special weapon
 function SWEP:Reload()
     if self:GetHolstering() then return end
+    if not ss[self.Special] then return end -- Remove after all specials are implemented
+    if self:GetSpecialPointProgress() < 1 then return end
+    if self:GetNWBool "IsUsingSpecial" then return end
+    local voice = ss.GetVoiceName("SpecialStart", self)
+    if voice and self:IsFirstTimePredicted() then
+        self:GetOwner():EmitSound(voice)
+    end
+    self:SetInk(ss.GetMaxInkAmount())
+    self:SetSpecialStartTime(CurTime())
+    self:SetNWBool("IsUsingSpecial", true)
+    ss.ProtectedCall(self.OnSpecialStart, self)
 end
 
 ---Returns if the owner can stand up at current position
@@ -726,6 +773,12 @@ function SWEP:OnRestore()
     self:PlayLoopSound()
     self.NextEnemyInkDamage = CurTime()
     if ss[self.Sub] then table.Merge(self, ss[self.Sub].Merge) end
+    if ss[self.Special] then
+        table.Merge(self, ss[self.Special].Merge)
+        if self.SpecialPointsNeeded < 0 then
+            self.SpecialPointsNeeded = ss[self.Special].PointsNeeded
+        end
+    end
 end
 
 ---Called when the SWEP should set up its Data Tables.
@@ -746,6 +799,7 @@ function SWEP:SetupDataTables()
     ---@field GetDisruptorEndTime   fun(self): number
     ---@field GetInk                fun(self): number
     ---@field GetOldSpeed           fun(self): number
+    ---@field GetSpecialStartTime   fun(self): number
     ---@field GetSuperJumpStartTime fun(self): number
     ---@field GetThrowAnimTime      fun(self): number
     ---@field GetGroundColor        fun(self): integer
@@ -772,6 +826,7 @@ function SWEP:SetupDataTables()
     ---@field SetDisruptorEndTime   fun(self, value: number)
     ---@field SetInk                fun(self, value: number)
     ---@field SetOldSpeed           fun(self, value: number)
+    ---@field SetSpecialStartTime   fun(self, value: number)
     ---@field SetSuperJumpStartTime fun(self, value: number)
     ---@field SetThrowAnimTime      fun(self, value: number)
     ---@field SetGroundColor        fun(self, value: integer)
@@ -801,6 +856,7 @@ function SWEP:SetupDataTables()
     self:AddNetworkVar("Float",  "DisruptorEndTime")  -- The time when Disruptor is worn off
     self:AddNetworkVar("Float",  "Ink")               -- Ink remainig. 0 to ss.GetMaxInkAmount()
     self:AddNetworkVar("Float",  "OldSpeed")          -- Old Z-velocity of the player.
+    self:AddNetworkVar("Float",  "SpecialStartTime")
     self:AddNetworkVar("Float",  "SuperJumpStartTime")
     self:AddNetworkVar("Float",  "ThrowAnimTime")     -- Time to adjust throw anim. speed.
     self:AddNetworkVar("Int",    "GroundColor")       -- Surface ink color.

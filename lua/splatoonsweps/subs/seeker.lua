@@ -79,10 +79,11 @@ ss.ConvertUnits(ss.seeker.Parameters, ss.seeker.Units)
 local module = ss.seeker.Merge
 local p = ss.seeker.Parameters
 function module:CanSecondaryAttack()
-    return self:GetInk() >= p.InkConsume
+    return self:GetInk() >= self:GetSubWeaponInkConsume()
 end
 
 function module:GetSubWeaponInkConsume()
+    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 
@@ -138,7 +139,7 @@ if SERVER then
             ph:AddVelocity(self:GetSubWeaponInitVelocity() + self:GetVelocity())
         end
 
-        self:ConsumeInk(p.InkConsume)
+        self:ConsumeInk(self:GetSubWeaponInkConsume())
         self:SetReloadDelay(p.InkRecoverStop)
     end
 else
