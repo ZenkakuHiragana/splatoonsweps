@@ -125,7 +125,6 @@ local SWEP = SWEP
 ---@field Sub                      string
 ---@field SuperJumpVoicePlayed     boolean?
 ---@field Translate                SWEP.ActivityTranslationTable
----@field TurfInkedAtStart         number
 ---@field Variations               SWEP.Variation[]
 ---@field ApplySkinAndBodygroups   fun(self)
 ---@field ChangeThrowing           fun(self, name: string, old: boolean, new: boolean)
@@ -197,7 +196,6 @@ end
 
 ---Starts recording statistics for this weapon
 function SWEP:StartRecording()
-    self.TurfInkedAtStart = 0
     local Owner = self:GetOwner()
     if not Owner:IsPlayer() then return end
     local record = ss.WeaponRecord[Owner]
@@ -211,7 +209,9 @@ function SWEP:StartRecording()
 
     self:SetNWEntity("Owner", Owner)
     record.Recent[self.ClassName] = -os.time()
-    self.TurfInkedAtStart = record.Inked[self.ClassName]
+    if self:GetNWInt "TurfInkedAtStart" >= 0 then
+        self:SetNWInt("TurfInkedAtStart", record.Inked[self.ClassName])
+    end
 end
 
 ---Stops recording statistics for this weapon
@@ -269,7 +269,7 @@ function SWEP:GetTurfInkedThisTime()
     if not record then return 0 end
     local raw = record.Inked[self.ClassName]
     if not raw then return 0 end
-    raw = math.min(raw - self.TurfInkedAtStart, 0)
+    raw = math.min(raw - self:GetNWInt "TurfInkedAtStart", 0)
     return math.Round(ss.GetTurfInkedInPoints(raw))
 end
 
@@ -506,6 +506,7 @@ end
 function SWEP:SharedInitBase()
     self:SetCooldown(CurTime())
     self:ApplySkinAndBodygroups()
+    self:SetNWInt("TurfInkedAtStart", 0)
     self.KeyPressedOrder = {} -- Pressed keys are added here, most recent key will go last
 
     local translate = {} ---@type SWEP.ActivityTranslationTable

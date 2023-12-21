@@ -388,6 +388,7 @@ function SWEP:OnDrop()
     ss.ProtectedCall(self.ServerHolster, self)
     self:SharedHolsterBase()
     self:CreateRagdoll()
+    self:SetNWInt("TurfInkedAtStart", 0)
 end
 
 ---Called after duplicator finishes saving the entity
