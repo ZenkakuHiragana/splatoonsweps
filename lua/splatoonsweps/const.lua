@@ -144,6 +144,7 @@ ss.Particles = {
     ChargerMuzzleFlash   = "splatoonsweps_explosion_impact",
     Disruptor            = "splatoonsweps_disruptor",
     MuzzleMist           = "splatoonsweps_muzzlemist",
+    PointSensor          = "splatoonsweps_pointsensor",
     RollerRolling        = "splatoonsweps_roller_rolling",
     RollerSplash         = "splatoonsweps_roller_splash",
     SplashWall           = "splatoonsweps_splash_wall",
@@ -301,6 +302,7 @@ local unitConversionFix = inklingPlayermodelHeightInMeters / inklingRealHeightIn
 ---DU to HU, Distance units in Splatoon to Hammer units
 ---Distance between two lines in the shooting range = 50 DU = 5 meters
 --- -> 1 DU = 0.1 meters = 0.1 * 39.3701 [inches = Hammer units (entity scale)]
+--- = 2.9305 [Hammer units / distance unit]
 local dutohu = 0.1 * meterToInch * inchToHammerUnits * unitConversionFix
 
 ss.eps                      = 1e-9 -- Epsilon, representing "close-to-zero"
