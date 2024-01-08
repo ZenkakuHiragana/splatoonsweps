@@ -1,0 +1,7 @@
+"SpriteCard"
+{
+    "$basetexture" "splatoonsweps/effects/pointsensor_black_square"
+    "$nocull" "1"
+    "$translucent" "1"
+    "$vertexcolor" "1"
+}
