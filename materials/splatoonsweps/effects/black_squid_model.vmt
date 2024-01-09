@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+    "$basetexture" "splatoonsweps/effects/black_squid"
+    "$nocull" "1"
+    "$translucent" "1"
+    "$model" "1"
+}
