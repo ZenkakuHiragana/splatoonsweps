@@ -216,24 +216,35 @@ end
 ---@param entities Entity[]
 function ss.MarkEntity(ourcolor, entities)
     local hit = false
+    local endtime = CurTime() + ss.PointSensorDuration
     for _, ent in ipairs(entities) do
         local w = ss.IsValidInkling(ent) ---@type Weapon?
         if not (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) then continue end
         if not (w and ss.IsAlly(ourcolor, w)) then
             hit = true
             ent:EmitSound "SplatoonSWEPs.PointSensorTaken"
-            ent:SetNWBool("SplatoonSWEPs: IsMarked", true)
-            ent:SetNWInt("SplatoonSWEPs: PointSensorMarkedBy", ourcolor)
-            ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", CurTime() + ss.PointSensorDuration)
-            local name = "SplatoonSWEPs: Timer for Point Sensor duration " .. ent:EntIndex()
-            timer.Create(name, 0, 0, function()
-                if not IsValid(ent) then timer.Remove(name) return end
-                if not ent:GetNWBool "SplatoonSWEPs: IsMarked" then timer.Remove(name) return end
-                if CurTime() < ent:GetNWFloat "SplatoonSWEPs: PointSensorEndTime" then return end
-                ent:SetNWBool("SplatoonSWEPs: IsMarked", false)
-                ent:EmitSound "SplatoonSWEPs.PointSensorLeft"
-                timer.Remove(name)
-            end)
+            if ent:GetNWBool "SplatoonSWEPs: IsMarked" then
+                ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", endtime)
+            else
+                ent:SetNWBool("SplatoonSWEPs: IsMarked", true)
+                ent:SetNWInt("SplatoonSWEPs: PointSensorMarkedBy", ourcolor)
+                ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", endtime)
+                local e1 = EffectData()
+                e1:SetEntity(ent)
+                e1:SetRadius(ent:OBBMaxs():Length2D() + ent:OBBMins():Length2D())
+                e1:SetColor(ourcolor)
+                e1:SetScale(endtime)
+                e1:SetFlags(0)
+                util.Effect("SplatoonSWEPsMarker", e1, nil, true)
+                local name = "SplatoonSWEPs: Timer for Point Sensor duration " .. ent:EntIndex()
+                timer.Create(name, 0, 0, function()
+                    if not IsValid(ent) then timer.Remove(name) return end
+                    if not ent:GetNWBool "SplatoonSWEPs: IsMarked" then timer.Remove(name) return end
+                    if CurTime() < ent:GetNWFloat "SplatoonSWEPs: PointSensorEndTime" then return end
+                    ent:SetNWBool("SplatoonSWEPs: IsMarked", false)
+                    timer.Remove(name)
+                end)
+            end
         end
     end
 
