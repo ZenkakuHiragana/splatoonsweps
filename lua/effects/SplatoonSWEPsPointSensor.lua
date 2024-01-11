@@ -11,6 +11,7 @@ function EFFECT:Init(e)
     local color = ss.GetColor(e:GetColor())
     local p = CreateParticleSystemNoEntity("splatoonsweps_pointsensor", e:GetOrigin(), Angle())
     p:SetControlPoint(1, color:ToVector())
+    p:SetControlPoint(2, ss.vector_one)
 end
 
 function EFFECT:Render()
