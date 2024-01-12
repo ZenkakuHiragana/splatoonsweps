@@ -24,6 +24,7 @@ SplatoonSWEPs = {
     EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap
+    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
     MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     InkColors               = {}, ---@type Color[]
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
@@ -212,51 +213,59 @@ function ss.SynchronizePlayerStats(ply)
     net.Send(ply)
 end
 
----@param ourcolor integer
+---@param ent Entity
+---@param color integer
+---@param state boolean
+function ss.ChangeMarkedEntityState(ent, color, state)
+    ss.MarkedEntities[ent] = ss.MarkedEntities[ent] or {}
+    ss.MarkedEntities[ent][color] = state and CurTime() or nil
+    net.Start "SplatoonSWEPs: Sync marked entity state"
+    net.WriteEntity(ent)
+    net.WriteUInt(color, ss.COLOR_BITS)
+    net.WriteBool(state)
+    net.Broadcast()
+end
+
+---@param color integer
 ---@param entities Entity[]
-function ss.MarkEntity(ourcolor, entities)
+function ss.MarkEntity(color, entities)
     local hit = false
-    local endtime = CurTime() + ss.PointSensorDuration
+    local duration = ss.PointSensorDuration
     for _, ent in ipairs(entities) do
         local w = ss.IsValidInkling(ent) ---@type Weapon?
         if not (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) then continue end
-        if not (w and ss.IsAlly(ourcolor, w)) then
-            hit = true
-            ent:EmitSound "SplatoonSWEPs.PointSensorTaken"
-            if ent:GetNWBool "SplatoonSWEPs: IsMarked" then
-                ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", endtime)
-            else
-                ent:SetNWBool("SplatoonSWEPs: IsMarked", true)
-                ent:SetNWInt("SplatoonSWEPs: PointSensorMarkedBy", ourcolor)
-                ent:SetNWFloat("SplatoonSWEPs: PointSensorEndTime", endtime)
-                local e1 = EffectData()
-                e1:SetEntity(ent)
-                e1:SetRadius(ent:OBBMaxs():Length2D() + ent:OBBMins():Length2D())
-                e1:SetColor(ourcolor)
-                e1:SetScale(endtime)
-                e1:SetFlags(0)
-                util.Effect("SplatoonSWEPsMarker", e1, nil, true)
-                local name = "SplatoonSWEPs: Timer for Point Sensor duration " .. ent:EntIndex()
-                timer.Create(name, 0, 0, function()
-                    if not IsValid(ent) then timer.Remove(name) return end
-                    if not ent:GetNWBool "SplatoonSWEPs: IsMarked" then timer.Remove(name) return end
-                    if CurTime() < ent:GetNWFloat "SplatoonSWEPs: PointSensorEndTime" then return end
-                    ent:SetNWBool("SplatoonSWEPs: IsMarked", false)
-                    timer.Remove(name)
-                end)
-            end
+        if w and ss.IsAlly(color, w) then continue end
+        local marked = ss.MarkedEntities[ent] and ss.MarkedEntities[ent][color]
+        local name = "SplatoonSWEPs: Point Sensor " .. ent:EntIndex() .. ", " .. color
+        if marked then
+            timer.Adjust(name, duration)
+        else
+            local e = EffectData()
+            e:SetEntity(ent)
+            e:SetColor(color)
+            util.Effect("SplatoonSWEPsMarker", e, nil, true)
+            ss.ChangeMarkedEntityState(ent, color, true)
+            timer.Create(name, duration, 1, function()
+                if not IsValid(ent) then return end
+                if not ss.MarkedEntities[ent] then return end
+                if not ss.MarkedEntities[ent][color] then return end
+                ss.ChangeMarkedEntityState(ent, color, false)
+            end)
         end
+
+        hit = true
     end
 
     if not hit then return end
-    local players = {}
-    for _, ent in ipairs(player.GetAll()) do
-        local w = ss.IsValidInkling(ent)
-        if w and ss.IsAlly(ourcolor, w) then
-            table.insert(players, ent)
+    local players = {} ---@type Player[]
+    for _, ply in ipairs(ss.PlayersReady) do
+        local w = ss.IsValidInkling(ply)
+        if w and ss.IsAlly(color, w) then
+            players[#players + 1] = ply
         end
     end
 
+    -- Players with the same color will hear the point sensor hit sound
     ss.EmitSound(players, "SplatoonSWEPs.PointSensorHit")
 end
 
@@ -391,7 +400,7 @@ function(ent, dmg)
     net.Send(ent)
 end)
 
----@param ply Player
+---@param ply Player|NPC
 ---@param attacker Entity
 local function OnPlayerDeath(ply, attacker)
     local w = ss.IsValidInkling(ply)
@@ -404,15 +413,31 @@ local function OnPlayerDeath(ply, attacker)
         w:SetSuperJumpState(-1)
         ss.SetSuperJumpBoneManipulation(ply, angle_zero)
     end
+
+    local markedcolors = ss.MarkedEntities[ply]
+    if not markedcolors then return end
+    for color in pairs(markedcolors) do
+        ss.ChangeMarkedEntityState(ply, color, false)
+    end
 end
 
-hook.Add("DoPlayerDeath", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
-hook.Add("OnNPCKilled", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
-hook.Add("OnDamagedByExplosion", "SplatoonSWEPs: No sound effect needed",
 ---@param _ Player
 ---@param dmg CTakeDamageInfo
 ---@return boolean?
-function(_, dmg)
+local function OnDamagedByExplosion(_, dmg)
     local inflictor = dmg:GetInflictor() --[[@as SplatoonWeaponBase|ENT.Throwable]]
     return IsValid(inflictor) and (inflictor.IsSplatoonWeapon or inflictor.IsSplatoonBomb) or nil
-end)
+end
+
+---@param ent Entity
+local function OnEntityRemoved(ent)
+    if not ss.MarkedEntities[ent] then return end
+    for color in pairs(ss.MarkedEntities[ent]) do
+        ss.ChangeMarkedEntityState(ent, color, false)
+    end
+end
+
+hook.Add("EntityRemoved", "SplatoonSWEPs: Remove regiestered entity", OnEntityRemoved)
+hook.Add("DoPlayerDeath", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
+hook.Add("OnNPCKilled", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
+hook.Add("OnDamagedByExplosion", "SplatoonSWEPs: No sound effect needed", OnDamagedByExplosion)

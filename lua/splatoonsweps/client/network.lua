@@ -65,11 +65,12 @@ end)
 
 net.Receive("SplatoonSWEPs: Send turf inked", function()
     local inked = net.ReadFloat()
-    local classname = assert(ss.WeaponClassNames[net.ReadUInt(8)], "SplatoonSWEPs: Invalid classname!") ---@type string
+    local classname = ss.WeaponClassNames[net.ReadUInt(8)]
+    assert(classname, "SplatoonSWEPs: Invalid classname!")
     ss.WeaponRecord[LocalPlayer()].Inked[classname] = inked
 end)
 
-net.Receive("SplatoonSWEPs: Send an ink queue", function(len)
+net.Receive("SplatoonSWEPs: Send an ink queue", function()
     local color = net.ReadUInt(ss.COLOR_BITS)
     local inktype = net.ReadUInt(ss.INK_TYPE_BITS)
     local radius = net.ReadUInt(8)
@@ -84,4 +85,13 @@ net.Receive("SplatoonSWEPs: Send an ink queue", function(len)
     local pos = Vector(x, y, z) * 2
     if color == 0 or inktype == 0 then return end
     ss.ReceiveInkQueue(radius, ang, normal, ratio, color, inktype, pos, order, time)
+end)
+
+net.Receive("SplatoonSWEPs: Sync marked entity state", function()
+    local ent = net.ReadEntity()
+    if not IsValid(ent) then return end
+    local color = net.ReadUInt(ss.COLOR_BITS)
+    local state = net.ReadBool()
+    ss.MarkedEntities[ent] = ss.MarkedEntities[ent] or {}
+    ss.MarkedEntities[ent][color] = state and CurTime() or nil
 end)

@@ -17,6 +17,7 @@ SplatoonSWEPs = {
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap
+    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
     MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     PaintQueue              = {}, ---@type table<integer, ss.PaintQueue>
     PaintSchedule           = {}, ---@type table<table, true>
@@ -185,7 +186,7 @@ end
 function ss.PrePlayerDraw(w, ply)
     if ShouldHidePlayer(w, ply) then return true end
     if ShouldChangePlayerAlpha(w, ply) then
-        render.SetBlend(w:GetCameraFade() * ply:GetColor().a / 255)
+        render.SetBlend(Lerp(w:GetCameraFade(), 0, ply:GetColor().a / 255))
     end
 end
 
@@ -290,6 +291,18 @@ function ss.DrawVCrosshair(self, dodraw, isfirstperson)
     end
 end
 
+---@param ent Entity
+---@return Vector
+function ss.GetMarkerPosition(ent)
+    local bone = ent:LookupBone "ValveBiped.Bip01_Spine" or -1
+    local bonepos = ent:GetBonePosition(bone)
+    if not bonepos then
+        local dz = Vector(0, 0, (ent:OBBMaxs().z - ent:OBBMins().z) / 2)
+        bonepos = ent:GetPos() + dz
+    end
+    return bonepos
+end
+
 local PreventRecursive = false
 local BlurX, BlurY, BlurStep = 0.08, 0.08, 0.16
 
@@ -345,58 +358,66 @@ end
 
 local MarkerLineMaterial = Material "cable/new_cable_lit"
 local MarkerLineTipMaterial = Material "sprites/sent_ball"
-hook.Add("PostDrawEffects", "SplatoonSWEPs: Draw marked enemies", function()
+local function PostDrawEffects()
     local lp = LocalPlayer()
-    if lp:ShouldDrawLocalPlayer() and lp:GetNWBool "SplatoonSWEPs: IsMarked" then
-        local c = ss.GetColor(lp:GetNWInt "SplatoonSWEPs: PointSensorMarkedBy")
-        local additive = c:ToVector():Dot(ss.GrayScaleFactor) > 0.5
-        halo.Add({lp}, c, 2, 2, 1, additive, true)
-    end
-
     local lpw = ss.IsValidInkling(lp)
-    if not lpw then return end
-
-    local marked = {} ---@type Entity[]
-    local c = ss.GetColor(lpw:GetNWInt "inkcolor")
-    if not c then return end
-    local additive = c:ToVector():Dot(ss.GrayScaleFactor) > 0.5
-
-    for _, e in ipairs(ents.GetAll()) do
-        if e:GetNWBool "SplatoonSWEPs: IsMarked" then
-            local w = ss.IsValidInkling(e)
-            if not (w and ss.IsAlly(lpw, w)) then
-                table.insert(marked, e)
-            end
+    if lp:ShouldDrawLocalPlayer() then
+        local lphalo = { lp }
+        for id in pairs(ss.MarkedEntities[lp] or {}) do
+            local color = ss.GetColor(id)
+            local additive = color:ToVector():Dot(ss.GrayScaleFactor) > 0.5
+            halo.Add(lphalo, color, 2, 2, 1, additive, true)
         end
     end
 
+    if not lpw then return end
+    local colorid = lpw:GetNWInt "inkcolor"
+    local color = ss.GetColor(colorid)
+    if not color then return end
+    local additive = color:ToVector():Dot(ss.GrayScaleFactor) > 0.5
+
+    local marked = {} --- @type Entity[]
+    for ent, colors in pairs(ss.MarkedEntities) do
+        if not colors[colorid] then continue end
+        local w = ss.IsValidInkling(ent)
+        if w and ss.IsAlly(colorid, w) then continue end
+        marked[#marked + 1] = ent
+    end
+
     if #marked == 0 then return end
-    halo.Add(marked, c, 2, 2, 1, additive, true)
+    halo.Add(marked, color, 2, 2, 1, additive, true)
 
     cam.Start3D()
     cam.IgnoreZ(true)
+    render.SetMaterial(MarkerLineMaterial)
     local size = 2 + math.sin(2 * math.pi * 4 * CurTime()) * 0.75
     local start = lp:GetPos()
-    for _, e in ipairs(marked) do
-        local endpos = e:WorldSpaceCenter()
-        render.SetMaterial(MarkerLineMaterial)
-        render.DrawBeam(start, endpos, 1, -CurTime(), start:Distance(endpos) / 20 - CurTime(), c)
-        render.SetMaterial(MarkerLineTipMaterial)
-        render.DrawQuadEasy(endpos, EyeAngles():Forward(), size, size, c)
+    for _, ent in ipairs(marked) do
+        local endpos = ss.GetMarkerPosition(ent)
+        render.DrawBeam(start, endpos, 1, -CurTime(), start:Distance(endpos) / 20 - CurTime(), color)
     end
     render.SetMaterial(MarkerLineTipMaterial)
-    render.DrawSprite(start, size, size, c)
+    render.DrawSprite(start, size, size, color)
     cam.IgnoreZ(false)
     cam.End3D()
-end)
+end
 
-hook.Add("PostDrawPlayerHands", "SplatoonSWEPs: Draw halo for viewmodel", function(_, vm, _, _)
-    if LocalPlayer():ShouldDrawLocalPlayer() then return end
-    if not LocalPlayer():GetNWBool "SplatoonSWEPs: IsMarked" then return end
-    local c = ss.GetColor(LocalPlayer():GetNWInt "SplatoonSWEPs: PointSensorMarkedBy")
-    ss.DrawSolidHalo(vm, c)
-end)
+---@param hands Entity
+---@param vm Entity
+---@param ply Player
+---@param weapon Weapon
+local function PostDrawPlayerHands(hands, vm, ply, weapon)
+    if ply ~= LocalPlayer() then return end
+    if ply:ShouldDrawLocalPlayer() then return end
+    if not ss.MarkedEntities[ply] then return end
+    for color in SortedPairsByValue(ss.MarkedEntities[ply]) do
+        ss.DrawSolidHalo(vm, ss.GetColor(color))
+        break
+    end
+end
 
+hook.Add("PostDrawEffects", "SplatoonSWEPs: Draw marked enemies", PostDrawEffects)
+hook.Add("PostDrawPlayerHands", "SplatoonSWEPs: Draw halo for viewmodel", PostDrawPlayerHands)
 hook.Add("PostPlayerDraw", "SplatoonSWEPs: Thirdperson player fadeout", ss.hook "PostPlayerDraw")
 hook.Add("PrePlayerDraw", "SplatoonSWEPs: Hide players on crouch", ss.hook "PrePlayerDraw")
 hook.Add("PostRender", "SplatoonSWEPs: Render a RT scope", ss.hook "PostRender")
