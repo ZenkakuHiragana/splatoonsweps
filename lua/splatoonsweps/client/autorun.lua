@@ -390,7 +390,7 @@ local function PostDrawEffects()
     cam.Start3D()
     cam.IgnoreZ(true)
     render.SetMaterial(MarkerLineMaterial)
-    local size = 2 + math.sin(2 * math.pi * 4 * CurTime()) * 0.75
+    local size = 4 + math.sin(2 * math.pi * 4 * CurTime()) * 0.5
     local start = lp:GetPos()
     for _, ent in ipairs(marked) do
         local endpos = ss.GetMarkerPosition(ent)
