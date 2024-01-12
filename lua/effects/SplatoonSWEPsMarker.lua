@@ -6,6 +6,7 @@ local EFFECT = EFFECT
 ---@cast EFFECT EFFECT.Marker
 ---@class EFFECT.Marker : EFFECT
 ---@field Particle CNewParticleEffect
+---@field NextEffectDispatchTime number
 ---@field Color integer
 ---@field Radius number
 ---@field Target Entity
@@ -27,13 +28,16 @@ end
 
 function EFFECT:DispatchEffect()
     if not self:ShouldDraw() then return end
-    local angle = Angle(0, EyeAngles().yaw + 90, 0)
+    local yaw = EyeAngles().yaw + 90 + math.random(0, 3) * 30
+    local angle = Angle(0, yaw, 0)
     local scale = self.Radius / 32
-    local name = "splatoonsweps_marker_off_"
-    local index = math.random(1, 1)
-    if scale < 0.75 then name = name .. "half_" end
-    if scale > 1.55 then name = name .. "big_" end
-    local p = CreateParticleSystemNoEntity(name .. index, self:GetPos(), angle)
+    local name = ss.Particles.MarkerLeft
+
+    local mod = ""
+    local index = math.random(1, 2)
+    if scale < 0.75 then mod = "half_" end
+    if scale > 1.55 then mod = "big_" end
+    local p = CreateParticleSystemNoEntity(name:format(mod, index), self:GetPos(), angle)
     p:SetControlPoint(1, self:GetColor():ToVector())
     p:SetControlPoint(2, ss.vector_one * scale)
     p:SetControlPoint(3, Vector())
@@ -53,6 +57,7 @@ end
 function EFFECT:Init(e)
     local ent = e:GetEntity()
     if not IsValid(ent) then return end
+    self.NextEffectDispatchTime = CurTime() + math.Rand(1 - 0.2, 1 + 0.2)
     self.Target = ent
     self.Radius = (ent:OBBMaxs():Length2D() + ent:OBBMins():Length2D()) / 2
     self.Color = e:GetColor()
@@ -64,6 +69,13 @@ end
 
 function EFFECT:Think()
     self:UpdatePos()
+    if CurTime() > self.NextEffectDispatchTime then
+        local p = CreateParticleSystemNoEntity(ss.Particles.MarkerSquare, self:GetPos())
+        p:SetControlPoint(1, self:GetColor():ToVector())
+        p:SetControlPoint(2, ss.vector_one * self.Radius / 205)
+        self.NextEffectDispatchTime = CurTime() + math.Rand(1 - 0.2, 1 + 0.2)
+    end
+
     if not IsValid(self.Target)
     or self.Target:Health() <= 0
     or not ss.MarkedEntities[self.Target]
