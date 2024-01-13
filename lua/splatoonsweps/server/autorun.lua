@@ -232,8 +232,8 @@ function ss.MarkEntity(color, entities)
     local hit = false
     local duration = ss.PointSensorDuration
     for _, ent in ipairs(entities) do
-        local w = ss.IsValidInkling(ent) ---@type Weapon?
         if not (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) then continue end
+        local w = ss.IsValidInkling(ent) ---@type Weapon?
         if w and ss.IsAlly(color, w) then continue end
         local marked = ss.MarkedEntities[ent] and ss.MarkedEntities[ent][color]
         local name = "SplatoonSWEPs: Point Sensor " .. ent:EntIndex() .. ", " .. color

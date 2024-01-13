@@ -9,7 +9,7 @@ local EFFECT = EFFECT
 function EFFECT:Init(e)
     self:SetModel(mdl)
     local color = ss.GetColor(e:GetColor())
-    local p = CreateParticleSystemNoEntity(ss.Particles.PointSensor, e:GetOrigin(), Angle())
+    local p = CreateParticleSystemNoEntity(ss.Particles.PointSensor, e:GetOrigin())
     p:SetControlPoint(1, color:ToVector())
     p:SetControlPoint(2, ss.vector_one)
 end
