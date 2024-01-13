@@ -228,10 +228,11 @@ end
 
 ---@param color integer
 ---@param entities Entity[]
-function ss.MarkEntity(color, entities)
+---@param duration number
+function ss.MarkEntity(color, entities, duration)
     local hit = false
-    local duration = ss.PointSensorDuration
     for _, ent in ipairs(entities) do
+        if ent:IsPlayer() and --[[@cast ent Player]] not ent:Alive() then continue end
         if not (ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot()) then continue end
         local w = ss.IsValidInkling(ent) ---@type Weapon?
         if w and ss.IsAlly(color, w) then continue end

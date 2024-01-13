@@ -30,5 +30,6 @@ function ENT:PhysicsCollide(data, collider)
     e:SetColor(self:GetNWInt "inkcolor")
     util.Effect("SplatoonSWEPsPointSensor", e)
     ss.MarkEntity(self:GetNWInt "inkcolor",
-        ents.FindInSphere(self:GetPos(), p.Burst_Radius))
+        ents.FindInSphere(self:GetPos(), p.Burst_Radius),
+        ss.PointSensorDuration)
 end

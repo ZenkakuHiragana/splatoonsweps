@@ -8,6 +8,7 @@ local EFFECT = EFFECT
 ---@field Particle CNewParticleEffect
 ---@field NextEffectDispatchTime number
 ---@field Color integer
+---@field InitTime number
 ---@field Radius number
 ---@field Target Entity
 ---@field UpdatePos fun(self)
@@ -61,6 +62,7 @@ function EFFECT:Init(e)
     self.Target = ent
     self.Radius = (ent:OBBMaxs():Length2D() + ent:OBBMins():Length2D()) / 2
     self.Color = e:GetColor()
+    self.InitTime = CurTime()
     self:SetColor(ss.GetColor(self.Color))
     self:SetModel(mdl)
     self:SetModelScale(self.Radius)
@@ -69,7 +71,8 @@ end
 
 function EFFECT:Think()
     self:UpdatePos()
-    if CurTime() > self.NextEffectDispatchTime then
+    if CurTime() - self.InitTime < 0.5 then return true end
+    if self:ShouldDraw() and CurTime() > self.NextEffectDispatchTime then
         local p = CreateParticleSystemNoEntity(ss.Particles.MarkerSquare, self:GetPos())
         p:SetControlPoint(1, self:GetColor():ToVector())
         p:SetControlPoint(2, ss.vector_one * self.Radius / 205)
