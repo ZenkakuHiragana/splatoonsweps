@@ -59,6 +59,7 @@ function ENT:PhysicsCollide(data, collider)
             end)
             if t:IsNPC() then ---@cast t NPC
                 timer.Create(npcname, 0.125, 0, function()
+                    if not IsValid(t) then return end
                     t:SetMoveVelocity(Vector())
                     t:SetVelocity(Vector())
                     t:ClearSchedule()
