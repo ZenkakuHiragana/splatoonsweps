@@ -342,12 +342,10 @@ function ss.CreateHitEffect(color, flags, pos, normal, owner)
             filter = RecipientFilter()
             filter:AddPlayer(owner)
         end
-        if ss.mp then
-            e:SetColor(color)
-            e:SetFlags(flags)
-            e:SetOrigin(pos)
-            util.Effect("SplatoonSWEPsOnHit", e, true, filter)
-        end
+        e:SetColor(color)
+        e:SetFlags(flags)
+        e:SetOrigin(pos)
+        util.Effect("SplatoonSWEPsOnHit", e, true, filter)
     end
 
     e:SetAngles(normal:Angle())
