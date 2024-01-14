@@ -143,6 +143,7 @@ ss.Particles = {
     ChargerFlash         = "splatoonsweps_charger_flash",
     ChargerMuzzleFlash   = "splatoonsweps_explosion_impact",
     Disruptor            = "splatoonsweps_disruptor",
+    DisruptorMarker      = "splatoonsweps_disruptor_marker",
     Echolocator          = "splatoonsweps_echolocator",
     EcholocatorSquid     = "splatoonsweps_echolocator_squid",
     MarkerLeft           = "splatoonsweps_marker_off_%s%d",

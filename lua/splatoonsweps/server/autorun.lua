@@ -21,6 +21,7 @@ if not SplatoonSWEPs then
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
     CrosshairColors         = {}, ---@type integer[]
+    DisruptedEntities       = {}, ---@type table<Entity, number>
     EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap
@@ -211,6 +212,16 @@ function ss.SynchronizePlayerStats(ply)
     net.WriteUInt(cmpjson:len(), 16)
     net.WriteData(cmpjson, cmpjson:len())
     net.Send(ply)
+end
+
+---@param ent Entity
+---@param state boolean
+function ss.ChangeDisruptedEntityState(ent, state)
+    ss.DisruptedEntities[ent] = state and CurTime() or nil
+    net.Start "SplatoonSWEPs: Sync disrupted entity state"
+    net.WriteEntity(ent)
+    net.WriteBool(state)
+    net.Broadcast()
 end
 
 ---@param ent Entity

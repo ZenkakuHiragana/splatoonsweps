@@ -6,6 +6,7 @@ if not SplatoonSWEPs then
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
     CrosshairColors         = {}, ---@type integer[]
+    DisruptedEntities       = {}, ---@type table<Entity, number>
     EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
     IMesh                   = {}, ---@type IMesh[]
     InkColors               = {}, ---@type Color[]

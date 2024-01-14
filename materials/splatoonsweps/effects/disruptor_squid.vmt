@@ -1,0 +1,8 @@
+"UnlitGeneric"
+{
+    "$basetexture" "splatoonsweps/effects/disruptor_squid"
+    "$nocull" "1"
+    "$nolod" "1"
+    "$vertexcolor" "1"
+    "$translucent" "1"
+}

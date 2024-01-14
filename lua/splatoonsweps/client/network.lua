@@ -95,3 +95,10 @@ net.Receive("SplatoonSWEPs: Sync marked entity state", function()
     ss.MarkedEntities[ent] = ss.MarkedEntities[ent] or {}
     ss.MarkedEntities[ent][color] = state and CurTime() or nil
 end)
+
+net.Receive("SplatoonSWEPs: Sync disrupted entity state", function()
+    local ent = net.ReadEntity()
+    if not IsValid(ent) then return end
+    local state = net.ReadBool()
+    ss.DisruptedEntities[ent] = state and CurTime() or nil
+end)
