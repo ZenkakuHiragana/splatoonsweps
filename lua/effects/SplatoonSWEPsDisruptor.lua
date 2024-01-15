@@ -16,11 +16,9 @@ function EFFECT:Init(e)
     if e:GetFlags() > 0 then
         local ent = e:GetEntity()
         local dz = ent:WorldSpaceCenter() - ent:GetPos()
-        local radius = (ent:OBBMaxs():Length2D() + ent:OBBMins():Length2D()) / 2
         self.Target = ent
         self.Particle = CreateParticleSystem(self.Target, ss.Particles.DisruptorMarker, PATTACH_ABSORIGIN_FOLLOW, nil, dz)
         self.Particle:SetControlPoint(1, color:ToVector())
-        self.Particle:SetControlPoint(2, ss.vector_one * radius)
     else
         local p = CreateParticleSystemNoEntity(ss.Particles.Disruptor, pos, ang)
         p:SetControlPoint(1, color:ToVector())

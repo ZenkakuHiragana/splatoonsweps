@@ -151,16 +151,13 @@ end
 ---Removes ragdoll for weapons with multiple PhysObj
 function SWEP:RemoveRagdoll()
     if not UseRagdoll[self.Base] then return end
-    self:DrawShadow(true)
-    self:SetMoveType(MOVETYPE_VPHYSICS)
-    self:SetParent(NULL)
-    self:RemoveEffects(EF_BONEMERGE)
     local n = "SplatoonSWEPs: RagdollCollisionCheck" .. self:EntIndex()
     timer.Remove(n)
 
     local ragdoll = self.Ragdoll
     self.Ragdoll = nil
     if not IsValid(ragdoll) then return end
+    self:DrawShadow(true)
     self:DontDeleteOnRemove(ragdoll)
     ragdoll:DontDeleteOnRemove(self)
     ragdoll:Remove()
