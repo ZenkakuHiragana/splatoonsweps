@@ -150,6 +150,7 @@ local SWEP = SWEP
 ---@field GetSquidSpeed            fun(self): number
 ---@field GetSubWeaponInitVelocity fun(self): Vector
 ---@field GetViewModel             fun(self, index: number?): Entity
+---@field IsDisrupted              fun(self): boolean
 ---@field IsFirstTimePredicted     fun(self): boolean
 ---@field IsMine                   fun(self): boolean
 ---@field Ping                     fun(self): number
@@ -244,6 +245,12 @@ end
 ---@return boolean result True if this tick is first time predicted
 function SWEP:IsFirstTimePredicted()
     return SERVER or ss.sp or IsFirstTimePredicted() or not self:IsCarriedByLocalPlayer()
+end
+
+---Returns if the owner is disrupted
+---@return boolean
+function SWEP:IsDisrupted()
+    return tobool(ss.DisruptedEntities[self:GetOwner()])
 end
 
 ---Get base entity with given class name recursively
@@ -526,7 +533,7 @@ end
 ---@param amount number the amount of ink to consume
 function SWEP:ConsumeInk(amount)
     if not isnumber(amount) then return end
-    if self:GetIsDisrupted() then amount = amount * 2 end
+    if self:IsDisrupted() then amount = amount * 2 end
     self:SetInk(math.max(self:GetInk() - amount, 0))
 end
 
@@ -787,7 +794,6 @@ function SWEP:SetupDataTables()
     ---@field GetInInk              fun(self): boolean
     ---@field GetInFence            fun(self): boolean
     ---@field GetInWallInk          fun(self): boolean
-    ---@field GetIsDisrupted        fun(self): boolean
     ---@field GetOldCrouching       fun(self): boolean
     ---@field GetOnEnemyInk         fun(self): boolean
     ---@field GetHolstering         fun(self): boolean
@@ -814,7 +820,6 @@ function SWEP:SetupDataTables()
     ---@field SetInInk              fun(self, value: boolean)
     ---@field SetInFence            fun(self, value: boolean)
     ---@field SetInWallInk          fun(self, value: boolean)
-    ---@field SetIsDisrupted        fun(self, value: boolean)
     ---@field SetOldCrouching       fun(self, value: boolean)
     ---@field SetOnEnemyInk         fun(self, value: boolean)
     ---@field SetHolstering         fun(self, value: boolean)
@@ -844,7 +849,6 @@ function SWEP:SetupDataTables()
     self:AddNetworkVar("Bool",   "InInk")             -- If owner is in ink.
     self:AddNetworkVar("Bool",   "InFence")           -- If owner is in fence.
     self:AddNetworkVar("Bool",   "InWallInk")         -- If owner is on wall.
-    self:AddNetworkVar("Bool",   "IsDisrupted")       -- If owner is getting Disruptor mist.
     self:AddNetworkVar("Bool",   "OldCrouching")      -- If owner was crouching a tick ago.
     self:AddNetworkVar("Bool",   "OnEnemyInk")        -- If owner is on enemy ink.
     self:AddNetworkVar("Bool",   "Holstering")        -- The weapon is being holstered.
@@ -921,7 +925,7 @@ function SWEP:SetupDataTables()
             mul = mul / 10 * gain "reloadspeedstand" / 100
         end
 
-        if self:GetIsDisrupted() then mul = mul * 0.75 end
+        if self:IsDisrupted() then mul = mul * 0.75 end
         if self:GetNWBool "canreloadstand" or reloadink then
             local ink = math.Clamp(self:GetInk() + reloadamount * mul, 0, ss.GetMaxInkAmount())
             if self:GetInk() ~= ink then self:SetInk(ink) end

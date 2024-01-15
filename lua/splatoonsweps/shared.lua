@@ -103,11 +103,11 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     local maxspeed = math.min(mv:GetMaxSpeed(), w.InklingSpeed * 1.1)
     if ply:OnGround() then
         maxspeed = ss.ProtectedCall(w.CustomMoveSpeed, w) or w.InklingSpeed
-        maxspeed = maxspeed * Either(crouching, ss.SquidSpeedOutofInk, 1)
-        maxspeed = w:GetInInk() and w.SquidSpeed or maxspeed
-        maxspeed = w:GetOnEnemyInk() and w.OnEnemyInkSpeed or maxspeed
-        maxspeed = maxspeed * (w:GetThrowing() and ss.InklingSpeedMulSubWeapon or 1)
-        maxspeed = maxspeed * (w:GetIsDisrupted() and ss.DisruptedSpeed or 1)
+        if crouching         then maxspeed = maxspeed * ss.SquidSpeedOutofInk       end
+        if w:GetInInk()      then maxspeed = w.SquidSpeed                           end
+        if w:GetOnEnemyInk() then maxspeed = w.OnEnemyInkSpeed                      end
+        if w:GetThrowing()   then maxspeed = maxspeed * ss.InklingSpeedMulSubWeapon end
+        if w:IsDisrupted()   then maxspeed = maxspeed * ss.DisruptedSpeed           end
         ply:SetWalkSpeed(maxspeed)
         if w:GetNWBool "allowsprint" and not (crouching or w:GetInInk() or w:GetOnEnemyInk()) then
             maxspeed = Lerp(0.5, maxspeed, w.SquidSpeed) -- Sprint speed
@@ -126,8 +126,8 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     end
 
     local jumppower = w.JumpPower
-    jumppower = jumppower * (w:GetOnEnemyInk() and ss.JumpPowerMulOnEnemyInk or 1)
-    jumppower = jumppower * (w:GetIsDisrupted() and ss.JumpPowerMulDisrupted or 1)
+    if w:GetOnEnemyInk() then jumppower = jumppower * ss.JumpPowerMulOnEnemyInk end
+    if w:IsDisrupted()   then jumppower = jumppower * ss.JumpPowerMulDisrupted  end
     ply:SetJumpPower(jumppower)
     if CLIENT and w:GetNWInt "inkcolor" > 0 then w:UpdateInkState() end -- Ink state prediction
 
