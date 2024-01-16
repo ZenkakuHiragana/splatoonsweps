@@ -132,7 +132,7 @@ sound.Add {
 }
 
 sound.Add {
-    channel = CHAN_STATIC,
+    channel = CHAN_STREAM,
     name = "SplatoonSWEPs_Player.SpecialReady",
     level = 85,
     sound = "splatoonsweps/player/specialready.wav",

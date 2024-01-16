@@ -117,12 +117,10 @@ if CLIENT then
             self:EnableCustomCollisions(true)
         end
 
-        local scale = 8
         local color = ss.GetColor(self:GetNWInt "inkcolor"):ToVector()
         for i, att in ipairs(self:GetAttachments() or {}) do
             local p = CreateParticleSystem(self, ss.Particles.SplashWall, PATTACH_POINT_FOLLOW, att.id, self:GetPos())
             p:AddControlPoint(1, game.GetWorld(), PATTACH_WORLDORIGIN, nil, color)
-            p:AddControlPoint(2, game.GetWorld(), PATTACH_WORLDORIGIN, nil, vector_up * scale)
             self.ParticleEffects[i] = p
         end
 

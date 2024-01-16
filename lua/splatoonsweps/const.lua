@@ -152,6 +152,7 @@ ss.Particles = {
     PointSensor          = "splatoonsweps_pointsensor",
     RollerRolling        = "splatoonsweps_roller_rolling",
     RollerSplash         = "splatoonsweps_roller_splash",
+    SpecialReady         = "splatoonsweps_special_ready",
     SplashWall           = "splatoonsweps_splash_wall",
     SplatlingMuzzleFlash = "splatoonsweps_splatling_muzzleflash",
 }

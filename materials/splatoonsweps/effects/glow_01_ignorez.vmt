@@ -1,0 +1,9 @@
+"SpriteCard"
+{
+    "$basetexture" "splatoonsweps/effects/glow_01"
+    "$nocull" "1"
+    "$vertexcolor" "1"
+    "$translucent" "1"
+    "$blendframes" "1"
+    "$ignorez" "1"
+}

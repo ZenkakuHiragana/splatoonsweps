@@ -186,26 +186,10 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
     end
 
     if progress < 1 and w and w:GetSpecialPointProgress() >= 1 then
-        w:EmitSound "SplatoonSWEPs_Player.SpecialReady"
-        local p = ply:EyePos()
-        local data = EffectData()
-        data:SetOrigin(p)
-        util.Effect("cball_explode", data)
-        effects.BeamRingPoint(p, 0.2, 12, 256, 64, 0, Color(255, 255, 225, 32), {
-            speed = 0,
-            spread = 0,
-            delay = 0,
-            framerate = 2,
-            material = "sprites/lgtning.vmt"
-        })
-        -- Shockring
-        effects.BeamRingPoint(p, 0.5, 12, 256, 64, 0, Color(255, 255, 225, 64), {
-            speed = 0,
-            spread = 0,
-            delay = 0,
-            framerate = 2,
-            material = "sprites/lgtning.vmt"
-        })
+        local e = EffectData()
+        e:SetEntity(w)
+        e:SetColor(color)
+        ss.UtilEffectPredicted(ply, "SplatoonSWEPsSpecialReady", e)
     end
 end
 
