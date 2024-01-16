@@ -59,17 +59,14 @@ The aim of this rework is the following:
 
 ## Currently working on
 
-* Super Jump System
-  * [x] Minimap
-  * [x] Jump effect
-  * [x] Minor fixes
-  * [ ] Jump to other players
-  * [ ] Jump to the respawn
-  * [ ] Arrival indicator
-* Optimization
-  * [x] Map loader
-  * [ ] Capability to handle more ink paint queue
-  * [ ] Better prediction for multiplayer
+* Special weapons!
+  * [x] Bomb Rush
+  * [x] Echolocator
+  * [ ] Bubbler
+  * [ ] Inkzooka
+  * [ ] Inkstrike
+  * [ ] Killer Wail
+  * [ ] Kraken
 
 ## I want to make the following, too
 
