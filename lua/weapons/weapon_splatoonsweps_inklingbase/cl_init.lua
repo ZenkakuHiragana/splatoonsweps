@@ -13,7 +13,6 @@ local SWEP = SWEP
 ---@field IsTPS                    fun(self): boolean
 ---@field TranslateToViewmodelPos  fun(self, pos: Vector): Vector
 ---@field TranslateToWorldmodelPos fun(self, pos: Vector): Vector
----@field JustUsableTime           number
 ---@field HullDuckMaxs             Vector
 ---@field HullDuckMins             Vector
 ---@field ViewOffsetDucked         Vector
@@ -34,7 +33,7 @@ local inktank = {
 }
 local subweaponusable = {
     type     = "Sprite",
-    sprite   = "sprites/flare1",
+    sprite   = "sprites/orangeflare1",
     bone     = "ValveBiped.Bip01_Spine4",
     rel      = "inktank",
     pos      = Vector(0, 0, 25.5),
@@ -83,10 +82,11 @@ function SWEP:Initialize()
     self:CreateModels(self.WElements) -- create worldmodels
 
     -- Our initialize code
+    self.SpriteCurrentSize = 0
+    self.SpriteSizeChangeSpeed = 0
     self.EnoughSubWeapon = true
     self.PreviousInk = true
     self.Cursor = { x = ScrW() / 2, y = ScrH() / 2 }
-    self.JustUsableTime = CurTime() - 1 -- For animation of ink tank light
     self:MakeSquidModel()
     self:SharedInitBase()
     ss.ProtectedCall(self.ClientInit, self)
@@ -147,11 +147,8 @@ function SWEP:Think()
     if not IsValid(self:GetOwner()) or self:GetHolstering() then return end
     if self:IsFirstTimePredicted() then
         local enough = self:GetInk() > (ss.ProtectedCall(self.GetSubWeaponInkConsume, self) or 0)
-        if not self.EnoughSubWeapon and enough then
-            self.JustUsableTime = CurTime() - LocalPlayer():Ping() / 1000
-            if self:IsCarriedByLocalPlayer() then
-                surface.PlaySound(ss.BombAvailable)
-            end
+        if not self.EnoughSubWeapon and enough and self:IsCarriedByLocalPlayer() then
+            surface.PlaySound(ss.BombAvailable)
         end
         self.EnoughSubWeapon = enough
     end

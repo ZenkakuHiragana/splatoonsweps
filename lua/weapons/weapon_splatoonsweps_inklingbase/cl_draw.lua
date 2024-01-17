@@ -31,6 +31,8 @@ local SWEP = SWEP
 ---@field vRenderOrder                 string[]
 ---@field WElements                    table<string, SWEP.ModelElement>
 ---@field wRenderOrder                 string[]
+---@field SpriteSizeChangeSpeed        number
+---@field SpriteCurrentSize            number
 
 ---@class SWEP.ModelElementManip
 ---@field scale          Vector
@@ -274,6 +276,13 @@ end
 function SWEP:DrawWorldModelTranslucent()
     if IsValid(self:GetOwner()) and self:GetHolstering() then return end
     if ss.ProtectedCall(self.PreDrawWorldModelTranslucent, self) then return end
+
+    local usingbombrush = self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush"
+    local refsize = usingbombrush and 80 or self.EnoughSubWeapon and 32 or 0
+    local diff = refsize - self.SpriteCurrentSize
+    self.SpriteSizeChangeSpeed = self.SpriteSizeChangeSpeed * 0.92 + diff * 2 * FrameTime()
+    self.SpriteCurrentSize = self.SpriteCurrentSize + self.SpriteSizeChangeSpeed
+
     if self:ShouldDrawSquid() then return end
     if self:GetInInk() then return end
 
@@ -287,14 +296,13 @@ function SWEP:DrawWorldModelTranslucent()
         ss.ProtectedCall(self.DrawOnSubTriggerDown, self)
     end
 
-    for _, name in pairs(self.wRenderOrder) do
+    for _, name in ipairs(self.wRenderOrder) do
         local v = self.WElements[name]
         if not v then self.wRenderOrder = nil break end
         if name == "subweaponusable" then
-            local fraction = math.Clamp(self.JustUsableTime + 0.15 - CurTime(), 0, 0.15)
-            local size = -1600 * (fraction - 0.075) ^ 2 + 20
             local inkconsume = ss.ProtectedCall(self.GetSubWeaponInkConsume, self) or 0
-            v.size = {x = size, y = size}
+            local size = self.SpriteCurrentSize
+            v.size = { x = size, y = size }
             v.hide = not IsValid(self.WElements["inktank"].modelEnt) or self:GetInk() < inkconsume
         elseif name == "inktank" and IsValid(self:GetOwner()) then
             bone_ent = self:GetOwner()
