@@ -5,26 +5,39 @@ local mdl = Model "models/hunter/misc/sphere2x2.mdl"
 local EFFECT = EFFECT
 ---@cast EFFECT EFFECT.SpecialReady
 ---@class EFFECT.SpecialReady : EFFECT
+---@field Particle CNewParticleEffect
+---@field Entity Entity
 
 local DELTA_Z = {
-    [ss.PLAYER.PEARL] = 28,
-    [ss.PLAYER.MARINA] = 16,
-    [ss.PLAYER.CALLIE] = 24,
-    [ss.PLAYER.MARIE] = 24,
-    [ss.PLAYER.BOY] = 24,
-    [ss.PLAYER.GIRL] = 24,
+    [ss.PLAYER.PEARL] = 24,
+    [ss.PLAYER.MARINA] = 12,
+    [ss.PLAYER.OCTO] = -4,
+    [ss.PLAYER.CALLIE] = -4,
+    [ss.PLAYER.MARIE] = -4,
+    [ss.PLAYER.BOY] = -4,
+    [ss.PLAYER.GIRL] = -4,
 }
 function EFFECT:Init(e)
     self:SetModel(mdl)
     local w = e:GetEntity()
+    if not IsValid(w) then return end
     local ply = w:GetOwner()
+    if not IsValid(ply) then return end
     local dz = ply:EyePos() - ply:GetPos()
     local pm = w:GetNWInt "playermodel"
     if DELTA_Z[pm] then dz.z = dz.z - DELTA_Z[pm] end
     local color = ss.GetColor(e:GetColor())
-    local p = CreateParticleSystem(ply, ss.Particles.SpecialReady, PATTACH_ABSORIGIN_FOLLOW, nil, dz)
-    p:SetControlPoint(1, color:ToVector())
-    ply:EmitSound "SplatoonSWEPs_Player.SpecialReady"
+    self.Particle = CreateParticleSystem(ply, ss.Particles.SpecialReady, PATTACH_ABSORIGIN_FOLLOW, nil, dz)
+    self.Particle:SetControlPoint(1, color:ToVector())
+    self.Entity = w
+    self.Entity:EmitSound "SplatoonSWEPs_Player.SpecialReady"
+end
+
+function EFFECT:Think()
+    local ent = self.Entity ---@cast ent SplatoonWeaponBase
+    if not (IsValid(ent) and IsValid(self.Particle)) then return false end
+    self.Particle:SetShouldDraw(not ent:ShouldDrawSquid())
+    return true
 end
 
 function EFFECT:Render()
