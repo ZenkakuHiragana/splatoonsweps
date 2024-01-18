@@ -185,7 +185,8 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
         net_Broadcast()
     end
 
-    if progress < 1 and w and w:GetSpecialPointProgress() >= 1 then
+    if progress < 1 and w and not w:GetNWBool "IsUsingSpecial"
+    and w:GetSpecialPointProgress() >= 1 then
         local e = EffectData()
         e:SetEntity(w)
         e:SetColor(color)

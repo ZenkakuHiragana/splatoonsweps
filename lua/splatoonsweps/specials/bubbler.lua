@@ -5,7 +5,7 @@ local ss = SplatoonSWEPs
 if not ss then return end
 ---@type ISpecialWeaponDef
 ss.bubbler = {
-    PointsNeeded = 10,
+    PointsNeeded = 180,
     Merge = {
         BloodColor = BLOOD_COLOR_RED,
     },
