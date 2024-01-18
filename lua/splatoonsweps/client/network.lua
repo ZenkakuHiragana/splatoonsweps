@@ -14,6 +14,10 @@ net.Receive("SplatoonSWEPs: Play damage sound", function()
     surface.PlaySound(ss.TakeDamage)
 end)
 
+net.Receive("SplatoonSWEPs: Play bubbler hit sound", function()
+    surface.PlaySound(ss.BubblerHit)
+end)
+
 local buffer = ""
 net.Receive("SplatoonSWEPs: Redownload ink data", function()
     local finished = net.ReadBool()
@@ -101,4 +105,8 @@ net.Receive("SplatoonSWEPs: Sync disrupted entity state", function()
     if not IsValid(ent) then return end
     local state = net.ReadBool()
     ss.DisruptedEntities[ent] = state and CurTime() or nil
+end)
+
+net.Receive("SplatoonSWEPs: Register knockback", function()
+    ss.KnockbackVector[LocalPlayer()] = net.ReadVector()
 end)

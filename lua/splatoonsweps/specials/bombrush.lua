@@ -21,12 +21,11 @@ ss.ConvertUnits(ss.bombrush.Parameters, ss.bombrush.Units)
 ---@type SplatoonWeaponBase
 local module = ss.bombrush.Merge
 local p = ss.bombrush.Parameters
-function module:GetSpecialDuration()
-    return p.Duration
-end
-
+function module:GetSpecialDuration() return p.Duration end
+function module:OnSpecialEnd() self:ResetSpecialState() end
 function module:OnSpecialStart()
     self:AddSchedule(self:GetSpecialDuration(), 1, function()
-        self:ResetSpecialState()
+        if not self:GetNWBool "IsUsingSpecial" then return end
+        self:OnSpecialEnd()
     end)
 end

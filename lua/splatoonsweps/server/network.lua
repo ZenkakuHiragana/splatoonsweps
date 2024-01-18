@@ -6,7 +6,9 @@ local ss = SplatoonSWEPs
 if not ss then return end
 
 util.AddNetworkString "SplatoonSWEPs: Change throwing"
+util.AddNetworkString "SplatoonSWEPs: Register knockback"
 util.AddNetworkString "SplatoonSWEPs: Play damage sound"
+util.AddNetworkString "SplatoonSWEPs: Play bubbler hit sound"
 util.AddNetworkString "SplatoonSWEPs: Ready to splat"
 util.AddNetworkString "SplatoonSWEPs: Redownload ink data"
 util.AddNetworkString "SplatoonSWEPs: Send a sound"

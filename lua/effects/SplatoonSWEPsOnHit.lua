@@ -7,26 +7,25 @@ local FadeStartTime = 4 * ss.FrameToSec
 local LifeTime = 6 * ss.FrameToSec
 local LifeTimeCritical = 18 * ss.FrameToSec
 local mdl = Model "models/props_junk/PopCan01a.mdl"
-local hitnormal = "SplatoonSWEPs.DealDamage"
-local hitcritical = "SplatoonSWEPs.DealDamageCritical"
 local critsglow = Material "sprites/animglow02"
 local EFFECT = EFFECT
 ---@cast EFFECT EFFECT.OnHit
 ---@class EFFECT.OnHit : EFFECT
----@field Alpha      number
----@field Animate    fun(self, t: number)
----@field Color      Color
----@field Flags      integer
----@field InitRatio  number
----@field InitSize   number
----@field IsCritical boolean
----@field LifeTime   number
----@field Material   IMaterial
----@field Ratio      number
----@field Rotated    boolean
----@field Rotation   number
----@field Size       number
----@field Time       number
+---@field Alpha          number
+---@field Animate        fun(self, t: number)
+---@field Color          Color
+---@field Flags          integer
+---@field InitRatio      number
+---@field InitSize       number
+---@field IsCritical     boolean
+---@field IsUsingBubbler boolean
+---@field LifeTime       number
+---@field Material       IMaterial
+---@field Ratio          number
+---@field Rotated        boolean
+---@field Rotation       number
+---@field Size           number
+---@field Time           number
 
 EFFECT.Alpha = 255
 EFFECT.InitRatio = 32
@@ -79,6 +78,7 @@ function EFFECT:Init(e)
     self.Flags = e:GetFlags()
     self.InitSize = ScrH() / 40
     self.IsCritical = bit.band(self.Flags, 1) > 0
+    self.IsUsingBubbler = bit.band(self.Flags, 8) > 0
     self.LifeTime = LifeTime
     self.Material = ss.Materials.Effects.Hit
     self.Rotation = self.Rotation + math.Rand(-45, 45) + math.random(0, 1) * 90
@@ -86,7 +86,13 @@ function EFFECT:Init(e)
     self.Time = CurTime() - ping
     if bit.band(self.Flags, 2) > 0 then self.InitSize = self.InitSize * 2 end
     if bit.band(self.Flags, 4) == 0 then
-        self:EmitSound(self.IsCritical and hitcritical or hitnormal)
+        if self.IsUsingBubbler then
+            self:EmitSound "SplatoonSWEPs.BubblerHit"
+        elseif self.IsCritical then
+            self:EmitSound "SplatoonSWEPs.DealDamageCritical"
+        else
+            self:EmitSound "SplatoonSWEPs.DealDamage"
+        end
     end
 
     if not self.IsCritical then return end

@@ -193,8 +193,7 @@ end
 ---@param t TraceResult
 local function HitEntity(ink, t)
     local data, tr, weapon = ink.Data, ink.Trace, ink.Data.Weapon
-    local d, e, o = DamageInfo(), t.Entity, weapon:GetOwner()
-    ---@cast e -?
+    local d, e, o = DamageInfo(), t.Entity, weapon:GetOwner() ---@cast e -?
     if weapon.IsCharger and data.Range and tr.LengthSum > data.Range then return end
     if ss.LastHitID[e] == data.ID then return end
     ss.LastHitID[e] = data.ID -- Avoid multiple damages at once
@@ -216,15 +215,20 @@ local function HitEntity(ink, t)
         damage = Lerp(frac, damage_max, damage_min)
     end
 
+    local we = ss.IsValidInkling(e)
+    local isusingbubbler = we and we:GetNWBool "IsUsingSpecial" and we.Special == "bubbler"
     local te = util.TraceLine {start = t.HitPos, endpos = e:WorldSpaceCenter()}
-    local flags = (data.IsCritical and 1 or 0) + (ink.IsCarriedByLocalPlayer and 128 or 0)
+    local flags = 0
+    if data.IsCritical            then flags = flags + 1 end
+    if isusingbubbler             then flags = flags + 8 end
+    if ink.IsCarriedByLocalPlayer then flags = flags + 128 end
     ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, o)
     if ss.mp and CLIENT then return end
 
     local dt = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL)
     if not e:IsPlayer() then dt = bit.bor(dt, DMG_DISSOLVE) end
     d:SetDamage(damage)
-    d:SetDamageForce(-t.HitNormal)
+    d:SetDamageForce(-t.HitNormal * 100)
     d:SetDamagePosition(t.HitPos)
     d:SetDamageType(dt)
     d:SetMaxDamage(damage_max)

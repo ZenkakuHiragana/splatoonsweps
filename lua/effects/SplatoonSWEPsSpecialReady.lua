@@ -9,8 +9,8 @@ local EFFECT = EFFECT
 ---@field Entity Entity
 
 local DELTA_Z = {
-    [ss.PLAYER.PEARL] = 24,
-    [ss.PLAYER.MARINA] = 12,
+    [ss.PLAYER.PEARL] = 4,
+    [ss.PLAYER.MARINA] = -2,
     [ss.PLAYER.OCTO] = -4,
     [ss.PLAYER.CALLIE] = -4,
     [ss.PLAYER.MARIE] = -4,

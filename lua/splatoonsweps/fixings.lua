@@ -53,7 +53,8 @@ if isfunction(FindMetaTable "Player".SplatoonOffsets) then
     local HullMins, HullMaxs = Vector(-width, -width, 0), Vector(width, width, 53)
     hook.Add("Tick", "SplatoonSWEPs: Fix playermodel hull change", function()
         for _, p in ipairs(player.GetAll()) do
-            local is = ss.DrLilRobotPlayermodels[p:GetModel()]
+            local m = p:GetModel()
+            local is = ss.DrLilRobotPlayermodels[m] or ss.EggHeadPlayermodels[m]
             if not p:Alive() then
                 ss.PlayerHullChanged[p] = nil
             elseif is and splt_EditScale:GetInt() ~= 0 and ss.PlayerHullChanged[p] ~= true then

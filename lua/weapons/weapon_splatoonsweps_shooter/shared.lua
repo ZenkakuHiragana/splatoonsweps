@@ -326,7 +326,10 @@ function SWEP:CustomActivity()
     aimpos = (aimpos == 3 or aimpos == 4) and "rpg" or "crossbow"
 
     local m = self:GetOwner():GetModel()
-    local aim = self:GetADS() and not (ss.DrLilRobotPlayermodels[m] or ss.TwilightPlayermodels[m])
+    local aim = self:GetADS() and not (
+           ss.DrLilRobotPlayermodels[m]
+        or ss.TwilightPlayermodels[m]
+        or ss.EggHeadPlayermodels[m])
     return aim and "ar2" or aimpos
 end
 

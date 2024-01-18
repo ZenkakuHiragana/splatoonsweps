@@ -41,6 +41,7 @@ if not ss then return end
 ---@class ISpecialWeapon
 ---@field GetSpecialDuration fun(self): number
 ---@field OnSpecialStart     fun(self)
+---@field OnSpecialEnd       fun(self)
 
 ---Overridable functions implemented in inherited classes
 ---@class IMainWeapon
@@ -83,6 +84,7 @@ local SWEP = SWEP
 ---@field BaseClass SWEP
 ---@field ActivityTranslate        table<integer, integer>
 ---@field ActivityTranslateAI      SWEP.ActivityTranslationTable
+---@field BloodColor               integer? Used in Bubbler
 ---@field Bodygroup                integer[]
 ---@field BotInkColor              integer
 ---@field Buttons                  integer
@@ -619,6 +621,7 @@ end
 function SWEP:SharedHolsterBase()
     self:SetHolstering(true)
     ss.ProtectedCall(self.SharedHolster, self)
+    if self:GetNWBool "IsUsingSpecial" then self:OnSpecialEnd() end
     self:StopLoopSound()
     self:EndRecording()
     return true

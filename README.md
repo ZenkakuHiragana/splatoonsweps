@@ -62,7 +62,7 @@ The aim of this rework is the following:
 * Special weapons!
   * [x] Bomb Rush
   * [x] Echolocator
-  * [ ] Bubbler
+  * [x] Bubbler
   * [ ] Inkzooka
   * [ ] Inkstrike
   * [ ] Killer Wail
@@ -99,6 +99,7 @@ Playermodels are optional, but I recommend to install them, too.
 * [Octoling Playermodels][6]
 * [Callie & Marie Playermodels][7]
 * [Splatoon 2 - Octolings [PM/RAG/VOX]][8]
+* [[PMs] Off the Hook (Splatoon 2)][9]
 
 Using an external addon for third person view is also recommended.
 
@@ -112,5 +113,5 @@ Using an external addon for third person view is also recommended.
 [6]:https://steamcommunity.com/sharedfiles/filedetails/?id=478059724
 [7]:https://steamcommunity.com/sharedfiles/filedetails/?id=476149543
 [8]:https://steamcommunity.com/sharedfiles/filedetails/?id=1544841933
-[9]:https://steamcommunity.com/sharedfiles/filedetails/?id=2589006389
+[9]:https://steamcommunity.com/sharedfiles/filedetails/?id=2626656553
 [10]:https://steamcommunity.com/sharedfiles/filedetails/?id=2593095865

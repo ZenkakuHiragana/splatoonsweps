@@ -121,6 +121,10 @@ ss.TwilightPlayermodels = {
     [OctoGirl] = true,
     [OctoBoy]  = true, -- Can't apply flex manipulation with Octoling boy.
 }
+ss.EggHeadPlayermodels = {
+    [Pearl] = true,
+    [Marina] = true,
+}
 ss.Materials = {
     Crosshair = {
         Flash     = Material "splatoonsweps/crosshair/charged.vmt",
@@ -329,6 +333,7 @@ ss.SuperJumpWaitTime        = 1.5                         -- Time to wait for su
 ss.SuperJumpTravelTime      = 2.8                         -- Time from start to end of the super jump
 ss.SuperJumpVoiceDelay      = 0.8                         -- Delay to play super jump voice
 ss.ToHammerUnits            = dutohu                      -- = 3.53, Splatoon distance units -> Hammer distance units
+ss.ToHammerUnits2           = dutohu * dutohu             -- Square of Splatoon distance units / Square of Hammer distance units
 ss.ToHammerUnitsPerSec      = dutohu * fps                -- = 212, Splatoon du/s -> Hammer du/s
 ss.ToHammerUnitsPerSec2     = dutohu * fps * fps          -- = 12720, Splatoon du/s^2 -> Hammer du/s^2
 ss.ToHammerHealth           = 100                         -- Health is normalized in Splatoon (0--1)

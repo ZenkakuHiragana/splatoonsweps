@@ -11,6 +11,7 @@ ss.WeakShotLevel = 75
 ss.WeaponSoundLevel = 80
 ss.WeaponSoundVolume = 1
 ss.WeaponSoundPitch = {90, 110}
+ss.BubblerHit = Sound "splatoonsweps/weapons/special/bubblerhit.wav"
 ss.EnemyInkSound = Sound "splatoonsweps/player/onenemyink.wav"
 ss.SwimSound = Sound "splatoonsweps/player/swimloop.wav"
 ss.TakeDamage = Sound "splatoonsweps/player/takedamage.wav"
@@ -56,6 +57,15 @@ sound.Add {
     name = "SplatoonSWEPs.DealDamageCritical",
     level = 100,
     sound = "splatoonsweps/player/dealdamagecritical.wav",
+    volume = 1,
+    pitch = 100,
+}
+
+sound.Add {
+    channel = CHAN_STATIC,
+    name = "SplatoonSWEPs.DealDamageInvincible",
+    level = 90,
+    sound = "splatoonsweps/player/dealdamageinvincible.wav",
     volume = 1,
     pitch = 100,
 }

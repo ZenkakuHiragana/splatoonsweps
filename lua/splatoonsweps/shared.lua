@@ -155,6 +155,17 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
         end
     end
 
+    -- Apply knockback
+    if ss.KnockbackVector[ply] then
+        mv:SetVelocity(mv:GetVelocity() + ss.KnockbackVector[ply])
+        if ss.sp or IsFirstTimePredicted() then
+            ss.KnockbackVector[ply]:Div(2)
+            if ss.KnockbackVector[ply]:IsEqualTol(vector_origin, 10) then
+                ss.KnockbackVector[ply] = nil
+            end
+        end
+    end
+
     w.OnOutofInk = w:GetInWallInk()
     w:SetOldCrouching(crouching)
 end
@@ -299,8 +310,8 @@ function ss.AddTimerFramework(ent)
     ---@field weapon   SplatoonWeaponBase
 
     ---@alias _AddScheduleSignetures
-    ---| fun(self, delay: number, repitition: integer, hook: fun(self: Entity, schedule: ISchedule)): EntitySchedule
-    ---| fun(self, delay: number, hook: fun(self: Entity, schedule: ISchedule)): EntitySchedule
+    ---| fun(self, delay: number, repitition: integer, hook: fun(self: Entity, schedule: ISchedule): boolean?): EntitySchedule
+    ---| fun(self, delay: number, hook: fun(self: Entity, schedule: ISchedule): boolean?): EntitySchedule
     ---@class INetworkSchedule
     ---@field FunctionQueue      ISchedule[]
     ---@field AddNetworkSchedule fun(self, repitition: integer, hook: fun(self: Entity, schedule: ISchedule)): EntityNetworkSchedule
@@ -482,8 +493,25 @@ function ss.GetDamageScale() return gain "damagescale" / 100 end
 ---@param raw number
 ---@return integer
 function ss.GetTurfInkedInPoints(raw)
-    local inSplatoonUnits = -raw / (ss.ToHammerUnits * ss.ToHammerUnits)
+    local inSplatoonUnits = -raw / ss.ToHammerUnits2
     return math.floor(inSplatoonUnits / 330)
+end
+
+---Get the area of turf inked in raw value from apparent points
+---@param pts number the apparent points
+---@return number
+function ss.GetTurfInkedInRaw(pts)
+    return -pts * 330 * ss.ToHammerUnits2
+end
+
+---@param ply Entity
+---@param force Vector
+function ss.ApplyKnockback(ply, force)
+    ss.KnockbackVector[ply] = force
+    if CLIENT or ss.sp or not ply:IsPlayer() then return end ---@cast ply Player
+    net.Start "SplatoonSWEPs: Register knockback"
+    net.WriteVector(force)
+    net.Send(ply)
 end
 
 ---@param pt cvartree.CVarItem

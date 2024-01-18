@@ -23,15 +23,16 @@ SplatoonSWEPs = {
     CrosshairColors         = {}, ---@type integer[]
     DisruptedEntities       = {}, ---@type table<Entity, number>
     EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
-    LastHitID               = {}, ---@type table<Entity, integer>
-    Lightmap                = {}, ---@type ss.Lightmap
-    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
-    MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     InkColors               = {}, ---@type Color[]
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
     InkShotMasks            = {}, ---@type ss.InkShotMask[][] Indexing order -> InkType, ThresholdIndex, x, y
     InkShotTypes            = {}, ---@type table<string, integer[]>
     InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
+    KnockbackVector         = {}, ---@type table<Entity, Vector>
+    LastHitID               = {}, ---@type table<Entity, integer>
+    Lightmap                = {}, ---@type ss.Lightmap
+    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
+    MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     PaintSchedule           = {}, ---@type table<table, true>
     PlayerHullChanged       = {}, ---@type table<Player, boolean>
     PlayerID                = {}, ---@type table<Player, string>
@@ -402,13 +403,24 @@ function(ent, dmg)
     local w = ss.IsValidInkling(ent)
     local a = dmg:GetAttacker()
     local i = dmg:GetInflictor() --[[@as SplatoonWeaponBase]]
-    if w then w.HealSchedule:SetDelay(ss.HealDelay) end
     if not w then return end
+    if IsValid(a) and w:GetNWBool "IsUsingSpecial" and w.Special == "bubbler" then
+        ss.ApplyKnockback(ent, dmg:GetDamageForce() * dmg:GetDamage())
+        if not ent:IsPlayer() then return end ---@cast ent Player
+        if ss.mp then
+            net.Start("SplatoonSWEPs: Play bubbler hit sound", true)
+            net.Send(ent)
+        else
+            ent:EmitSound "SplatoonSWEPs.BubblerHit"
+        end
+        return true
+    end
+    w.HealSchedule:SetDelay(ss.HealDelay)
     if not (IsValid(a) and i.IsSplatoonWeapon) then return end
     if ss.IsAlly(w, i) then return true end
     if ss.IsAlly(ent, i) then return true end
     if not ent:IsPlayer() then return end ---@cast ent Player
-    net.Start "SplatoonSWEPs: Play damage sound"
+    net.Start("SplatoonSWEPs: Play damage sound", true)
     net.Send(ent)
 end)
 

@@ -96,8 +96,7 @@ local function DoRollingEffect(self, velocity)
 end
 ---@param self SWEP.Roller
 ---@param t TraceResult
----@param mv CMoveData
-local function DoRunover(self, t, mv)
+local function DoRunover(self, t)
     local p = self.Parameters
     local color = self:GetNWInt "inkcolor"
     local forward = self:GetForward()
@@ -125,7 +124,7 @@ local function DoRunover(self, t, mv)
         local effectpos = center + dir * dir:Dot(v:GetPos() - center)
         if self:IsMine() and (ss.sp or IsFirstTimePredicted()) then
             ss.SuppressHostEventsMP(self:GetOwner())
-            ss.CreateHitEffect(color, 0, effectpos, -forward, NULL)
+            ss.CreateHitEffect(color, 0, effectpos, -forward, self:GetOwner())
             ss.EndSuppressHostEventsMP()
         end
 
@@ -151,7 +150,7 @@ local function DoRunover(self, t, mv)
     self.RunoverExclusion = keys
     if not self:GetOwner():IsPlayer() then return end
     if not knockback then return end
-    mv:SetVelocity(mv:GetVelocity() - self:GetForward() * ss.InklingBaseSpeed * 10)
+    ss.ApplyKnockback(self:GetOwner(), self:GetForward() * ss.InklingBaseSpeed * -10)
     self:SetRunoverDelay(CurTime() + ss.RollerRunoverStopFrame)
 end
 
@@ -554,7 +553,7 @@ function SWEP:Move(ply, mv)
         ss.Paint(t.HitPos, t.HitNormal, width, color, yaw, inktype, .25, self:GetOwner(), self.ClassName)
 
         DoRollingEffect(self, velocity)
-        DoRunover(self, t, mv)
+        DoRunover(self, t)
         self.NotEnoughInkRoll = false
 
         local inkconsumerate = FrameTime() / ss.FrameToSec

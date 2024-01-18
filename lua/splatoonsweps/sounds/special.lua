@@ -17,3 +17,30 @@ sound.Add {
     volume = 1,
     pitch = 100,
 }
+
+sound.Add {
+    channel = CHAN_ITEM,
+    name = "SplatoonSWEPs.BubblerStart",
+    level = 85,
+    sound = "splatoonsweps/weapons/special/bubblerstart.wav",
+    volume = 1,
+    pitch = 100,
+}
+
+sound.Add {
+    channel = CHAN_ITEM,
+    name = "SplatoonSWEPs.BubblerEnd",
+    level = 85,
+    sound = "splatoonsweps/weapons/special/bubblerend.wav",
+    volume = 1,
+    pitch = 100,
+}
+
+sound.Add {
+    channel = CHAN_STATIC,
+    name = "SplatoonSWEPs.BubblerHit",
+    level = 85,
+    sound = "splatoonsweps/weapons/special/bubblerhit.wav",
+    volume = 1,
+    pitch = 100,
+}
