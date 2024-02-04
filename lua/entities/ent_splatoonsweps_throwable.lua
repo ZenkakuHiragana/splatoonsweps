@@ -93,6 +93,8 @@ function ENT:Initialize()
 
     ss.RegisterEntity(self)
     self:SetNWVarProxy("inkcolor", function(ent, name, old, new)
+        if old == new then return end
+        ss.UnregisterEntity(ent, old)
         ss.RegisterEntity(ent, new)
     end)
 end

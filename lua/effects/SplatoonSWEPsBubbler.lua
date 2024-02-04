@@ -25,16 +25,19 @@ end
 function EFFECT:Think()
     local valid = IsValid(self.Weapon)
     and IsValid(self.Weapon:GetOwner())
-    and (self.Weapon:GetNWBool "IsUsingSpecial"
-    or CurTime() - self.Weapon:GetSpecialStartTime() < 0.5)
-    if not valid then return false end
+    and ss.IsInvincible(self.Weapon:GetOwner())
+    if not valid then
+        self:EmitSound "SplatoonSWEPs.BubblerEnd"
+        return false
+    end
+
     local mins, maxs = self:GetModelRenderBounds()
     local ref = maxs.z - mins.z
     local Owner = self.Weapon:GetOwner()
     local dz = Owner:EyePos().z - Owner:GetPos().z
     local scale = dz / ref
     self:SetPos(Owner:WorldSpaceCenter())
-    self:SetAngles(Angle(0, EyeAngles().yaw, 0))
+    self:SetAngles(EyeAngles())
     self:SetModelScale(scale * 1.5)
     return true
 end
@@ -47,7 +50,7 @@ function EFFECT:Render()
     if not (Owner:IsPlayer() or Owner:IsNPC()) then return end ---@cast Owner Player
     if Owner:GetActiveWeapon() ~= w then return end
     self:SetPos(Owner:WorldSpaceCenter())
-    self:SetAngles(Angle(0, EyeAngles().yaw, 0))
+    self:SetAngles(EyeAngles())
     self:SetupBones()
     self:DrawModel()
 end

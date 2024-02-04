@@ -314,6 +314,7 @@ function SWEP:Equip(newOwner)
     end
 
     self:BackupInfo()
+    ss.RegisterEntity(newOwner, self:GetNWInt("inkcolor", -1))
 end
 
 ---Deploy hook
@@ -367,6 +368,7 @@ function SWEP:OnRemove()
     self:StopLoopSound()
     self:EndRecording()
     ss.ProtectedCall(self.ServerOnRemove, self)
+    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
     if self:GetHolstering() then return end
     self:Holster(NULL)
 end
@@ -381,6 +383,7 @@ function SWEP:OnDrop()
         self:RestoreInfo()
     end
 
+    ss.UnregisterEntity(Owner, self:GetNWInt("inkcolor", -1))
     self:SetOwner(NULL)
     ss.ProtectedCall(self.ServerHolster, self)
     self:SharedHolsterBase()

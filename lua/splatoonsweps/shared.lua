@@ -156,13 +156,11 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     end
 
     -- Apply knockback
-    if ss.KnockbackVector[ply] then
+    if (ss.sp or IsFirstTimePredicted()) and ss.KnockbackVector[ply] then
         mv:SetVelocity(mv:GetVelocity() + ss.KnockbackVector[ply])
-        if ss.sp or IsFirstTimePredicted() then
-            ss.KnockbackVector[ply]:Div(2)
-            if ss.KnockbackVector[ply]:IsEqualTol(vector_origin, 10) then
-                ss.KnockbackVector[ply] = nil
-            end
+        ss.KnockbackVector[ply]:Div(2)
+        if ss.KnockbackVector[ply]:IsEqualTol(vector_origin, 10) then
+            ss.KnockbackVector[ply] = nil
         end
     end
 
@@ -528,6 +526,30 @@ function ss.GetVoiceName(key, id)
     local suffix = ss.VoiceSuffix[id]
     if not suffix then return end
     return "SplatoonSWEPs_Voice." .. key .. "_" .. suffix
+end
+
+---Adds invincible time to the given entity for duration seconds
+---@param ent Entity
+---@param duration number
+function ss.SetInvincibleDuration(ent, duration)
+    if duration < 0 then
+        ss.InvincibleEntities[ent] = nil
+    else
+        ss.InvincibleEntities[ent] = CurTime() + duration
+    end
+    if CLIENT then return end
+    net.Start "SplatoonSWEPs: Sync invincible entity state"
+    net.WriteEntity(ent)
+    net.WriteFloat(duration)
+    net.Broadcast()
+end
+
+---Checks if the given entity is invincible from ink
+---@param ent Entity
+---@return boolean
+function ss.IsInvincible(ent)
+    if not IsValid(ent) then return false end
+    return ss.InvincibleEntities[ent] and CurTime() < ss.InvincibleEntities[ent]
 end
 
 ---Play footstep sound of ink

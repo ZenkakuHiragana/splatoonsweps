@@ -27,6 +27,8 @@ if not ss then return end
 
 ---@alias SpecialParameters
 ---| SpecialParameters.Bombrush
+---| SpecialParameters.Bubbler
+---| SpecialParameters.Echolocator
 
 ---@class ISubWeaponDef
 ---@field Merge      table<string, any>

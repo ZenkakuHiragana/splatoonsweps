@@ -141,6 +141,7 @@ function SWEP:OnRemove()
     self:EndRecording()
     ss.ProtectedCall(self.ClientOnRemove, self)
     ss.ProtectedCall(self.SharedOnRemove, self)
+    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
 end
 
 function SWEP:Think()

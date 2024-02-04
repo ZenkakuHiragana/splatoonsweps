@@ -28,6 +28,7 @@ SplatoonSWEPs = {
     InkShotMasks            = {}, ---@type ss.InkShotMask[][] Indexing order -> InkType, ThresholdIndex, x, y
     InkShotTypes            = {}, ---@type table<string, integer[]>
     InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
+    InvincibleEntities      = {}, ---@type table<Entity, number>
     KnockbackVector         = {}, ---@type table<Entity, Vector>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap
@@ -404,7 +405,7 @@ function(ent, dmg)
     local a = dmg:GetAttacker()
     local i = dmg:GetInflictor() --[[@as SplatoonWeaponBase]]
     if not w then return end
-    if IsValid(a) and w:GetNWBool "IsUsingSpecial" and w.Special == "bubbler" then
+    if IsValid(a) and ss.IsInvincible(ent) then
         ss.ApplyKnockback(ent, dmg:GetDamageForce() * dmg:GetDamage())
         if not ent:IsPlayer() then return end ---@cast ent Player
         if ss.mp then

@@ -215,12 +215,10 @@ local function HitEntity(ink, t)
         damage = Lerp(frac, damage_max, damage_min)
     end
 
-    local we = ss.IsValidInkling(e)
-    local isusingbubbler = we and we:GetNWBool "IsUsingSpecial" and we.Special == "bubbler"
-    local te = util.TraceLine {start = t.HitPos, endpos = e:WorldSpaceCenter()}
     local flags = 0
+    local te = util.TraceLine { start = t.HitPos, endpos = e:WorldSpaceCenter() }
     if data.IsCritical            then flags = flags + 1 end
-    if isusingbubbler             then flags = flags + 8 end
+    if ss.IsInvincible(e)         then flags = flags + 8 end
     if ink.IsCarriedByLocalPlayer then flags = flags + 128 end
     ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, o)
     if ss.mp and CLIENT then return end

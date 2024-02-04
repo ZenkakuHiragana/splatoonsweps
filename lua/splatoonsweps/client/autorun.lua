@@ -16,6 +16,7 @@ SplatoonSWEPs = {
     InkShotTypes            = {}, ---@type table<string, integer[]>
     InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
+    InvincibleEntities      = {}, ---@type table<Entity, number>
     KnockbackVector         = {}, ---@type table<Entity, Vector>
     LastHitID               = {}, ---@type table<Entity, integer>
     Lightmap                = {}, ---@type ss.Lightmap

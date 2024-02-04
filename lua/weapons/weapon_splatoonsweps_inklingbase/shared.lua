@@ -565,6 +565,14 @@ function SWEP:SharedInitBase()
         translate[t] = self.ActivityTranslate
     end
 
+    self:SetNWVarProxy("inkcolor", function(ent, name, old, new)
+        if old == new then return end
+        local Owner = ent:GetOwner()
+        if not IsValid(Owner) then return end
+        ss.UnregisterEntity(Owner, old)
+        ss.RegisterEntity(Owner, new)
+    end)
+
     if ss.sp then self.Buttons, self.OldButtons = 0, 0 end
     if ss[self.Sub] then table.Merge(self, ss[self.Sub].Merge) end
     if ss[self.Special] then
@@ -613,6 +621,7 @@ function SWEP:SharedDeployBase()
     end
 
     ss.ProtectedCall(self.SharedDeploy, self)
+    ss.RegisterEntity(Owner, self:GetNWInt("inkcolor", -1))
     return true
 end
 
@@ -621,6 +630,7 @@ end
 function SWEP:SharedHolsterBase()
     self:SetHolstering(true)
     ss.ProtectedCall(self.SharedHolster, self)
+    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
     if self:GetNWBool "IsUsingSpecial" then self:OnSpecialEnd() end
     self:StopLoopSound()
     self:EndRecording()

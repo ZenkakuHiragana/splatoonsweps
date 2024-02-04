@@ -19,8 +19,9 @@ util.AddNetworkString "SplatoonSWEPs: Send player data"
 util.AddNetworkString "SplatoonSWEPs: Send turf inked"
 util.AddNetworkString "SplatoonSWEPs: Strip weapon"
 util.AddNetworkString "SplatoonSWEPs: Super jump"
-util.AddNetworkString "SplatoonSWEPs: Sync marked entity state"
 util.AddNetworkString "SplatoonSWEPs: Sync disrupted entity state"
+util.AddNetworkString "SplatoonSWEPs: Sync invincible entity state"
+util.AddNetworkString "SplatoonSWEPs: Sync marked entity state"
 net.Receive("SplatoonSWEPs: Ready to splat", function(_, ply)
     ss.PlayersReady[#ss.PlayersReady + 1] = ply
     ss.InitializeMoveEmulation(ply)

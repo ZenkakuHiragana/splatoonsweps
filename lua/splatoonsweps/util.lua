@@ -330,6 +330,16 @@ function ss.RegisterEntity(ent, color)
     ss.EntityFilters[color][ent] = true
 end
 
+---Unregisters an entity from EntityFilters
+---@param ent   Entity
+---@param color integer?
+function ss.UnregisterEntity(ent, color)
+    color = color or ent:GetNWInt("inkcolor", -1)
+    if color < 0 then return end
+    ss.EntityFilters[color] = ss.EntityFilters[color] or {}
+    ss.EntityFilters[color][ent] = nil
+end
+
 ---Make a table of entities assumed to have the same color
 ---@param weapon SplatoonWeaponBase
 ---@return Entity[]
