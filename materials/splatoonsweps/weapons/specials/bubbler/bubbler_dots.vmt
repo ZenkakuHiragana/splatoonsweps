@@ -18,7 +18,7 @@
         "TextureScroll"
         {
             "texturescrollvar" "$basetexturetransform"
-            "texturescrollrate" "-0.1"
+            "texturescrollrate" "0.1"
             "texturescrollangle" "0"
         }
         "TextureTransform"
@@ -32,7 +32,7 @@
         "TextureScroll"
         {
             "texturescrollvar" "$translate"
-            "texturescrollrate" 7.5
+            "texturescrollrate" -7.5
             "texturescrollangle" 90
         }
         "SelectFirstIfNonZero"

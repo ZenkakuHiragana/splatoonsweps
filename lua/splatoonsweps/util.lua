@@ -349,7 +349,9 @@ function ss.MakeAllyFilter(weapon)
     local entities = { weapon, owner } ---@type Entity[]
     for ent in pairs(ss.EntityFilters[color] or {}) do
         if IsValid(ent) then
-            entities[#entities + 1] = ent
+            if not (ent:IsPlayer() or ent:IsNPC()) or ss.IsAlly(owner, ent) then
+                entities[#entities + 1] = ent
+            end
         else
             ss.EntityFilters[color][ent] = nil
         end

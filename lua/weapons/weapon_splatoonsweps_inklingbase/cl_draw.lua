@@ -3,65 +3,48 @@
 local ss = SplatoonSWEPs
 if not ss then return end
 
-local SWEP = SWEP
----@cast SWEP SplatoonWeaponBase
 ---@class SplatoonWeaponBase
----@field CreateModels                 fun(self, models: table<string, SWEP.ModelElement>)
 ---@field CustomCalcView               fun(self, ply: Player, pos: Vector, ang: Angle, fov: number): number?
----@field DrawOnSubTriggerDown         fun(self)
----@field GetBoneOrientation           fun(self, basetab: table<string, SWEP.ModelElement>, tab: SWEP.ModelElement, ent: Entity, bone_override: string?): Vector?, Angle?
----@field GetCameraFade                fun(self): number
----@field GetSubWeaponInkConsume       fun(self): number
 ---@field PreDrawWorldModel            fun(self): boolean?
----@field PreDrawWorldModelElements    fun(self, model: CSEnt, bone_ent: Entity, pos: Vector, ang: Angle, v: SWEP.ModelElement, matrix: VMatrix)
 ---@field PreDrawWorldModelTranslucent fun(self): boolean?
 ---@field PreViewModelDrawn            fun(self, vm: Entity, weapon: Weapon, ply: Player)
----@field RecreateModel                fun(self, v: table, modelname: string?): boolean?
----@field ResetBonePositions           fun(self, vm: Entity)
----@field ShouldDrawSquid              fun(self): boolean
----@field UpdateBonePositions          fun(self, vm: Entity)
 ---@field AmmoDisplay                  { Draw: boolean, PrimaryClip: number, PrimaryAmmo: number, SecondaryAmmo: number? }
 ---@field Cursor                       { x: number, y: number }
 ---@field EnoughSubWeapon              boolean
 ---@field PreviousInk                  boolean
----@field VElements                    table<string, SWEP.ModelElement>
----@field ViewModelBoneMods            table<string, SWEP.ModelElementManip>
 ---@field ViewPunch                    Angle
 ---@field ViewPunchVel                 Angle
----@field vRenderOrder                 string[]
 ---@field WElements                    table<string, SWEP.ModelElement>
----@field wRenderOrder                 string[]
 ---@field SpriteSizeChangeSpeed        number
 ---@field SpriteCurrentSize            number
-
----@class SWEP.ModelElementManip
----@field scale          Vector
----@field pos            Vector
----@field angle          Angle
+local SWEP = SWEP
 
 ---@class CSEnt.ModelEnt : CSEnt
 ---@field GetInkColorProxy fun(self): Vector
 
----@class SWEP.ModelElement : SWEP.ModelElementManip
----@field sprite            string?
----@field createdSprite     string?
+---@class SWEP.ModelElement
+---@field angle             Angle?
+---@field worldang          Angle?
+---@field bodygroup         integer[]?
+---@field bone              string
+---@field color             Color?
 ---@field createdModel      string?
+---@field createdSprite     string?
+---@field draw_func         fun(self)?
+---@field hide              boolean?
+---@field inktank           boolean?
+---@field is2d              boolean?
 ---@field material          string?
 ---@field model             string?
----@field modelEnt          CSEnt|CSEnt.ModelEnt
----@field spriteMaterial    IMaterial?
----@field type              string?
+---@field modelEnt          CSEnt|CSEnt.ModelEnt?
+---@field pos               Vector?
 ---@field rel               string?
----@field bone              string?
----@field size              { x: number, y: number }?
----@field hide              boolean?
----@field surpresslightning boolean?
+---@field size              Vector|{ x: number, y: number }?
 ---@field skin              integer?
----@field bodygroup         integer[]?
----@field color             Color?
----@field is2d              boolean?
----@field draw_func         fun(self)
----@field inktank           boolean?
+---@field sprite            string?
+---@field spriteMaterial    IMaterial?
+---@field surpresslightning boolean?
+---@field type              string?
 
 ---Resets bone manipulations of given view model
 ---@param vm Entity The view model to reset
@@ -74,109 +57,29 @@ function SWEP:ResetBonePositions(vm)
     end
 end
 
-local hasGarryFixedBoneScalingYet = false
----Updates bone manipulations for given view model
----@param vm Entity The view model to update
-function SWEP:UpdateBonePositions(vm)
-    if IsValid(vm) and self.ViewModelBoneMods then
-        if not vm:GetBoneCount() then return end
-
-        -- !! WORKAROUND !! --
-        -- We need to check all model names :/
-        local allbones = {} ---@type table<string, SWEP.ModelElementManip>
-        local loopthrough = self.ViewModelBoneMods
-        if not hasGarryFixedBoneScalingYet then
-            for i = 0, vm:GetBoneCount() do
-                local bonename = vm:GetBoneName(i)
-                if self.ViewModelBoneMods[bonename] then
-                    allbones[bonename] = self.ViewModelBoneMods[bonename]
-                else
-                    allbones[bonename] = {
-                        scale = ss.vector_one,
-                        pos = vector_origin,
-                        angle = angle_zero
-                    }
-                end
-            end
-            loopthrough = allbones
-        end
-        -- !! ----------- !! --
-
-        for k, v in pairs(loopthrough) do
-            local bone = vm:LookupBone(k)
-            if not bone then continue end
-
-            -- !! WORKAROUND !! --
-            local s = Vector(v.scale)
-            local p = Vector(v.pos)
-            local ms = ss.vector_one
-            if not hasGarryFixedBoneScalingYet then
-                local cur = vm:GetBoneParent(bone)
-                while cur >= 0 do
-                    local pscale = loopthrough[vm:GetBoneName(cur)].scale
-                    ms = ms * pscale
-                    cur = vm:GetBoneParent(cur)
-                end
-            end
-
-            s = s * ms
-            -- !! ----------- !! --
-
-            if vm:GetManipulateBoneScale(bone) ~= s then
-                vm:ManipulateBoneScale(bone, s)
-            end
-            if vm:GetManipulateBonePosition(bone) ~= p then
-                vm:ManipulateBonePosition(bone, p)
-            end
-            if vm:GetManipulateBoneAngles(bone) ~= v.angle then
-                vm:ManipulateBoneAngles(bone, v.angle)
-            end
-        end
-    else
-        self:ResetBonePositions(vm)
-    end
-end
-
----@param basetab table<string, SWEP.ModelElement>
 ---@param tab SWEP.ModelElement
 ---@param ent Entity
----@param bone_override string
----@return Vector
----@return Angle
-function SWEP:GetBoneOrientation(basetab, tab, ent, bone_override)
+---@return Vector?
+---@return Angle?
+function SWEP:GetBoneOrientation(tab, ent)
     local bone, pos, ang ---@type integer, Vector?, Angle?
-    if tab.rel and tab.rel ~= "" then
-        local v = basetab[tab.rel --[[@as string]]]
-        if not v then return end
+    bone = ent:LookupBone(tab.bone)
+    if not bone then return end
+    local m = ent:GetBoneMatrix(bone)
+    pos, ang = m and m:GetTranslation(), m and m:GetAngles()
 
-        -- Technically, if there exists an element with the same name as a bone
-        -- you can get in an infinite loop. Let's just hope nobody's that stupid.
-        pos, ang = self:GetBoneOrientation(basetab, v, ent)
-        if not (pos and ang) then return end
-
-        pos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-        ang:RotateAroundAxis(ang:Up(), v.angle.y)
-        ang:RotateAroundAxis(ang:Right(), v.angle.p)
-        ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-    else
-        bone = ent:LookupBone(bone_override or tab.bone)
-        if not bone then return end
-        local m = ent:GetBoneMatrix(bone)
-        pos, ang = m and m:GetTranslation(), m and m:GetAngles()
-
-        if ent == self:GetViewModel() and self.ViewModelFlip then
-            ang.r = -ang.r -- Fixes mirrored models
-        end
+    if ent == self:GetViewModel() and self.ViewModelFlip then
+        ang.r = -ang.r -- Fixes mirrored models
     end
 
     return pos, ang
 end
 
 ---@param v SWEP.ModelElement
----@param modelname string
+---@param modelname string?
 ---@return boolean?
 function SWEP:RecreateModel(v, modelname)
-    modelname = modelname or v.model ~= "" and v.model
+    modelname = modelname or v.model ~= "" and v.model or nil
     if not (modelname and util.IsModelLoaded(modelname)) then return end
     v.modelEnt = ClientsideModel(modelname, RENDERGROUP_BOTH)
     if IsValid(v.modelEnt) then
@@ -246,11 +149,55 @@ function SWEP:CreateModels(t)
     end
 end
 
+---@param name string
+function SWEP:DrawWorldElement(name)
+    local v = self.WElements[name]
+    if not v then return end
+    if v.hide then return end
+
+    local cameradistance = 1
+    local bone_ent = self:GetOwner()
+    if not IsValid(bone_ent) then bone_ent = self end -- When the weapon is dropped
+    if self:IsCarriedByLocalPlayer() then
+        cameradistance = self:GetCameraFade()
+    end
+
+    local pos, ang = self:GetBoneOrientation(v, bone_ent)
+    if not (pos and ang) then return end
+
+    if v.type == "Model" then
+        if not (IsValid(v.modelEnt) or self:RecreateModel(v)) then return end
+        local model = v.modelEnt ---@cast model -?
+        if v.pos or v.angle then
+            local worldpos, worldang = LocalToWorld(v.pos or Vector(), v.angle or Angle(), pos, ang)
+            if v.pos then model:SetPos(worldpos) end
+            if v.angle then model:SetAngles(worldang) end
+        end
+
+        local matrix = Matrix()
+        matrix:Scale(v.size or ss.vector_one)
+        model:SetupBones()
+        model:EnableMatrix("RenderMultiply", matrix)
+        render.SetBlend(cameradistance)
+        model:DrawModel()
+        model:CreateShadow()
+        render.SetBlend(1)
+    elseif v.type == "Sprite" and v.spriteMaterial then
+        local worldpos = LocalToWorld(v.pos, Angle(), pos, ang)
+        render.SetMaterial(v.spriteMaterial)
+        render.DrawSprite(worldpos, v.size.x, v.size.y, v.color)
+    end
+end
+
+---@param vm Entity
+---@param weapon SplatoonWeaponBase
+---@param ply Player
 function SWEP:PreDrawViewModel(vm, weapon, ply)
     ss.ProtectedCall(self.PreViewModelDrawn, self, vm, weapon, ply)
     vm:SetupBones()
 end
 
+---@param vm Entity
 function SWEP:ViewModelDrawn(vm)
     if self:GetHolstering() or not (IsValid(self) and IsValid(self:GetOwner())) then return end
     if self:GetThrowing() and CurTime() > self:GetNextSecondaryFire() then
@@ -283,137 +230,80 @@ function SWEP:DrawWorldModelTranslucent()
     self.SpriteSizeChangeSpeed = self.SpriteSizeChangeSpeed * 0.92 + diff * 2 * FrameTime()
     self.SpriteCurrentSize = self.SpriteCurrentSize + self.SpriteSizeChangeSpeed
 
-    if self:ShouldDrawSquid() then return end
-    if self:GetInInk() then return end
-
-    local cameradistance = 1
-    local bone_ent = self:GetOwner()
-    if not IsValid(bone_ent) then bone_ent = self end -- When the weapon is dropped
-    if self:IsCarriedByLocalPlayer() then
-        cameradistance = self:GetCameraFade()
-    end
     if self:GetThrowing() and CurTime() > self:GetNextSecondaryFire() then
         ss.ProtectedCall(self.DrawOnSubTriggerDown, self)
     end
 
-    for _, name in ipairs(self.wRenderOrder) do
-        local v = self.WElements[name]
-        if not v then self.wRenderOrder = nil break end
-        if name == "subweaponusable" then
-            local inkconsume = ss.ProtectedCall(self.GetSubWeaponInkConsume, self) or 0
-            local size = self.SpriteCurrentSize
-            v.size = { x = size, y = size }
-            v.hide = not IsValid(self.WElements["inktank"].modelEnt) or self:GetInk() < inkconsume
-        elseif name == "inktank" and IsValid(self:GetOwner()) then
-            bone_ent = self:GetOwner()
+    if not (self:ShouldDrawSquid() or self:GetInInk()) then
+        local inkconsume = ss.ProtectedCall(self.GetSubWeaponInkConsume, self) or 0
+        local size = self.SpriteCurrentSize
+        self.WElements.subweaponusable.size = { x = size, y = size }
+        self.WElements.subweaponusable.hide = not IsValid(self.WElements.inktank.modelEnt) or self:GetInk() < inkconsume
+
+        -- Manipulate sub weapon usable meter
+        local model = self.WElements.inktank.modelEnt
+        if not IsValid(model) then
+            self:RecreateModel(self.WElements.inktank)
+            model = self.WElements.inktank.modelEnt
         end
-        if v.hide then continue end
+        if IsValid(model) then ---@cast model -?
+            local BombPos = Vector(math.min(-11.9 + inkconsume * 17 / ss.GetMaxInkAmount(), 5.1))
+            model:ManipulateBonePosition(model:LookupBone "bip_inktank_bombmeter", BombPos)
 
-        local pos, ang = self:GetBoneOrientation(self.WElements, v, bone_ent, not v.bone and "ValveBiped.Bip01_R_Hand" or nil)
-        if not (pos and ang) then continue end
+            -- Ink remaining
+            local ink = -17 + .17 * self:GetInk() * ss.MaxInkAmount / ss.GetMaxInkAmount()
+            model:ManipulateBonePosition(model:LookupBone "bip_inktank_ink_core", Vector(ink, 0, 0))
 
-        local sprite = v.spriteMaterial
-        if v.type == "Model" then
-            if not (IsValid(v.modelEnt) or self:RecreateModel(v)) then continue end
-            local model = v.modelEnt
-            local da = v.angle or Angle()
-            local dp = v.pos or Vector()
-            if name ~= "weapon" or v.bone ~= "ValveBiped.Bip01_L_Hand" then
-                model:SetPos(pos + ang:Forward() * dp.x + ang:Right() * dp.y + ang:Up() * dp.z)
-                ang:RotateAroundAxis(ang:Up(), da.y)
-                ang:RotateAroundAxis(ang:Right(), da.p)
-                ang:RotateAroundAxis(ang:Forward(), da.r)
-            else
-                model:SetPos(pos + ang:Forward() * dp.x + ang:Right() * dp.y - ang:Up() * dp.z)
-                ang:RotateAroundAxis(ang:Up(), da.y)
-                ang:RotateAroundAxis(ang:Right(), da.p)
-                ang:RotateAroundAxis(ang:Forward(), da.r + 180)
-            end
-            model:SetAngles(ang)
+            -- Ink visiblity
+            model:SetBodygroup(model:FindBodygroupByName "Ink", ink < -16.5 and 1 or 0)
 
-            local matrix = Matrix()
-            matrix:Scale(v.size)
-
-            if model:GetMaterial() ~= v.material then
-                if v.material == "" then
-                    model:SetMaterial ""
-                else
-                    model:SetMaterial(v.material)
-                end
+            -- Ink wave
+            for i = 1, 19 do
+                if i == 10 or i == 11 then continue end
+                local number = tostring(i)
+                if i < 10 then number = "0" .. tostring(i) end
+                local bone = model:LookupBone("bip_inktank_ink_" .. number)
+                local delta = model:GetManipulateBonePosition(bone).y
+                local write = math.Clamp(delta + math.sin(CurTime() + math.pi / 17 * i) / 100, -0.25, 0.25)
+                model:ManipulateBonePosition(bone, Vector(0, write, 0))
             end
 
-            local skin = name == "weapon" and self.Skin or v.skin
-            if skin and skin ~= model:GetSkin() then
-                model:SetSkin(skin)
-            end
-
-            for k, b in pairs(name == "weapon" and self.Bodygroup or v.bodygroup or {}) do
-                if model:GetBodygroup(k) == b then continue end
-                model:SetBodygroup(k, b)
-            end
-
-            if v.surpresslightning then
-                render.SuppressEngineLighting(true)
-            end
-
-            if v.inktank then
-                -- Sub weapon usable meter
-                local inkconsume = ss.ProtectedCall(self.GetSubWeaponInkConsume, self) or 0
-                local BombPos = Vector(math.min(-11.9 + inkconsume * 17 / ss.GetMaxInkAmount(), 5.1))
-                model:ManipulateBonePosition(model:LookupBone "bip_inktank_bombmeter", BombPos)
-                -- Ink remaining
-                local ink = -17 + .17 * self:GetInk() * ss.MaxInkAmount / ss.GetMaxInkAmount()
-                model:ManipulateBonePosition(model:LookupBone "bip_inktank_ink_core", Vector(ink, 0, 0))
-                -- Ink visiblity
-                model:SetBodygroup(model:FindBodygroupByName "Ink", ink < -16.5 and 1 or 0)
-                -- Ink wave
-                for i = 1, 19 do
-                    if i == 10 or i == 11 then continue end
-                    local number = tostring(i)
-                    if i < 10 then number = "0" .. tostring(i) end
-                    local bone = model:LookupBone("bip_inktank_ink_" .. number)
-                    local delta = model:GetManipulateBonePosition(bone).y
-                    local write = math.Clamp(delta + math.sin(CurTime() + math.pi / 17 * i) / 100, -0.25, 0.25)
-                    model:ManipulateBonePosition(bone, Vector(0, write, 0))
-                end
-
-                model:SetupBones()
-            end
-
-            ss.ProtectedCall(self.PreDrawWorldModelElements, self, model, bone_ent, pos, ang, v, matrix)
-            model:EnableMatrix("RenderMultiply", matrix)
-            render.SetColorModulation(v.color.r / 255, v.color.g / 255, v.color.b / 255)
-            render.SetBlend(v.color.a / 255 * cameradistance)
-            model:DrawModel()
-            model:CreateShadow()
-            render.SetBlend(1)
-            render.SetColorModulation(1, 1, 1)
-
-            if v.surpresslightning then
-                render.SuppressEngineLighting(false)
-            end
-
-        elseif v.type == "Sprite" and sprite then
-            local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-            local a = sprite:GetFloat "$alpha"
-            local t = sprite:GetFloat "$translucent"
-            sprite:SetFloat("$alpha", cameradistance)
-            sprite:SetFloat("$translucent", 1)
-            render.SetMaterial(sprite)
-            render.DrawSprite(drawpos, v.size.x, v.size.y, v.color)
-            sprite:SetFloat("$alpha", a or 1)
-            sprite:SetFloat("$translucent", t or 0)
-
-        elseif v.type == "Quad" then
-            local drawpos = pos + ang:Forward() * v.pos.x + ang:Right() * v.pos.y + ang:Up() * v.pos.z
-            ang:RotateAroundAxis(ang:Up(), v.angle.y)
-            ang:RotateAroundAxis(ang:Right(), v.angle.p)
-            ang:RotateAroundAxis(ang:Forward(), v.angle.r)
-
-            if v.is2d then cam.Start3D2D(drawpos, ang, v.size.x) end
-            ss.ProtectedCall(v.draw_func, self)
-            if v.is2d then cam.End3D2D() end
+            model:SetupBones()
         end
+
+        self:DrawWorldElement "inktank"
+        self:DrawWorldElement "subweaponusable"
+    end
+
+    -- Draw Bubbler when enabled
+    local Owner = self:GetOwner()
+    if ss.IsInvincible(Owner) then
+        local mdl = self.WElements.bubbler.modelEnt
+        if not IsValid(mdl) then
+            self:RecreateModel(self.WElements.bubbler)
+            mdl = self.WElements.bubbler.modelEnt
+        end
+        if IsValid(mdl) then ---@cast mdl -?
+            local mins, maxs = mdl:GetModelRenderBounds()
+            local ref = maxs.z - mins.z
+            local eye = Owner:EyePos()
+            local pos = Owner:GetPos()
+            local dz = eye.z - pos.z
+            local scale = dz / ref
+            local org = Owner:WorldSpaceCenter()
+            if Owner:IsPlayer() then ---@cast Owner Player
+                local stand = Owner:GetViewOffset().z
+                local ducked = Owner:GetViewOffsetDucked().z
+                local frac = math.Remap(dz, ducked, stand, 0.5, 1)
+                org = LerpVector(frac, pos, org)
+            end
+            mdl:SetPos(org)
+            mdl:SetAngles(EyeAngles())
+            self.WElements.bubbler.size = ss.vector_one * scale * 1.75
+        end
+
+        render.UpdateRefractTexture()
+        self:DrawWorldElement "bubbler"
     end
 end
 
@@ -433,6 +323,12 @@ function SWEP:CustomAmmoDisplay()
     }
 end
 
+---This hook draws the selection icon in the weapon selection menu.
+---@param x number
+---@param y number
+---@param wide number
+---@param tall number
+---@param alpha number
 function SWEP:DrawWeaponSelection(x, y, wide, tall, alpha)
     -- Set us up the texture
     surface.SetDrawColor(255, 255, 255, alpha)
@@ -451,6 +347,10 @@ function SWEP:DrawWeaponSelection(x, y, wide, tall, alpha)
     self:PrintWeaponInfo(x + wide + 20, y + tall, alpha)
 end
 
+---Called when the crosshair is about to get drawn, and allows you to override it.
+---@param x number
+---@param y number
+---@return boolean?
 function SWEP:DoDrawCrosshair(x, y)
     local Owner = self:GetOwner()
     if not (IsValid(Owner) and Owner:IsPlayer()) then return false end ---@cast Owner Player
@@ -464,6 +364,14 @@ end
 
 local PUNCH_DAMPING = 9.0
 local PUNCH_SPRING_CONSTANT = 65.0
+---Allows you to adjust player view while this weapon in use.
+---@param ply Player
+---@param pos Vector
+---@param ang Angle
+---@param fov number
+---@return Vector
+---@return Angle
+---@return number
 function SWEP:CalcView(ply, pos, ang, fov)
     local f = ss.ProtectedCall(self.CustomCalcView, self, ply, pos, ang, fov) ---@type number?
     if ply:ShouldDrawLocalPlayer() then return pos, ang, f or fov end

@@ -407,8 +407,7 @@ function(ent, dmg)
     if not w then return end
     if IsValid(a) and ss.IsInvincible(ent) then
         ss.ApplyKnockback(ent, dmg:GetDamageForce() * dmg:GetDamage())
-        if not ent:IsPlayer() then return end ---@cast ent Player
-        if ss.mp then
+        if ss.mp and ent:IsPlayer() then ---@cast ent Player
             net.Start("SplatoonSWEPs: Play bubbler hit sound", true)
             net.Send(ent)
         else

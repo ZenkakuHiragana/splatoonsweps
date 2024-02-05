@@ -22,8 +22,9 @@ ss.WeaponClassNames  = include "splatoonsweps/constants/weaponclasses.lua" ---@t
 ss.WeaponClassNames2 = include "splatoonsweps/constants/weaponclasses2.lua" ---@type string[]
 ss.TEXTUREFLAGS      = include "splatoonsweps/constants/textureflags.lua" ---@type table<string, integer>
 ss.RenderTarget      = include "splatoonsweps/constants/rendertarget.lua" ---@type ss.RenderTarget
-ss.InkTankModel      = Model "models/props_splatoon/gear/inktank_backpack/inktank_backpack.mdl"
 ss.Units             = include "splatoonsweps/constants/parameterunits.lua" ---@type table<string, string>
+ss.BubblerModel      = Model "models/splatoonsweps/specials/bubbler.mdl"
+ss.InkTankModel      = Model "models/props_splatoon/gear/inktank_backpack/inktank_backpack.mdl"
 
 ---@enum PlayerType
 ss.PLAYER = {

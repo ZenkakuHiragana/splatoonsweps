@@ -14,7 +14,7 @@
         "TextureScroll"
         {
             "texturescrollvar" "$bumptransform2"
-            "texturescrollrate" "-1"
+            "texturescrollrate" "1"
             "texturescrollangle" "-90"
         }
         "SelectFirstIfNonZero"

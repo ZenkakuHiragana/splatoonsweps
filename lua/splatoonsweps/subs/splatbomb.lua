@@ -198,10 +198,6 @@ if SERVER then
         self:SetReloadDelay(p.InkRecoverStop)
     end
 else
-    function module:DrawOnSubTriggerDown()
-
-    end
-
     function module:ClientSecondaryAttack()
 
     end

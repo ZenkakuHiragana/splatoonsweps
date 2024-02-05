@@ -41,21 +41,18 @@ function module:OnSpecialStart()
         Owner:SetBloodColor(DONT_BLEED)
     end
 
-    local color = self:GetNWInt "inkcolor"
-    local e = EffectData()
-    e:SetEntity(self)
-    e:SetColor(color)
-    ss.UtilEffectPredicted(Owner, "SplatoonSWEPsBubbler", e)
     ss.EmitSoundPredicted(Owner, self, "SplatoonSWEPs.BubblerStart")
     ss.SetInvincibleDuration(Owner, self:GetSpecialDuration())
 
+    local color = self:GetNWInt "inkcolor"
     local start = self:GetNWInt "SpecialBasePoints"
     local pointsneeded = ss.GetTurfInkedInRaw(ss.bubbler.PointsNeeded)
-    self:AddSchedule(0, function() -- Decreasing special gauge
+    self:AddSchedule(0, function()
         if not self:GetNWBool "IsUsingSpecial" then return true end
         local frac = (CurTime() - self:GetSpecialStartTime()) / self:GetSpecialDuration()
-        self:SetNWInt("SpecialBasePoints", start + pointsneeded * frac)
+        self:SetNWInt("SpecialBasePoints", start + pointsneeded * frac) -- Decreasing special gauge
 
+        -- Spreading the Bubbler
         if CLIENT then return end
         local delay = 0.5
         for ply in pairs(ss.EntityFilters[color]) do
@@ -68,10 +65,6 @@ function module:OnSpecialStart()
             self:EmitSound "SplatoonSWEPs.BubblerSpread"
             timer.Create(name, delay, 1, function()
                 if not (IsValid(self) and IsValid(Owner) and IsValid(w)) then return end
-                local eff = EffectData()
-                eff:SetEntity(w)
-                eff:SetColor(color)
-                util.Effect("SplatoonSWEPsBubbler", e, nil, true)
                 w:EmitSound "SplatoonSWEPs.BubblerStart"
                 ss.SetInvincibleDuration(ply, ss.InvincibleEntities[Owner] - CurTime())
             end)
@@ -82,5 +75,6 @@ function module:OnSpecialStart()
         if not self:GetNWBool "IsUsingSpecial" then return end
         self:ResetSpecialState()
         self:OnSpecialEnd()
+        ss.EmitSoundPredicted(Owner, self, "SplatoonSWEPs.BubblerEnd")
     end)
 end
