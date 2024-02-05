@@ -13,10 +13,12 @@ ss.bubbler = {
     Parameters = {
         Duration = 360,
         SpreadRadius = 30,
+        SpreadDelay = 30,
     },
     Units = {
         Duration = "f",
         SpreadRadius = "du",
+        SpreadDelay = "f",
     },
 }
 
@@ -54,9 +56,12 @@ function module:OnSpecialStart()
 
         -- Spreading the Bubbler
         if CLIENT then return end
-        local delay = 0.5
+        local delay = p.SpreadDelay
+        local endtime = ss.InvincibleEntities[Owner]
+        local remaining = endtime and (endtime - CurTime()) or 0
+        if remaining < delay then return end
         for ply in pairs(ss.EntityFilters[color]) do
-            if ply == Owner or ss.IsInvincible(ply) then return end
+            if ply == Owner or ss.IsInvincible(ply) then continue end
             local w = ss.IsValidInkling(ply)
             if not w then continue end
             if ply:GetPos():DistToSqr(Owner:GetPos()) > p.SpreadRadius * p.SpreadRadius then continue end
@@ -64,9 +69,11 @@ function module:OnSpecialStart()
             if timer.Exists(name) then continue end
             self:EmitSound "SplatoonSWEPs.BubblerSpread"
             timer.Create(name, delay, 1, function()
-                if not (IsValid(self) and IsValid(Owner) and IsValid(w)) then return end
-                w:EmitSound "SplatoonSWEPs.BubblerStart"
-                ss.SetInvincibleDuration(ply, ss.InvincibleEntities[Owner] - CurTime())
+                timer.Remove(name)
+                if IsValid(self) and IsValid(Owner) and IsValid(ply) and IsValid(w) and ss.InvincibleEntities[Owner] then
+                    w:EmitSound "SplatoonSWEPs.BubblerStart"
+                    ss.SetInvincibleDuration(ply, ss.InvincibleEntities[Owner] - CurTime())
+                end
             end)
         end
     end)
