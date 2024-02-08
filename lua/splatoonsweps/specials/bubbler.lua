@@ -60,7 +60,7 @@ function module:OnSpecialStart()
         local endtime = ss.InvincibleEntities[Owner]
         local remaining = endtime and (endtime - CurTime()) or 0
         if remaining < delay then return end
-        for ply in pairs(ss.EntityFilters[color]) do
+        for ply in pairs(ss.PlayerFilters[color]) do
             if ply == Owner or ss.IsInvincible(ply) then continue end
             local w = ss.IsValidInkling(ply)
             if not w then continue end

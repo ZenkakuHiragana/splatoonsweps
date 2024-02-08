@@ -168,7 +168,6 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     w:SetOldCrouching(crouching)
 end
 
----comment
 ---@param w SplatoonWeaponBase
 ---@param ply Player
 ---@param mv CMoveData
@@ -541,7 +540,7 @@ function ss.SetInvincibleDuration(ent, duration)
     net.Start "SplatoonSWEPs: Sync invincible entity state"
     net.WriteEntity(ent)
     net.WriteFloat(duration)
-    net.Broadcast()
+    net.Send(ss.PlayersReady)
 end
 
 ---Checks if the given entity is invincible from ink

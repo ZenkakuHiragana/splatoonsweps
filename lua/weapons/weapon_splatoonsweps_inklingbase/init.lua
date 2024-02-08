@@ -314,7 +314,7 @@ function SWEP:Equip(newOwner)
     end
 
     self:BackupInfo()
-    ss.RegisterEntity(newOwner, self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(newOwner, self:GetNWInt("inkcolor", -1), true)
 end
 
 ---Deploy hook
@@ -368,7 +368,7 @@ function SWEP:OnRemove()
     self:StopLoopSound()
     self:EndRecording()
     ss.ProtectedCall(self.ServerOnRemove, self)
-    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(self:GetOwner(), self:GetNWInt("inkcolor", -1), false)
     if self:GetHolstering() then return end
     self:Holster(NULL)
 end
@@ -383,7 +383,7 @@ function SWEP:OnDrop()
         self:RestoreInfo()
     end
 
-    ss.UnregisterEntity(Owner, self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(Owner, self:GetNWInt("inkcolor", -1), false)
     self:SetOwner(NULL)
     ss.ProtectedCall(self.ServerHolster, self)
     self:SharedHolsterBase()
@@ -403,9 +403,10 @@ function SWEP:OnEntityCopyTableFinish(data)
 end
 
 ---Holster hook
+---@param switchTo Entity
 ---@return boolean allowHolster True to allow weapon to holster
 ---@diagnostic disable-next-line: duplicate-set-field
-function SWEP:Holster()
+function SWEP:Holster(switchTo)
     if self:GetInFence()              then return false end
     if self:GetSuperJumpState() >= 0  then return false end
     if not IsValid(self:GetOwner())   then return true end

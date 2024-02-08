@@ -98,6 +98,14 @@ net.Receive("SplatoonSWEPs: Sync disrupted entity state", function()
     ss.DisruptedEntities[ent] = state and CurTime() or nil
 end)
 
+net.Receive("SplatoonSWEPs: Sync entity filter", function()
+    local ent = net.ReadEntity()
+    if not IsValid(ent) then return end
+    local color = net.ReadUInt(ss.COLOR_BITS)
+    local state = net.ReadBool()
+    ss.SetEntityFilter(ent, color, state)
+end)
+
 net.Receive("SplatoonSWEPs: Sync invincible entity state", function()
     local ent = net.ReadEntity()
     local duration = net.ReadFloat()
@@ -109,8 +117,15 @@ net.Receive("SplatoonSWEPs: Sync marked entity state", function()
     if not IsValid(ent) then return end
     local color = net.ReadUInt(ss.COLOR_BITS)
     local state = net.ReadBool()
-    ss.MarkedEntities[ent] = ss.MarkedEntities[ent] or {}
-    ss.MarkedEntities[ent][color] = state and CurTime() or nil
+    ss.SetMarkedEntity(ent, color, state)
+end)
+
+net.Receive("SplatoonSWEPs: Sync player filter", function()
+    local ent = net.ReadEntity()
+    if not IsValid(ent) then return end
+    local color = net.ReadUInt(ss.COLOR_BITS)
+    local state = net.ReadBool()
+    ss.SetPlayerFilter(ent, color, state)
 end)
 
 net.Receive("SplatoonSWEPs: Register knockback", function()

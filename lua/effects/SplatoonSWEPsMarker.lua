@@ -19,7 +19,7 @@ function EFFECT:ShouldDraw()
     if not IsValid(self.Target) then return false end
     local lp = LocalPlayer()
     local w = ss.IsValidInkling(lp)
-    local isally = w and ss.IsAlly(w, self.Color) or false
+    local isally = w and w:GetNWInt("inkcolor", -1) == self.Color or false
     if self.Target == lp then
         return not isally
     else

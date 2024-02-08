@@ -6,22 +6,23 @@ if not SplatoonSWEPs then
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
     CrosshairColors         = {}, ---@type integer[]
-    DisruptedEntities       = {}, ---@type table<Entity, number>
-    EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
+    DisruptedEntities       = {}, ---@type table<Entity, number> [victim] = time of getting disrupted
+    EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>> [color][target] = true
     IMesh                   = {}, ---@type IMesh[]
     InkColors               = {}, ---@type Color[]
     InkShotMasks            = {}, ---@type ss.InkShotMask[][] Indexing order -> InkType, ThresholdIndex, x, y
     InkShotMaterials        = {}, ---@type IMaterial[][]
     InkShotNormals          = {}, ---@type IMaterial[][]
-    InkShotTypes            = {}, ---@type table<string, integer[]>
+    InkShotTypes            = {}, ---@type table<string, integer[]> InkShotCategory (string: "drop", "shot", etc.)  InkShotTypes (integer[])
     InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
-    InvincibleEntities      = {}, ---@type table<Entity, number>
-    KnockbackVector         = {}, ---@type table<Entity, Vector>
-    LastHitID               = {}, ---@type table<Entity, integer>
+    InvincibleEntities      = {}, ---@type table<Entity, number> [target] = end time
+    KnockbackVector         = {}, ---@type table<Entity, Vector> [target] = current knockback velocity
+    LastHitID               = {}, ---@type table<Entity, integer> [target] = ink id
     Lightmap                = {}, ---@type ss.Lightmap
-    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
+    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target][color] = time of getting marked
     MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
+    PlayerFilters           = {}, ---@type table<integer, table<Entity, boolean>> [color][player, npc, or nextbot] = true
     PaintQueue              = {}, ---@type table<integer, ss.PaintQueue>
     PaintSchedule           = {}, ---@type table<table, true>
     PlayerHullChanged       = {}, ---@type table<Player, boolean>

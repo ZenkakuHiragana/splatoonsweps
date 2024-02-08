@@ -35,7 +35,6 @@ local NormalizeAngle = math.NormalizeAngle
 local Round = math.Round
 
 -- net function localization
-local net_Broadcast = net.Broadcast
 local net_Send = net.Send
 local net_Start = net.Start
 local net_WriteFloat = net.WriteFloat
@@ -182,7 +181,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
         net_Start "SplatoonSWEPs: Send turf inked"
         net_WriteFloat(ss.WeaponRecord[ply].Inked[classname])
         net_WriteUInt(table.KeyFromValue(ss.WeaponClassNames, classname), ss.WEAPON_CLASSNAMES_BITS)
-        net_Broadcast()
+        net_Send(ss.PlayersReady)
     end
 
     if progress < 1 and w and not w:GetNWBool "IsUsingSpecial"

@@ -30,41 +30,43 @@ function ENT:PhysicsCollide(data, collider)
 
     for _, t in ipairs(ents.FindInSphere(self:GetPos(), p.Burst_Radius)) do
         local w = ss.IsValidInkling(t) ---@type Weapon?
-        if (t:IsPlayer() or t:IsNPC() or t:IsNextBot()) and not (w and ss.IsAlly(self, w)) then
-            t:EmitSound "SplatoonSWEPs.DisruptorTaken"
-            ss.ChangeDisruptedEntityState(t, true)
+        if not (t:IsPlayer() or t:IsNPC() or t:IsNextBot()) then continue end
+        if w and ss.IsAlly(self, w) then continue end
+        if ss.IsInvincible(t) then continue end
 
-            local mins = t:OBBMins()
-            local maxs = t:OBBMaxs()
-            local r = math.max(-mins.x, -mins.y, maxs.x, maxs.y) * 0.1
-            e = EffectData()
-            e:SetOrigin(t:GetPos())
-            e:SetRadius(r)
-            e:SetColor(c)
-            e:SetFlags(1)
-            e:SetEntity(t)
-            util.Effect("SplatoonSWEPsDisruptor", e)
+        t:EmitSound "SplatoonSWEPs.DisruptorTaken"
+        ss.SetDisruptedEntity(t, true)
 
-            local name = "SplatoonSWEPs: Timer for Disruptor duration " .. t:EntIndex()
-            local npcname = "SplatoonSWEPs: Disruptor NPC movement " .. t:EntIndex()
-            timer.Create(name, 0, 0, function()
-                if IsValid(t) and ss.DisruptedEntities[t] then
-                    if CurTime() < ss.DisruptedEntities[t] + ss.PointSensorDuration then return end
-                    t:EmitSound "SplatoonSWEPs.DisruptorWornOff"
-                    ss.ChangeDisruptedEntityState(t, false)
-                end
+        local mins = t:OBBMins()
+        local maxs = t:OBBMaxs()
+        local r = math.max(-mins.x, -mins.y, maxs.x, maxs.y) * 0.1
+        e = EffectData()
+        e:SetOrigin(t:GetPos())
+        e:SetRadius(r)
+        e:SetColor(c)
+        e:SetFlags(1)
+        e:SetEntity(t)
+        util.Effect("SplatoonSWEPsDisruptor", e)
 
-                timer.Remove(name)
-                if timer.Exists(npcname) then timer.Remove(npcname) end
-            end)
-            if t:IsNPC() then ---@cast t NPC
-                timer.Create(npcname, 0.125, 0, function()
-                    if not IsValid(t) then return end
-                    t:SetMoveVelocity(Vector())
-                    t:SetVelocity(Vector())
-                    t:ClearSchedule()
-                end)
+        local name = "SplatoonSWEPs: Timer for Disruptor duration " .. t:EntIndex()
+        local npcname = "SplatoonSWEPs: Disruptor NPC movement " .. t:EntIndex()
+        timer.Create(name, 0, 0, function()
+            if IsValid(t) and ss.DisruptedEntities[t] then
+                if CurTime() < ss.DisruptedEntities[t] + ss.PointSensorDuration then return end
+                t:EmitSound "SplatoonSWEPs.DisruptorWornOff"
+                ss.SetDisruptedEntity(t, false)
             end
+
+            timer.Remove(name)
+            if timer.Exists(npcname) then timer.Remove(npcname) end
+        end)
+        if t:IsNPC() then ---@cast t NPC
+            timer.Create(npcname, 0.125, 0, function()
+                if not IsValid(t) then return end
+                t:SetMoveVelocity(Vector())
+                t:SetVelocity(Vector())
+                t:ClearSchedule()
+            end)
         end
     end
 end

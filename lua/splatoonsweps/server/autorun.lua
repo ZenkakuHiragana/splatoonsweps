@@ -21,20 +21,21 @@ if not SplatoonSWEPs then
 SplatoonSWEPs = {
     ClassDefinitions        = {}, ---@type table<string, table>
     CrosshairColors         = {}, ---@type integer[]
-    DisruptedEntities       = {}, ---@type table<Entity, number>
-    EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>>
+    DisruptedEntities       = {}, ---@type table<Entity, number> [target] = time of getting disrupted
+    EntityFilters           = {}, ---@type table<integer, table<Entity, boolean>> [color][target] = true
     InkColors               = {}, ---@type Color[]
     InkQueue                = {}, ---@type table<number, ss.InkQueue[]>
     InkShotMasks            = {}, ---@type ss.InkShotMask[][] Indexing order -> InkType, ThresholdIndex, x, y
-    InkShotTypes            = {}, ---@type table<string, integer[]>
+    InkShotTypes            = {}, ---@type table<string, integer[]> InkShotCategory (string: "drop", "shot", etc.)  InkShotTypes (integer[])
     InkShotTypeToCategory   = {}, ---@type string[] InkShotType (integer) to InkShotCategory (string: "drop", "shot", etc.)
-    InvincibleEntities      = {}, ---@type table<Entity, number>
-    KnockbackVector         = {}, ---@type table<Entity, Vector>
-    LastHitID               = {}, ---@type table<Entity, integer>
+    InvincibleEntities      = {}, ---@type table<Entity, number> [target] = end time
+    KnockbackVector         = {}, ---@type table<Entity, Vector> [target] = current knockback velocity
+    LastHitID               = {}, ---@type table<Entity, integer> [target] = ink id
     Lightmap                = {}, ---@type ss.Lightmap
-    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target entity][color number] = time of get marked
+    MarkedEntities          = {}, ---@type table<Entity, table<integer, number>> [target][color] = time of getting marked
     MinimapAreaBounds       = {}, ---@type table<integer, { mins: Vector, maxs: Vector }>
     PaintSchedule           = {}, ---@type table<table, true>
+    PlayerFilters           = {}, ---@type table<integer, table<Entity, boolean>> [color][player, npc, or nextbot] = true
     PlayerHullChanged       = {}, ---@type table<Player, boolean>
     PlayerID                = {}, ---@type table<Player, string>
     PlayerShouldResetCamera = {}, ---@type table<Player, boolean>
@@ -111,7 +112,7 @@ function ss.SendError(msg, user, icon, duration)
     if user then
         net.Send(user)
     else
-        net.Broadcast()
+        net.Send(ss.PlayersReady)
     end
 end
 
@@ -216,29 +217,7 @@ function ss.SynchronizePlayerStats(ply)
     net.Send(ply)
 end
 
----@param ent Entity
----@param state boolean
-function ss.ChangeDisruptedEntityState(ent, state)
-    ss.DisruptedEntities[ent] = state and CurTime() or nil
-    net.Start "SplatoonSWEPs: Sync disrupted entity state"
-    net.WriteEntity(ent)
-    net.WriteBool(state)
-    net.Broadcast()
-end
-
----@param ent Entity
----@param color integer
----@param state boolean
-function ss.ChangeMarkedEntityState(ent, color, state)
-    ss.MarkedEntities[ent] = ss.MarkedEntities[ent] or {}
-    ss.MarkedEntities[ent][color] = state and CurTime() or nil
-    net.Start "SplatoonSWEPs: Sync marked entity state"
-    net.WriteEntity(ent)
-    net.WriteUInt(color, ss.COLOR_BITS)
-    net.WriteBool(state)
-    net.Broadcast()
-end
-
+---Mark entities with a specific color for duration seconds
 ---@param color integer
 ---@param entities Entity[]
 ---@param duration number
@@ -258,12 +237,10 @@ function ss.MarkEntity(color, entities, duration)
             e:SetEntity(ent)
             e:SetColor(color)
             util.Effect("SplatoonSWEPsMarker", e, nil, true)
-            ss.ChangeMarkedEntityState(ent, color, true)
+            ss.SetMarkedEntity(ent, color, true)
             timer.Create(name, duration, 1, function()
                 if not IsValid(ent) then return end
-                if not ss.MarkedEntities[ent] then return end
-                if not ss.MarkedEntities[ent][color] then return end
-                ss.ChangeMarkedEntityState(ent, color, false)
+                ss.SetMarkedEntity(ent, color, false)
             end)
         end
 
@@ -271,21 +248,13 @@ function ss.MarkEntity(color, entities, duration)
     end
 
     if not hit then return end
-    local players = {} ---@type Player[]
-    for _, ply in ipairs(ss.PlayersReady) do
-        local w = ss.IsValidInkling(ply)
-        if w and ss.IsAlly(color, w) then
-            players[#players + 1] = ply
-        end
-    end
 
     -- Players with the same color will hear the point sensor hit sound
-    ss.EmitSound(players, "SplatoonSWEPs.PointSensorHit")
+    ss.EmitSound(table.GetKeys(ss.PlayerFilters[color] or {}), "SplatoonSWEPs.PointSensorHit")
 end
 
--- Parse the map and store the result to txt, then send it to the client.
-hook.Add("PostCleanupMap", "SplatoonSWEPs: Cleanup all ink", ss.ClearAllInk)
-hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function()
+---Parses the map and stores the result to a txt file, then sends it to the clients.
+local function InitPostEntity()
     -- If the local server has crashed before, RT shrinks.
     if ss.sp and file.Exists("splatoonsweps/crashdump.txt", "DATA") then
         local res = ss.GetConVar "rtresolution"
@@ -347,26 +316,26 @@ hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", function(
     ss.PrecachePaintTextures()
     ss.GenerateHashTable()
     ss.ClearAllInk()
-end)
+end
 
--- NOTE: PlayerInitialSpawn is called before InitPostEntity on changelevel
-hook.Add("PlayerInitialSpawn", "SplatoonSWEPs: Add a player", function(ply)
+---NOTE: PlayerInitialSpawn is called before InitPostEntity on changelevel
+---@param ply Player
+local function PlayerInitialSpawn(ply)
     ss.InitializeMoveEmulation(ply)
     ss.SynchronizePlayerStats(ply)
     if not ply:IsBot() then ss.ClearAllInk() end
-end)
+end
 
-hook.Add("PlayerAuthed", "SplatoonSWEPs: Store player ID",
 ---@param ply Player
 ---@param id string
-function(ply, id)
+local function OnPlayerAuthed(ply, id)
     if ss.IsGameInProgress --[[@as boolean?]] then
         ply:Kick "Splatoon SWEPs: The game is in progress"
         return
     end
 
     ss.PlayerID[ply] = id
-end)
+end
 
 ---@param ply Player
 local function SavePlayerData(ply)
@@ -387,19 +356,16 @@ local function SavePlayerData(ply)
     ss.WeaponRecord[ply] = nil
 end
 
-hook.Add("PlayerDisconnected", "SplatoonSWEPs: Reset player's readiness", SavePlayerData)
-hook.Add("ShutDown", "SplatoonSWEPs: Save player data", function()
+local function OnShutdown()
     for _, v in ipairs(player.GetAll()) do
         SavePlayerData(v)
     end
-end)
+end
 
-hook.Add("GetFallDamage", "SplatoonSWEPs: Inklings don't take fall damage.", ss.hook "GetFallDamage")
-hook.Add("EntityTakeDamage", "SplatoonSWEPs: Ink damage manager",
 ---@param ent Entity
 ---@param dmg CTakeDamageInfo
 ---@return boolean?
-function(ent, dmg)
+local function OnEntityTakeDamage(ent, dmg)
     if ent:Health() <= 0 then return end
     local w = ss.IsValidInkling(ent)
     local a = dmg:GetAttacker()
@@ -422,7 +388,7 @@ function(ent, dmg)
     if not ent:IsPlayer() then return end ---@cast ent Player
     net.Start("SplatoonSWEPs: Play damage sound", true)
     net.Send(ent)
-end)
+end
 
 ---@param ply Player|NPC
 ---@param attacker Entity
@@ -441,7 +407,7 @@ local function OnPlayerDeath(ply, attacker)
     local markedcolors = ss.MarkedEntities[ply]
     if not markedcolors then return end
     for color in pairs(markedcolors) do
-        ss.ChangeMarkedEntityState(ply, color, false)
+        ss.SetMarkedEntity(ply, color, false)
     end
 end
 
@@ -455,12 +421,37 @@ end
 
 ---@param ent Entity
 local function OnEntityRemoved(ent)
-    if not ss.MarkedEntities[ent] then return end
-    for color in pairs(ss.MarkedEntities[ent]) do
-        ss.ChangeMarkedEntityState(ent, color, false)
+    if ss.DisruptedEntities[ent] then
+        ss.SetDisruptedEntity(ent, false)
+    end
+    if ss.InvincibleEntities[ent] then
+        ss.SetInvincibleDuration(ent, -1)
+    end
+    if ss.MarkedEntities[ent] then
+        for color in pairs(ss.MarkedEntities[ent]) do
+            ss.SetMarkedEntity(ent, color, false)
+        end
+    end
+    if ss.EntityFilters[ent] then
+        for color in pairs(ss.EntityFilters[ent]) do
+            ss.SetEntityFilter(ent, color, false)
+        end
+    end
+    if ss.PlayerFilters[ent] then
+        for color in pairs(ss.PlayerFilters[ent]) do
+            ss.SetPlayerFilter(ent, color, false)
+        end
     end
 end
 
+hook.Add("PostCleanupMap", "SplatoonSWEPs: Cleanup all ink", ss.ClearAllInk)
+hook.Add("InitPostEntity", "SplatoonSWEPs: Serverside Initialization", InitPostEntity)
+hook.Add("PlayerInitialSpawn", "SplatoonSWEPs: Add a player", PlayerInitialSpawn)
+hook.Add("PlayerAuthed", "SplatoonSWEPs: Store player ID", OnPlayerAuthed)
+hook.Add("PlayerDisconnected", "SplatoonSWEPs: Reset player's readiness", SavePlayerData)
+hook.Add("ShutDown", "SplatoonSWEPs: Save player data", OnShutdown)
+hook.Add("GetFallDamage", "SplatoonSWEPs: Inklings don't take fall damage.", ss.hook "GetFallDamage")
+hook.Add("EntityTakeDamage", "SplatoonSWEPs: Ink damage manager", OnEntityTakeDamage)
 hook.Add("EntityRemoved", "SplatoonSWEPs: Remove regiestered entity", OnEntityRemoved)
 hook.Add("DoPlayerDeath", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)
 hook.Add("OnNPCKilled", "SplatoonSWEPs: Death explosion and reset super jump state", OnPlayerDeath)

@@ -320,24 +320,84 @@ function ss.GetGravityDirection()
     return g:GetNormalized()
 end
 
----Registers an entity to EntityFilters
----@param ent   Entity
----@param color integer?
-function ss.RegisterEntity(ent, color)
-    color = color or ent:GetNWInt("inkcolor", -1)
-    if color < 0 then return end
-    ss.EntityFilters[color] = ss.EntityFilters[color] or {}
-    ss.EntityFilters[color][ent] = true
+---Flag or unflag given entity as getting disrupted
+---@param ent Entity
+---@param state boolean
+function ss.SetDisruptedEntity(ent, state)
+    ss.DisruptedEntities[ent] = state and CurTime() or nil
+    if CLIENT then return end
+    net.Start "SplatoonSWEPs: Sync disrupted entity state"
+    net.WriteEntity(ent)
+    net.WriteBool(state)
+    net.Send(ss.PlayersReady)
 end
 
----Unregisters an entity from EntityFilters
----@param ent   Entity
+---Flag or unflag given entity as marked (visible through walls by enemies)
+---@param ent Entity
+---@param color integer
+---@param state boolean
+function ss.SetMarkedEntity(ent, color, state)
+    if state and not ss.MarkedEntities[ent] then
+        ss.MarkedEntities[ent] = {}
+    end
+    if ss.MarkedEntities[ent] then
+        ss.MarkedEntities[ent][color] = state and CurTime() or nil
+        if not next(ss.MarkedEntities[ent]) then
+            ss.MarkedEntities[ent] = nil
+        end
+    end
+    if CLIENT then return end
+    net.Start "SplatoonSWEPs: Sync marked entity state"
+    net.WriteEntity(ent)
+    net.WriteUInt(color, ss.COLOR_BITS)
+    net.WriteBool(state)
+    net.Send(ss.PlayersReady)
+end
+
+---@param ent Entity
 ---@param color integer?
-function ss.UnregisterEntity(ent, color)
+---@param state boolean
+function ss.SetEntityFilter(ent, color, state)
     color = color or ent:GetNWInt("inkcolor", -1)
     if color < 0 then return end
-    ss.EntityFilters[color] = ss.EntityFilters[color] or {}
-    ss.EntityFilters[color][ent] = nil
+    if state and not ss.EntityFilters[color] then
+        ss.EntityFilters[color] = {}
+    end
+    if ss.EntityFilters[color] then
+        ss.EntityFilters[color][ent] = state or nil
+        if not next(ss.EntityFilters[color]) then
+            ss.EntityFilters[color] = nil
+        end
+    end
+    if CLIENT then return end
+    net.Start "SplatoonSWEPs: Sync entity filter"
+    net.WriteEntity(ent)
+    net.WriteUInt(color, ss.COLOR_BITS)
+    net.WriteBool(state)
+    net.Send(ss.PlayersReady)
+end
+
+---@param ent Entity
+---@param color integer?
+---@param state boolean
+function ss.SetPlayerFilter(ent, color, state)
+    color = color or ent:GetNWInt("inkcolor", -1)
+    if color < 0 then return end
+    if state and not ss.PlayerFilters[color] then
+        ss.PlayerFilters[color] = {}
+    end
+    if ss.PlayerFilters[color] then
+        ss.PlayerFilters[color][ent] = state or nil
+        if not next(ss.PlayerFilters[color]) then
+            ss.PlayerFilters[color] = nil
+        end
+    end
+    if CLIENT then return end
+    net.Start "SplatoonSWEPs: Sync player filter"
+    net.WriteEntity(ent)
+    net.WriteUInt(color, ss.COLOR_BITS)
+    net.WriteBool(state)
+    net.Send(ss.PlayersReady)
 end
 
 ---Make a table of entities assumed to have the same color

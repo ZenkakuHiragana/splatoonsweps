@@ -569,8 +569,8 @@ function SWEP:SharedInitBase()
         if old == new then return end
         local Owner = ent:GetOwner()
         if not IsValid(Owner) then return end
-        ss.UnregisterEntity(Owner, old)
-        ss.RegisterEntity(Owner, new)
+        ss.SetPlayerFilter(Owner, old, false)
+        ss.SetPlayerFilter(Owner, new, true)
     end)
 
     if ss.sp then self.Buttons, self.OldButtons = 0, 0 end
@@ -621,7 +621,7 @@ function SWEP:SharedDeployBase()
     end
 
     ss.ProtectedCall(self.SharedDeploy, self)
-    ss.RegisterEntity(Owner, self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(Owner, self:GetNWInt("inkcolor", -1), true)
     return true
 end
 
@@ -630,7 +630,7 @@ end
 function SWEP:SharedHolsterBase()
     self:SetHolstering(true)
     ss.ProtectedCall(self.SharedHolster, self)
-    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(self:GetOwner(), self:GetNWInt("inkcolor", -1), false)
     if self:GetNWBool "IsUsingSpecial" then self:OnSpecialEnd() end
     self:StopLoopSound()
     self:EndRecording()

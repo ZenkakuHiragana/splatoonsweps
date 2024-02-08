@@ -29,7 +29,11 @@ function ENT:PhysicsCollide(data, collider)
     e:SetRadius(p.Burst_Radius)
     e:SetColor(self:GetNWInt "inkcolor")
     util.Effect("SplatoonSWEPsPointSensor", e)
-    ss.MarkEntity(self:GetNWInt "inkcolor",
-        ents.FindInSphere(self:GetPos(), p.Burst_Radius),
-        ss.PointSensorDuration)
+
+    local victims = {} ---@type Entity[]
+    for _, ent in ipairs(ents.FindInSphere(self:GetPos(), p.Burst_Radius)) do
+        if not ss.IsInvincible(ent) then victims[#victims + 1] = ent end
+    end
+
+    ss.MarkEntity(self:GetNWInt "inkcolor", victims, ss.PointSensorDuration)
 end

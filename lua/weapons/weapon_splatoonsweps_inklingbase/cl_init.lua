@@ -76,7 +76,9 @@ function SWEP:Deploy()
     return self:SharedDeployBase()
 end
 
-function SWEP:Holster()
+---@param switchTo Entity
+---@return boolean
+function SWEP:Holster(switchTo)
     if self:GetInFence() then return false end
 
     local Owner = self:GetOwner()
@@ -107,7 +109,7 @@ function SWEP:OnRemove()
     self:EndRecording()
     ss.ProtectedCall(self.ClientOnRemove, self)
     ss.ProtectedCall(self.SharedOnRemove, self)
-    ss.UnregisterEntity(self:GetOwner(), self:GetNWInt("inkcolor", -1))
+    ss.SetPlayerFilter(self:GetOwner(), self:GetNWInt("inkcolor", -1), false)
 end
 
 function SWEP:Think()
