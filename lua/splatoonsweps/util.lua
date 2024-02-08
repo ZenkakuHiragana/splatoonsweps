@@ -407,17 +407,7 @@ function ss.MakeAllyFilter(weapon)
     local owner = weapon:GetOwner()
     local color = weapon:GetNWInt "inkcolor"
     local entities = { weapon, owner } ---@type Entity[]
-    for ent in pairs(ss.EntityFilters[color] or {}) do
-        if IsValid(ent) then
-            if not (ent:IsPlayer() or ent:IsNPC()) or ss.IsAlly(owner, ent) then
-                entities[#entities + 1] = ent
-            end
-        else
-            ss.EntityFilters[color][ent] = nil
-        end
-    end
-
-    return entities
+    return table.Add(entities, table.GetKeys(ss.EntityFilters[color] or {}))
 end
 
 ---Performs a deep copy for given table

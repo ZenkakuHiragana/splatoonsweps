@@ -454,7 +454,7 @@ function SWEP:Think()
     end
 
     ---@cast Owner Player
-    if self:GetOnEnemyInk() and CurTime() > self.NextEnemyInkDamage then
+    if not ss.IsInvincible(Owner) and self:GetOnEnemyInk() and CurTime() > self.NextEnemyInkDamage then
         local delay = 200 / ss.GetMaxHealth() * ss.FrameToSec
         self.NextEnemyInkDamage = CurTime() + delay
         self.HealSchedule:SetDelay(ss.HealDelay)
