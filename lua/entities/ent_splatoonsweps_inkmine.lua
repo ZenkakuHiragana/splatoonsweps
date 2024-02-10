@@ -101,7 +101,7 @@ function ENT:IsEnemyNearby()
         if not (p:IsPlayer() or p:IsNPC()) then continue end
         if p == self:GetOwner() then continue end
         local w = ss.IsValidInkling(p)
-        if not w or w:GetNWInt "inkcolor" ~= self:GetNWInt "inkcolor" then
+        if not (w and ss.IsAlly(w, self)) then
             return true
         end
     end
