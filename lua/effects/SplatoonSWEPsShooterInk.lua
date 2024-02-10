@@ -323,7 +323,9 @@ function EFFECT:RenderSplash()
 end
 
 function EFFECT:RenderBlaster() -- Blaster bullet
+    render.SetBlend(self:GetRenderColor().a / 255)
     self:DrawModel()
+    render.SetBlend(1)
 end
 
 function EFFECT:RenderSlosher()

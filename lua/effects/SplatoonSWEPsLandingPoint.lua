@@ -82,8 +82,8 @@ function EFFECT:Think()
         start = initpos,
         endpos = initpos,
         mask = MASK_SOLID,
-        collisiongroup = COLLISION_GROUP_PROJECTILE,
-        filter = ss.MakeAllyFilter(self.Weapon),
+        collisiongroup = COLLISION_GROUP_WEAPON,
+        filter = ss.MakeAllyFilter(self.Weapon, true),
         maxs = ss.vector_one * TRACE_SIZE,
         mins = -ss.vector_one * TRACE_SIZE,
     }

@@ -28,6 +28,7 @@ ENT.Base = "ent_splatoonsweps_throwable"
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.AutomaticFrameAdvance = true
+ENT.CollisionGroup = COLLISION_GROUP_PASSABLE_DOOR
 ENT.Model = Model "models/splatoonsweps/subs/squidbeakon/squidbeakon.mdl"
 ENT.SubWeaponName = "squidbeakon"
 ENT.WeaponClassName = ""

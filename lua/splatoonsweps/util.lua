@@ -402,12 +402,27 @@ end
 
 ---Make a table of entities assumed to have the same color
 ---@param weapon SplatoonWeaponBase
+---@param includePlayers boolean?
 ---@return Entity[]
-function ss.MakeAllyFilter(weapon)
+function ss.MakeAllyFilter(weapon, includePlayers)
     local owner = weapon:GetOwner()
     local color = weapon:GetNWInt "inkcolor"
     local entities = { weapon, owner } ---@type Entity[]
-    return table.Add(entities, table.GetKeys(ss.EntityFilters[color] or {}))
+    local ff = ss.GetOption "ff"
+    for ent in pairs(ss.EntityFilters[color] or {}) do
+        if IsValid(ent) then
+            if ff and ent:GetOwner() ~= owner then
+                entities[#entities + 1] = ent
+            end
+        else
+            ss.SetEntityFilter(ent, color, false)
+        end
+    end
+    if not includePlayers then return entities end
+    for ply in pairs(ss.PlayerFilters[color] or {}) do
+        entities[#entities + 1] = ply
+    end
+    return entities
 end
 
 ---Performs a deep copy for given table

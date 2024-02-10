@@ -153,7 +153,7 @@ function ss.MakeExplosion(data)
             local shouldhit = IsValid(e) and e:Health() > 0 and ss.LastHitID[e] ~= projectileID
             local isally = ss.IsAlly(target_weapon, inkcolor) or ss.IsAlly(e, inkcolor)
             if not shouldhit then continue end
-            if isally and not (hurtowner and e == owner) then continue end
+            if Either(e == owner, not hurtowner, isally) then continue end
             local dist = Vector()
             local maxs, mins = e:OBBMaxs(), e:OBBMins()
             local center = e:LocalToWorld(e:OBBCenter())

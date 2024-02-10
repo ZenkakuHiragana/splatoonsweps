@@ -11,6 +11,7 @@ ENT.Base = "ent_splatoonsweps_burstbomb"
 ---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
+ENT.CollisionGroup = COLLISION_GROUP_PROJECTILE
 ENT.Model = Model "models/splatoonsweps/subs/pointsensor/pointsensor.mdl"
 ENT.SubWeaponName = "pointsensor"
 ENT.EffectDispatched = false

@@ -2,27 +2,27 @@
 local ENT = ENT
 ---@cast ENT ENT.Throwable
 ---@class ENT.Throwable : ENT
----@field AirResist           number
----@field AngleAirResist      number
----@field BaseClass           ENT
----@field CollisionGroup      integer
----@field ContactEntity       Entity
----@field ContactPhysObj      PhysObj
----@field DragCoeffChangeTime number
----@field FindBoneFromPhysObj fun(self, ent: Entity, physobj: PhysObj): integer
----@field GetInkColorProxy    fun(self): Vector
----@field Gravity             number
----@field GravityDirection    Vector
----@field IsSplatoonBomb      boolean
----@field IsStuck             fun(self): boolean
----@field Model               string
----@field Owner               Entity
----@field SetInkColorProxy    fun(self, Vector)
----@field StraightFrame       number
----@field SubWeaponName       string
----@field UseSubWeaponFilter  boolean
----@field WeaponClassName     string
----@field Weld                fun(self)
+---@field AirResist             number
+---@field AngleAirResist        number
+---@field BaseClass             ENT
+---@field CollisionGroup        integer
+---@field ContactEntity         Entity
+---@field ContactPhysObj        PhysObj
+---@field DragCoeffChangeTime   number
+---@field FindBoneFromPhysObj   fun(self, ent: Entity, physobj: PhysObj): integer
+---@field GetInkColorProxy      fun(self): Vector
+---@field Gravity               number
+---@field GravityDirection      Vector
+---@field IsSplatoonBomb        boolean
+---@field IsStuck               fun(self): boolean
+---@field Model                 string
+---@field Owner                 Entity
+---@field SetInkColorProxy      fun(self, Vector)
+---@field StraightFrame         number
+---@field SubWeaponName         string
+---@field IsSplatoonSWEPsEntity boolean
+---@field WeaponClassName       string
+---@field Weld                  fun(self)
 
 AddCSLuaFile()
 ENT.Type = "anim"
@@ -30,45 +30,28 @@ ENT.Type = "anim"
 ---@class ss
 local ss = SplatoonSWEPs
 if not ss then return end
-ENT.CollisionGroup = COLLISION_GROUP_PASSABLE_DOOR
+ENT.CollisionGroup = COLLISION_GROUP_WEAPON
 ENT.Model = Model "models/splatoonsweps/subs/splatbomb/splatbomb.mdl"
-ENT.UseSubWeaponFilter = true
+ENT.IsSplatoonSWEPsEntity = true
 ENT.WeaponClassName = ""
 
----Determine Splash Wall to be solid against given entity
 ---@param e1 ENT.Throwable
 ---@param e2 ENT.Throwable
 ---@return boolean?
-local function SplashWallFilter(e1, e2)
-    if e2.SubWeaponName == "splashwall" then
-        e1, e2 = e2, e1 ---@type ENT.Throwable, ENT.Throwable
-    end
-    local w = ss.IsValidInkling(e2)
-    if w and ss.IsAlly(e1, w) then return false end
-    if not isstring(e2.SubWeaponName) then return end
-    return not ss.IsAlly(e1, e2)
-end
-
-hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter",
----@param e1 ENT.Throwable
----@param e2 ENT.Throwable
----@return boolean?
-function(e1, e2)
-    if e1.SubWeaponName == "splashwall" or e2.SubWeaponName == "splashwall" then
-        return SplashWallFilter(e1, e2)
-    end
-
-    if e2.UseSubWeaponFilter then
-        e1, e2 = e2, e1 ---@type ENT.Throwable, ENT.Throwable
-    end
-    if e2.UseSubWeaponFilter then return false end
-    if not e1.UseSubWeaponFilter then return end
-    if not IsValid(e1.Owner) then return end
-    local w1 = ss.IsValidInkling(e1.Owner)
+local function SubWeaponFilter(e1, e2)
+    local w1 = ss.IsValidInkling(e1)
     local w2 = ss.IsValidInkling(e2)
-    if not (w1 and w2) then return end
-    if ss.IsAlly(w1, w2) then return false end
-end)
+    if not (e1.IsSplatoonSWEPsEntity or w1) then return end
+    if not (e2.IsSplatoonSWEPsEntity or w2) then return end
+    local c1 = (w1 or e1):GetNWInt("inkcolor", -1)
+    local c2 = (w2 or e2):GetNWInt("inkcolor", -1)
+    if c1 < 0 or c2 < 0 then return end
+    if c1 ~= c2 then return true end
+    if e1:GetOwner() == e2 then return false end
+    if e2:GetOwner() == e1 then return false end
+    if e1:GetOwner() == e2:GetOwner() then return false end
+    return not ss.IsAlly(w1 or e1, w2 or e2)
+end
 
 function ENT:Initialize()
     if IsValid(self:GetOwner()) then
@@ -116,6 +99,7 @@ function ENT:FindBoneFromPhysObj(ent, physobj)
     return 0
 end
 
+hook.Add("ShouldCollide", "SplatoonSWEPs: Sub weapon filter", SubWeaponFilter)
 if CLIENT then return end
 
 function ENT:Weld()

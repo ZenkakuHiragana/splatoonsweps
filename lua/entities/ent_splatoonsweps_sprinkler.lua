@@ -18,6 +18,7 @@ ENT.Base = "ent_splatoonsweps_splatbomb"
 local ss = SplatoonSWEPs
 if not ss then return end
 ENT.AutomaticFrameAdvance = true
+ENT.CollisionGroup = COLLISION_GROUP_PASSABLE_DOOR
 ENT.HitSound = "SplatoonSWEPs.SubWeaponPut"
 ENT.Model = Model "models/splatoonsweps/subs/sprinkler/sprinkler.mdl"
 ENT.RunningSound = nil

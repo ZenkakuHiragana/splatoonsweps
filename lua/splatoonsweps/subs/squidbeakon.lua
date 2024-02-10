@@ -106,7 +106,7 @@ function module:ServerSecondaryAttack(throwable)
     local tracedz = -vector_up * p.CrossPaintRayLength
     local tr = util.QuickTrace(start, tracedz, self:GetOwner())
     if not tr.Hit then return end
-
+    if IsValid(tr.Entity) and (tr.Entity:IsPlayer() or tr.Entity:IsNPC()) then return end
     for _, e in ipairs(ents.FindInSphere(tr.HitPos, 10)) do
         ---@cast e ENT.SquidBeakon
         if e.IsSquidBeakon then return end

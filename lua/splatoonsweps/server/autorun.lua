@@ -432,15 +432,11 @@ local function OnEntityRemoved(ent)
             ss.SetMarkedEntity(ent, color, false)
         end
     end
-    if ss.EntityFilters[ent] then
-        for color in pairs(ss.EntityFilters[ent]) do
-            ss.SetEntityFilter(ent, color, false)
-        end
+    for color in pairs(ss.EntityFilters) do
+        ss.SetEntityFilter(ent, color, false)
     end
-    if ss.PlayerFilters[ent] then
-        for color in pairs(ss.PlayerFilters[ent]) do
-            ss.SetPlayerFilter(ent, color, false)
-        end
+    for color in pairs(ss.PlayerFilters) do
+        ss.SetPlayerFilter(ent, color, false)
     end
 end
 
