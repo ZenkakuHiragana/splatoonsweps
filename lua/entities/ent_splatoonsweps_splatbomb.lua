@@ -8,6 +8,7 @@ local ENT = ENT
 ---@field ContactStartTime       number
 ---@field ContactTotalTime       number
 ---@field Detonate               fun(self)
+---@field Disappear              fun(self)
 ---@field ExplosionOffset        number
 ---@field GetContactTime         fun(self): number
 ---@field HitNormal              Vector
@@ -70,6 +71,19 @@ function ENT:Detonate()
     self.HitNormal, self, self:GetNWInt "inkcolor", self.SubWeaponName)
     self:StopSound "SplatoonSWEPs.BombAlert"
     self:StopSound "SplatoonSWEPs.SubWeaponThrown"
+    SafeRemoveEntity(self)
+end
+
+function ENT:Disappear()
+    local e = EffectData()
+    e:SetColor(self:GetNWInt "inkcolor")
+    e:SetFlags(1)
+    e:SetOrigin(self:GetPos() + self.HitNormal * self.ExplosionOffset)
+    e:SetRadius(50)
+    util.Effect("SplatoonSWEPsExplosion", e, nil, true)
+    self:StopSound "SplatoonSWEPs.BombAlert"
+    self:StopSound "SplatoonSWEPs.SubWeaponThrown"
+    self:EmitSound "SplatoonSWEPs.BombDisappear"
     SafeRemoveEntity(self)
 end
 

@@ -67,7 +67,8 @@ function module:OnSpecialStart()
             if ply:GetPos():DistToSqr(Owner:GetPos()) > p.SpreadRadius * p.SpreadRadius then continue end
             local name = "SplatoonSWEPs: Bubbler Spread " .. ply:EntIndex()
             if timer.Exists(name) then continue end
-            self:EmitSound "SplatoonSWEPs.BubblerSpread"
+            local soundpos = (ply:WorldSpaceCenter() + Owner:WorldSpaceCenter()) / 2
+            sound.Play("SplatoonSWEPs.BubblerSpread", soundpos)
             timer.Create(name, delay, 1, function()
                 timer.Remove(name)
                 if IsValid(self) and IsValid(Owner) and IsValid(ply) and IsValid(w) and ss.InvincibleEntities[Owner] then
@@ -75,6 +76,13 @@ function module:OnSpecialStart()
                     ss.SetInvincibleDuration(ply, ss.InvincibleEntities[Owner] - CurTime())
                 end
             end)
+        end
+
+        for _, ent in ipairs(ents.FindInBox(Owner:WorldSpaceAABB())) do
+            if ent == Owner then continue end ---@cast ent ENT.SplatBomb
+            if not ent.IsSplatoonBomb then continue end
+            if ss.IsAlly(ent, self) then continue end
+            ss.ProtectedCall(ent.Disappear, ent)
         end
     end)
 

@@ -39,6 +39,15 @@ sound.Add {
 
 sound.Add {
     channel = CHAN_WEAPON,
+    name = "SplatoonSWEPs.BombDisappear",
+    level = ss.WeaponSoundLevel,
+    sound = "splatoonsweps/explosion/burstbomb.mp3",
+    volume = ss.WeaponSoundVolume,
+    pitch = 255,
+}
+
+sound.Add {
+    channel = CHAN_WEAPON,
     name = "SplatoonSWEPs.SubWeaponThrown",
     level = ss.WeaponSoundLevel,
     sound = "splatoonsweps/weapons/sub/bombthrown.mp3",
