@@ -74,7 +74,8 @@ if CLIENT then
     function ENT:Draw()
         local w = ss.IsValidInkling(LocalPlayer())
         if not w then return end
-        if w:GetNWInt "inkcolor" ~= self:GetNWInt "inkcolor" then return end
+        if self:GetOwner() ~= LocalPlayer() and not ss.IsAlly(self, w) then return end
+
         self:DrawModel()
         local t = CurTime() - self.InitTime - self.ExplodeStartTime
         if t < 0 then return end
