@@ -32,8 +32,35 @@ local function ItemTintBind(self, mat, ent)
     end
 end
 
+---@param self table
+---@param mat string
+---@param values table<string, any>
+local function BubblerInit(self, mat, values)
+    self.ResultVar = values.resultvar
+    self.ResultVar2 = values.resultvar2
+end
+
+---@class CSEnt.Bubbler : CSEnt
+---@field InitTime number
+---@field IsDisappearing boolean
+
+---@param self table
+---@param mat IMaterial
+---@param ent CSEnt.Bubbler
+local function BubblerBind(self, mat, ent)
+    if not IsValid(ent) then return end
+    mat:SetFloat(self.ResultVar, ent.InitTime or 0)
+    mat:SetFloat(self.ResultVar2, ent.IsDisappearing and 1 or 0)
+end
+
 matproxy.Add {
     name = "ItemTintColor",
     init = ItemTintInit,
     bind = ItemTintBind,
+}
+
+matproxy.Add {
+    name = "SplatoonSWEPsBubbler",
+    init = BubblerInit,
+    bind = BubblerBind,
 }

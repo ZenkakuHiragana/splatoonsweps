@@ -380,7 +380,13 @@ local function RetrieveOption(self, name, pt)
     if isnumber(value) and self:GetNWInt(name) ~= value then ---@cast value number
         if name == "inkcolor" then
             if Owner:IsNPC() then return end
-            if Owner:IsPlayer() --[[@cast Owner Player]] and Owner:IsBot() then return end
+            if Owner:IsPlayer() then ---@cast Owner Player
+                if Owner:IsBot() then return end
+                if ss.sp then -- NWVarProxy won't be called serverside in singleplayer
+                    ss.SetPlayerFilter(Owner, self:GetNWInt(name, -1), false)
+                    ss.SetPlayerFilter(Owner, value, true)
+                end
+            end
         end
 
         self:SetNWInt(name, value)

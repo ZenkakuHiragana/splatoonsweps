@@ -9,6 +9,7 @@ if not ss then return end
 ---@field PreDrawWorldModelTranslucent fun(self): boolean?
 ---@field PreViewModelDrawn            fun(self, vm: Entity, weapon: Weapon, ply: Player)
 ---@field AmmoDisplay                  { Draw: boolean, PrimaryClip: number, PrimaryAmmo: number, SecondaryAmmo: number? }
+---@field BubblerEffect                CNewParticleEffect
 ---@field Cursor                       { x: number, y: number }
 ---@field EnoughSubWeapon              boolean
 ---@field PreviousInk                  boolean
@@ -300,10 +301,16 @@ function SWEP:DrawWorldModelTranslucent()
             mdl:SetPos(org)
             mdl:SetAngles(EyeAngles())
             self.WElements.bubbler.size = ss.vector_one * scale * 1.75
-        end
 
-        render.UpdateRefractTexture()
-        self:DrawWorldElement "bubbler"
+            if IsValid(self.BubblerEffect) then
+                self.BubblerEffect:SetControlPoint(1, LerpVector(1 / 3, self:GetInkColorProxy(), ss.vector_one))
+                self.BubblerEffect:SetControlPoint(2, ss.vector_one * dz)
+                self.BubblerEffect:Render()
+            end
+
+            render.UpdateRefractTexture()
+            self:DrawWorldElement "bubbler"
+        end
     end
 end
 

@@ -1,40 +1,45 @@
-"UnlitTwoTexture"
+"UnlitGeneric"
 {
-    "$basetexture" "splatoonsweps/weapons/specials/bubbler/bubbler_dots_overlay"
-    "$texture2" "splatoonsweps/weapons/specials/bubbler/bubbler_dots"
+    "$basetexture" "splatoonsweps/weapons/specials/bubbler/bubbler_dots"
+    "$basetexturetransform" "center .5 .5 scale 100 50 rotate 0 translate 0 0"
+    
+    "$detail" "splatoonsweps/weapons/specials/bubbler/bubbler_dots_overlay"
+    "$detailscale" "1"
+    "$detailblendmode" "8"
+
     "$additive" "1"
     "$receiveflashlight" "1"
-    "$scale_test" "[100 50]"
-    "$angle_test" "0"
-    "$translate" "[0 0]"
-    "$blendtintbybasealpha" "0"
-    "$blendtintcoloroverbase" "0"
     "$colortint_base" "{ 142 187 27 }"
     "$colortint_tmp" "[0 0 0]"
     "$color2" "{ 142 187 27 }"
-    "$texture2transform" "center .5 .5 scale 100 50  rotate 0 translate 0 0"
+
+    "$gray" "127"
+    "$half" "0.5"
+    "$zero" "0"
+    "$one" "1"
+    "$time" "0" // = CurTime()
+    "$time_init" "0" // = Time when the effect emitted
+    "$scale_dots" "[100 50]"
+
+    // Variables for initial flash
+    "$duration_init" "0.2" // Duration
+    "$frame_init" "0" // Switching frames 
+    "$time_offset_add1" "0.145" // Add this value to $time_init for timeoffset used in Sine
+    "$translate_y" "0" // $basetexturetransform translate y
+    "$translate_detail" "[0 0]" // translation vector = [texture scroll, $translate_y]
+
+    // Passed from custom material proxy; indicating if Bubbler is playing disappearing effect
+    "$is_disappearing" "0"
+
+    // Variables for disappearing flash
+    "$scale_detail_default" "[1 1]"
+    "$scale_detail" "[1 1]"
+    "$time_offset_add2" "0.075" // Add this value to $time_init for timeoffset used in Sine
+    "$time_offset" "0" // used in Sine proxies
+    "$translate_dots" "[0 0]"
+
     "Proxies"
     {
-        "TextureScroll"
-        {
-            "texturescrollvar" "$basetexturetransform"
-            "texturescrollrate" "0.1"
-            "texturescrollangle" "0"
-        }
-        "TextureTransform"
-        {
-            "centerVar" ".5 .5"
-            "scaleVar" "$scale_test"
-            "rotateVar" "$angle_test"
-            "translateVar" "$translate"
-            "resultVar" "$texture2transform"
-        }
-        "TextureScroll"
-        {
-            "texturescrollvar" "$translate"
-            "texturescrollrate" -7.5
-            "texturescrollangle" 90
-        }
         "SelectFirstIfNonZero"
         {
             "srcVar1" "$colortint_tmp"
@@ -44,6 +49,135 @@
         "ItemTintColor"
         {
             "resultVar" "$colortint_tmp"
+        }
+        "Alpha"
+        {
+        }
+        "SplatoonSWEPsBubbler"
+        {
+            "resultVar" "$time_init"
+            "resultVar2" "$is_disappearing"
+        }
+        "CurrentTime"
+        {
+            "resultVar" "$time"
+        }
+        "Subtract"
+        {
+            "srcVar1" "$time"
+            "srcVar2" "$time_init"
+            "resultVar" "$time"
+        }
+        "Add"
+        {
+            "srcVar1" "$time_init"
+            "srcVar2" "$time_offset_add1"
+            "resultVar" "$time_offset"
+        }
+        "Sine"
+        {
+            "sineperiod" "$duration_init"
+            "sinemin" "0.25"
+            "sinemax" "0"
+            "timeoffset" "$time_offset"
+            "resultVar" "$translate_y"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$translate_y"
+            "greaterVar" "$zero"
+            "srcVar1" "$time"
+            "srcVar2" "$duration_init"
+            "resultVar" "$translate_y"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$one"
+            "greaterVar" "$zero"
+            "srcVar1" "$time"
+            "srcVar2" "$duration_init"
+            "resultVar" "$frame_init"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$frame_init"
+            "greaterVar" "$zero"
+            "srcVar1" "$is_disappearing"
+            "srcVar2" "$zero"
+            "resultVar" "$frame_init"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$translate_y"
+            "greaterVar" "$zero"
+            "srcVar1" "$is_disappearing"
+            "srcVar2" "$zero"
+            "resultVar" "$translate_detail[1]"
+        }
+        "Add"
+        {
+            "srcVar1" "$time_init"
+            "srcVar2" "$time_offset_add2"
+            "resultVar" "$time_offset"
+        }
+        "Sine"
+        {
+            "sineperiod" "0.15"
+            "sinemin" "0"
+            "sinemax" "1"
+            "timeoffset" "$time_offset"
+            "resultVar" "$frame"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$zero"
+            "greaterVar" "$one"
+            "srcVar1" "$frame"
+            "srcVar2" "$half"
+            "resultVar" "$frame"
+        }
+        "LessOrEqual"
+        {
+            "lessEqualVar" "$frame"
+            "greaterVar" "$frame_init"
+            "srcVar1" "$alpha"
+            "srcVar2" "$gray"
+            "resultVar" "$frame"
+        }
+        "Clamp"
+        {
+            "min" "1"
+            "max" "1"
+            "srcVar1" "$alpha"
+            "resultVar" "$alpha"
+        }
+        "TextureTransform"
+        {
+            "centerVar" ".5 .5"
+            "scaleVar" "$scale_detail"
+            "rotateVar" "0"
+            "translateVar" "$translate_detail"
+            "resultVar" "$detailtexturetransform"
+        }
+        "TextureTransform"
+        {
+            "centerVar" ".5 .5"
+            "scaleVar" "$scale_dots"
+            "rotateVar" "0"
+            "translateVar" "$translate_dots"
+            "resultVar" "$basetexturetransform"
+        }
+        "TextureScroll"
+        {
+            "texturescrollvar" "$translate_detail"
+            "texturescrollrate" "0.1"
+            "texturescrollangle" "0"
+        }
+        "TextureScroll"
+        {
+            "texturescrollvar" "$translate_dots"
+            "texturescrollrate" "-7.5"
+            "texturescrollangle" "90"
         }
     }
 }
