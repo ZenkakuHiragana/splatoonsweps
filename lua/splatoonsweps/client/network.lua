@@ -11,11 +11,11 @@ net.Receive("SplatoonSWEPs: Change throwing", function()
 end)
 
 net.Receive("SplatoonSWEPs: Play damage sound", function()
-    surface.PlaySound(ss.TakeDamage)
+    sound.Play("SplatoonSWEPs.TakeDamage", Vector())
 end)
 
 net.Receive("SplatoonSWEPs: Play bubbler hit sound", function()
-    surface.PlaySound(ss.BubblerHit)
+    sound.Play("SplatoonSWEPs.BubblerHit", Vector(), 0)
 end)
 
 local buffer = ""

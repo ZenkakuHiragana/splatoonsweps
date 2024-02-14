@@ -11,10 +11,8 @@ ss.WeakShotLevel = 75
 ss.WeaponSoundLevel = 80
 ss.WeaponSoundVolume = 1
 ss.WeaponSoundPitch = {90, 110}
-ss.BubblerHit = Sound "splatoonsweps/weapons/special/bubblerhit.wav"
 ss.EnemyInkSound = Sound "splatoonsweps/player/onenemyink.wav"
 ss.SwimSound = Sound "splatoonsweps/player/swimloop.wav"
-ss.TakeDamage = Sound "splatoonsweps/player/takedamage.wav"
 ss.TankEmpty = Sound "splatoonsweps/player/tankempty.wav"
 ---@param soundList SoundData[]
 function ss.PrecacheSoundList(soundList)
@@ -42,6 +40,15 @@ include "special.lua"
 include "splatling.lua"
 include "sub.lua"
 include "voice.lua"
+
+sound.Add {
+    channel = CHAN_AUTO,
+    name = "SplatoonSWEPs.TakeDamage",
+    level = 0,
+    sound = "splatoonsweps/player/takedamage.wav",
+    volume = 1,
+    pitch = 100,
+}
 
 sound.Add {
     channel = CHAN_STATIC,
