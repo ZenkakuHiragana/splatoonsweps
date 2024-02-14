@@ -34,6 +34,7 @@ function ENT:PhysicsCollide(data, collider)
         if not (t:IsPlayer() or t:IsNPC() or t:IsNextBot()) then continue end
         if w and ss.IsAlly(self, w) then continue end
         if ss.IsInvincible(t) then continue end
+        if t == self:GetOwner() and not ss.GetOption "hurtowner" then continue end
 
         t:EmitSound "SplatoonSWEPs.DisruptorTaken"
         ss.SetDisruptedEntity(t, true)

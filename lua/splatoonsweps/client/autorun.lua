@@ -397,11 +397,14 @@ local function PostDrawEffects()
     local size = 4 + math.sin(2 * math.pi * 4 * CurTime()) * 0.5
     local start = lp:GetPos()
     for _, ent in ipairs(marked) do
+        if ent == lp then continue end
         local endpos = ss.GetMarkerPosition(ent)
         render.DrawBeam(start, endpos, 1, -CurTime(), start:Distance(endpos) / 20 - CurTime(), color)
     end
     render.SetMaterial(MarkerLineTipMaterial)
-    render.DrawSprite(start, size, size, color)
+    if #marked > 1 or marked[1] ~= lp then
+        render.DrawSprite(start, size, size, color)
+    end
     cam.IgnoreZ(false)
     cam.End3D()
 end

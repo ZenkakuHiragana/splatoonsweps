@@ -33,7 +33,9 @@ function ENT:PhysicsCollide(data, collider)
 
     local victims = {} ---@type Entity[]
     for _, ent in ipairs(ents.FindInSphere(self:GetPos(), p.Burst_Radius)) do
-        if not ss.IsInvincible(ent) then victims[#victims + 1] = ent end
+        if ss.IsInvincible(ent) then continue end
+        if self:GetOwner() == ent and not ss.GetOption "hurtowner" then continue end
+        victims[#victims + 1] = ent
     end
 
     ss.MarkEntity(self:GetNWInt "inkcolor", victims, ss.PointSensorDuration)
