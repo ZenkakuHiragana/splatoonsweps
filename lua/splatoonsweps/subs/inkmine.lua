@@ -32,6 +32,7 @@ ss.inkmine = {
         InkRecoverStop = 0,
         MaxInkmines = 1,
         PlayerColRadius = 30,
+        KnockbackForce = 0.5,
     },
     Units = {
         Burst_Damage_Far = "hp",
@@ -55,6 +56,7 @@ ss.inkmine = {
         InkRecoverStop = "f",
         MaxInkmines = "num",
         PlayerColRadius = "du",
+        KnockbackForce = "du/f",
     },
     BurstSound = "SplatoonSWEPs.BombExplosion",
     GetDamage = function(dist, ent)
@@ -81,9 +83,10 @@ end
 
 if CLIENT then return end
 function module:ServerSecondaryAttack(throwable)
-    if not self:GetOwner():OnGround() then return end
+    local Owner = self:GetOwner()
+    if not Owner:OnGround() then return end
     if self.NumInkmines >= p.MaxInkmines then return end -- Reset is available after v2.7.0
-    local start = self:GetOwner():GetPos()
+    local start = Owner:GetPos()
     local tracedz = -vector_up * p.CrossPaintRayLength
     local tr = ss.SquidTrace
     tr.start, tr.endpos = start, start + tracedz
@@ -96,7 +99,7 @@ function module:ServerSecondaryAttack(throwable)
     local ang = (tr.Hit and tr.HitNormal or vector_up):Angle()
     ang:RotateAroundAxis(ang:Right(), -90)
     e.Weapon = self
-    e:SetOwner(self:GetOwner())
+    e:SetOwner(Owner)
     e:SetNWInt("inkcolor", inkcolor)
     e:SetPos(tr.HitPos + tr.HitNormal * 9)
     e:SetAngles(ang)
@@ -104,7 +107,8 @@ function module:ServerSecondaryAttack(throwable)
     self.NumInkmines = self.NumInkmines + 1
     self:ConsumeInk(self:GetSubWeaponInkConsume())
     self:SetReloadDelay(p.InkRecoverStop)
+    ss.ApplyKnockback(Owner, -Owner:GetForward() * p.KnockbackForce)
 
     ss.Paint(tr.HitPos, tr.HitNormal, p.InitInkRadius,
-    inkcolor, ang.yaw, ss.GetDropType(), 1, self:GetOwner(), self:GetClass())
+    inkcolor, ang.yaw, ss.GetDropType(), 1, Owner, self:GetClass())
 end
