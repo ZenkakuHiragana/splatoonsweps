@@ -71,6 +71,7 @@ if not ss then return end
 ---@field DamageMinDistance      number   Ink travel distance to end decaying damage
 ---@field Gravity                number   Gravity acceleration
 ---@field ID                     number   Ink identifier to avoid multiple damages at once
+---@field Inflictor              Entity?  The entity that actually spawned this ink (e.g. a Sprinkler)
 ---@field InitDir                Vector   (Auto set) Initial direction of velocity
 ---@field InitPos                Vector   Initial position
 ---@field InitSpeed              number   (Auto set) Initial speed
@@ -600,6 +601,7 @@ function ss.MakeProjectileStructure()
         DamageMinDistance = 0,            -- Ink travel distance to end decaying damage
         Gravity = 0,                      -- Gravity acceleration
         ID = CurTime(),                   -- Ink identifier to avoid multiple damages at once
+        Inflictor = nil,                  -- The entity that actually spawned this ink
         InitDir = Vector(),               -- (Auto set) Initial direction of velocity
         InitPos = Vector(),               -- Initial position
         InitSpeed = 0,                    -- (Auto set) Initial speed

@@ -80,6 +80,7 @@ function ENT:Spout()
         DamageMin = p.Spout_SplashDamage,
         Gravity = p.Spout_Gravity,
         ID = CurTime() + self:EntIndex(),
+        Inflictor = self,
         PaintFarDistance = p.Spout_SplashPaintR_MinHeight,
         PaintFarRadius = p.Spout_SplashPaintR_First * p.Spout_SplashPaintR_MinRate,
         PaintFarRatio = p.Spout_FarRatio,

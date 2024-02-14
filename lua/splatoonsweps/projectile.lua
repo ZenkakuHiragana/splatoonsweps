@@ -220,7 +220,7 @@ local function HitEntity(ink, t)
     if data.IsCritical            then flags = flags + 1 end
     if ss.IsInvincible(e)         then flags = flags + 8 end
     if ink.IsCarriedByLocalPlayer then flags = flags + 128 end
-    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, o)
+    ss.CreateHitEffect(data.Color, flags, te.HitPos, te.HitNormal, weapon)
     if ss.mp and CLIENT then return end
 
     local dt = bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL)
@@ -238,7 +238,7 @@ local function HitEntity(ink, t)
 end
 
 ---@param ink ss.InkQueue
----@param ply Entity
+---@param ply Entity?
 ---@return boolean
 local function ProcessInkQueue(ink, ply)
     if not ink then return true end
@@ -247,7 +247,8 @@ local function ProcessInkQueue(ink, ply)
     or not IsValid(weapon)
     or not IsValid(weapon:GetOwner())
 
-    if not removal and (not ink.Owner:IsPlayer() or ink.Owner == ply) then
+    if not removal and Either(not ply, IsValid(ink.Owner)
+    and not ink.Owner:IsPlayer() or data.Inflictor, ink.Owner == ply) then
         tr.filter = ss.MakeAllyFilter(weapon)
         Simulate(ink)
         if tr.start:DistToSqr(tr.endpos) > 0 then
@@ -288,7 +289,7 @@ local SortedPairs = SortedPairs
 local SysTime = SysTime
 local pairs = pairs
 local yield = coroutine.yield
----@param ply Entity
+---@param ply Entity?
 local function ProcessInkQueueAll(ply)
     local Benchmark = SysTime()
     while true do
@@ -335,14 +336,15 @@ end
 ---@param flags integer
 ---@param pos Vector
 ---@param normal Vector
----@param owner Entity
-function ss.CreateHitEffect(color, flags, pos, normal, owner)
+---@param weapon SplatoonWeaponBase
+function ss.CreateHitEffect(color, flags, pos, normal, weapon)
     local filter = nil
     local e = EffectData()
-    if IsValid(owner) and owner:IsPlayer() then ---@cast owner Player
+    local Owner = weapon:GetOwner()
+    if IsValid(Owner) and Owner:IsPlayer() then ---@cast Owner Player
         if SERVER then
             filter = RecipientFilter()
-            filter:AddPlayer(owner)
+            filter:AddPlayer(Owner)
         end
         e:SetColor(color)
         e:SetFlags(flags)
@@ -512,30 +514,29 @@ function ss.AddInk(parameters, data)
     return t
 end
 
-local processes = {} ---@type table<Player, thread>
+local processes = {} ---@type table<Player|boolean, thread>
 local ErrorNoHalt = ErrorNoHalt
 local create = coroutine.create
 local status = coroutine.status
 local resume = coroutine.resume
 local Empty = table.Empty
-hook.Add("Move", "SplatoonSWEPs: Simulate ink",
----@param ply Player
----@param mv CMoveData
-function(ply, mv)
-    local p = processes[ply]
+---@param ply Player?
+local function RunCoroutines(ply)
+    local p = processes[ply or true]
     if not p or status(p) == "dead" then
-        processes[ply] = create(ProcessInkQueueAll)
-        p = processes[ply]
+        processes[ply or true] = create(ProcessInkQueueAll)
+        p = processes[ply or true]
         Empty(ss.InkQueue)
     end
 
-    ply:LagCompensation(true)
+    if ply then ply:LagCompensation(true) end
     local ok, msg = resume(p, ply)
-    ply:LagCompensation(false)
-
+    if ply then ply:LagCompensation(false) end
     if ok then return end
     ErrorNoHalt(msg)
-end)
+end
+hook.Add("Move", "SplatoonSWEPs: Simulate ink", RunCoroutines)
+hook.Add("Tick", "SplatoonSWEPs: Simulate ink", RunCoroutines)
 
 ---Physics simulation for ink trajectory.
 ---The first some frames(1/60 sec.) ink flies without gravity.
