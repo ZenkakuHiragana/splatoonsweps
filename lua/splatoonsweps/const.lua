@@ -23,7 +23,6 @@ ss.WeaponClassNames2 = include "splatoonsweps/constants/weaponclasses2.lua" ---@
 ss.TEXTUREFLAGS      = include "splatoonsweps/constants/textureflags.lua" ---@type table<string, integer>
 ss.RenderTarget      = include "splatoonsweps/constants/rendertarget.lua" ---@type ss.RenderTarget
 ss.Units             = include "splatoonsweps/constants/parameterunits.lua" ---@type table<string, string>
-ss.BubblerModel      = Model "models/splatoonsweps/specials/bubbler.mdl"
 ss.InkTankModel      = Model "models/props_splatoon/gear/inktank_backpack/inktank_backpack.mdl"
 
 ---@enum PlayerType
@@ -144,7 +143,9 @@ ss.Particles = {
     BlasterExplosion     = "splatoonsweps_explosion",
     BombExplosion        = "splatoonsweps_bomb_explosion",
     BubblerStart         = "splatoonsweps_bubbler_flash",
-    BubblerEnding        = "splatoonsweps_bubbler_ending",
+    BubblerEnd           = "splatoonsweps_bubbler_burst",
+    BubblerLeak          = "splatoonsweps_bubbler_ending",
+    BubblerFlicker       = "splatoonsweps_bubbler_ring",
     BrushRunning         = "splatoonsweps_roller_rolling_brush",
     BrushSplash          = "splatoonsweps_roller_splash_brush",
     ChargerFlash         = "splatoonsweps_charger_flash",

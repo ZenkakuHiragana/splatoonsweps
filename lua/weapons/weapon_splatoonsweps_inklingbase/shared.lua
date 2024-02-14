@@ -677,7 +677,7 @@ function SWEP:Reload()
     if self:GetNWBool "IsUsingSpecial" then return end
     local voice = ss.GetVoiceName("SpecialStart", self)
     if voice and self:IsFirstTimePredicted() then
-        self:GetOwner():EmitSound(voice)
+        ss.EmitSoundPredicted(self:GetOwner(), self, voice)
     end
     self:SetInk(ss.GetMaxInkAmount())
     self:SetSpecialStartTime(CurTime())

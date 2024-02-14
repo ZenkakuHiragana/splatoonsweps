@@ -9,7 +9,7 @@ if not ss then return end
 ---@field PreDrawWorldModelTranslucent fun(self): boolean?
 ---@field PreViewModelDrawn            fun(self, vm: Entity, weapon: Weapon, ply: Player)
 ---@field AmmoDisplay                  { Draw: boolean, PrimaryClip: number, PrimaryAmmo: number, SecondaryAmmo: number? }
----@field BubblerEffect                CNewParticleEffect
+---@field BubblerEntity                ENT.Bubbler
 ---@field Cursor                       { x: number, y: number }
 ---@field EnoughSubWeapon              boolean
 ---@field PreviousInk                  boolean
@@ -276,41 +276,11 @@ function SWEP:DrawWorldModelTranslucent()
         self:DrawWorldElement "subweaponusable"
     end
 
-    -- Draw Bubbler when enabled
-    local Owner = self:GetOwner()
-    if ss.IsInvincible(Owner) then
-        local mdl = self.WElements.bubbler.modelEnt
-        if not IsValid(mdl) then
-            self:RecreateModel(self.WElements.bubbler)
-            mdl = self.WElements.bubbler.modelEnt
-        end
-        if IsValid(mdl) then ---@cast mdl -?
-            local mins, maxs = mdl:GetModelRenderBounds()
-            local ref = maxs.z - mins.z
-            local eye = Owner:EyePos()
-            local pos = Owner:GetPos()
-            local dz = eye.z - pos.z
-            local scale = dz / ref
-            local org = Owner:WorldSpaceCenter()
-            if Owner:IsPlayer() then ---@cast Owner Player
-                local stand = Owner:GetViewOffset().z
-                local ducked = Owner:GetViewOffsetDucked().z
-                local frac = math.Remap(dz, ducked, stand, 0.5, 1)
-                org = LerpVector(frac, pos, org)
-            end
-            mdl:SetPos(org)
-            mdl:SetAngles(EyeAngles())
-            self.WElements.bubbler.size = ss.vector_one * scale * 1.75
-
-            if IsValid(self.BubblerEffect) then
-                self.BubblerEffect:SetControlPoint(1, LerpVector(1 / 3, self:GetInkColorProxy(), ss.vector_one))
-                self.BubblerEffect:SetControlPoint(2, ss.vector_one * dz)
-                self.BubblerEffect:Render()
-            end
-
-            render.UpdateRefractTexture()
-            self:DrawWorldElement "bubbler"
-        end
+    -- Draw Bubbler when enabled here to avoid translucent rendering order issues
+    if ss.IsInvincible(self:GetOwner()) and IsValid(self.BubblerEntity) then
+        self.BubblerEntity:DrawParticle()
+        render.UpdateRefractTexture()
+        self.BubblerEntity:DrawModel()
     end
 end
 

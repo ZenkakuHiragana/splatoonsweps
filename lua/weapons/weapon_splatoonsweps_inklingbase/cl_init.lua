@@ -13,11 +13,6 @@ include "ai_translations.lua"
 local SWEP = SWEP
 
 SWEP.WElements = {
-    bubbler = {
-        type  = "Model",
-        model = ss.BubblerModel,
-        bone  = "ValveBiped.Bip01_Spine4",
-    },
     inktank = {
         type      = "Model",
         model     = ss.InkTankModel,
