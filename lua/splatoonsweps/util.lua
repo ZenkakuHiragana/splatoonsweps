@@ -408,10 +408,9 @@ function ss.MakeAllyFilter(weapon, includePlayers)
     local owner = weapon:GetOwner()
     local color = weapon:GetNWInt "inkcolor"
     local entities = { weapon, owner } ---@type Entity[]
-    local ff = ss.GetOption "ff"
     for ent in pairs(ss.EntityFilters[color] or {}) do
         if IsValid(ent) then
-            if ff and ent:GetOwner() == owner then
+            if ent:GetOwner() == owner then
                 entities[#entities + 1] = ent
             end
         else
