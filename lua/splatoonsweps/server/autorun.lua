@@ -192,6 +192,7 @@ end
 ---@param speed number The fall speed
 ---@return integer?
 function ss.GetFallDamage(self, ply, speed)
+    if ss.IsInvincible(ply) then return 0 end
     if ss.GetOption "takefalldamage" then return end
     return 0
 end
