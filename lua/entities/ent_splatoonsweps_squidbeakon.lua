@@ -131,7 +131,7 @@ if CLIENT then
 
     function ENT:Draw()
         local w = ss.IsValidInkling(LocalPlayer()) --[[@as SWEP.Charger]]
-        if w and w:IsTPS() or (ss.ProtectedCall(w.GetScopedProgress, w) or 0) > 0.25 then
+        if w and (w:IsTPS() or (ss.ProtectedCall(w.GetScopedProgress, w) or 0) > 0.25) then
             local fade = math.Clamp(self:WorldSpaceCenter():DistToSqr(EyePos()) / ss.CameraFadeDistance, 0, 1)
             if fade == 0 then return end
             render.SetBlend(fade)
