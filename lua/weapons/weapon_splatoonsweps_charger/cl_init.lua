@@ -121,7 +121,8 @@ function SWEP:RenderScreenspaceEffects()
     if prog == 0 then return end
     local padding = surface.DrawTexturedRectUV
     local u, v = .115, 1
-    local x, y = self.Cursor.x, self.Cursor.y
+    local t = self:SetupDrawCrosshair()
+    local x, y = t.HitPosScreen.x, t.HitPosScreen.y
     local sx, sy = math.ceil(ScrH() * 4 / 3), ScrH()
     local ex, ey = math.ceil(x + sx / 2), math.ceil(y + sy / 2) -- End position of x, y
     x, y = math.floor(x - sx / 2), math.floor(y - sy / 2)
