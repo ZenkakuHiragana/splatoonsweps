@@ -20,19 +20,23 @@ function module:GetSpecialDuration() return 0 end
 function module:OnSpecialEnd() end
 function module:OnSpecialStart()
     self:ResetSpecialState()
+    local Owner = self:GetOwner()
     local color = self:GetNWInt "inkcolor"
     local e = EffectData()
-    e:SetOrigin(self:GetOwner():EyePos())
+    e:SetOrigin(Owner:EyePos())
     e:SetColor(color)
-    ss.UtilEffectPredicted(self:GetOwner(), "SplatoonSWEPsEcholocator", e)
-    ss.EmitSoundPredicted(self:GetOwner(), self, "SplatoonSWEPs.Echolocator")
+    ss.UtilEffectPredicted(Owner, "SplatoonSWEPsEcholocator", e)
+    ss.EmitSoundPredicted(Owner, self, "SplatoonSWEPs.Echolocator")
     if CLIENT then return end
     self:AddSchedule(0.75, 1, function()
-        ss.MarkEntity(color, ents.GetAll(), ss.EcholocatorDuration)
+        local victims = ents.GetAll()
+        table.RemoveByValue(victims, Owner)
+        ss.MarkEntity(color, victims, ss.EcholocatorDuration)
         for _, ply in ipairs(player.GetAll()) do
             if not ply:Alive() then continue end
             local w = ss.IsValidInkling(ply) ---@type Weapon?
             if w and ss.IsAlly(color, w) then continue end
+            if ply == Owner and ss.GetOption "ff" then continue end
             ss.EmitSound(ply, "SplatoonSWEPs.PointSensorTaken")
         end
     end)
