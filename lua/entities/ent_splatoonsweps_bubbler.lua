@@ -32,7 +32,7 @@ function ENT:GetInkColorProxy()
     return w:GetInkColorProxy()
 end
 
-local mdl = Model "models/splatoonsweps/specials/bubbler.mdl"
+local mdl = Model "models/splatoonsweps/specials/bubbler/bubbler.mdl"
 function ENT:Initialize()
     local Owner = self:GetOwner()
     local w = IsValid(Owner) and ss.IsValidInkling(Owner) or nil

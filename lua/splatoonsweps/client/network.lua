@@ -29,7 +29,7 @@ net.Receive("SplatoonSWEPs: Redownload ink data", function()
         net.Start "SplatoonSWEPs: Redownload ink data"
         net.SendToServer()
         notification.AddProgress("SplatoonSWEPs: Redownload ink data",
-            "Downloading ink map... " .. math.Round(prog * 100) .. "%")
+            "Downloading ink map... " .. math.Round(prog * 100) .. "%", prog)
         return
     end
 

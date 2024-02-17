@@ -296,6 +296,10 @@ local function ProcessInkQueueAll(ply)
         repeat yield() until IsFirstTimePredicted()
         Benchmark = SysTime()
         for inittime, inkgroup in SortedPairs(ss.InkQueue) do
+            if not inkgroup then
+                ss.InkQueue[inittime] = nil
+                continue
+            end
             local k = 1
             for i = 1, #inkgroup do
                 local ink = inkgroup[i]

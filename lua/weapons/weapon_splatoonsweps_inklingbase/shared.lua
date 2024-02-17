@@ -84,7 +84,6 @@ local SWEP = SWEP
 ---@field BaseClass SWEP
 ---@field ActivityTranslate        table<integer, integer>
 ---@field ActivityTranslateAI      SWEP.ActivityTranslationTable
----@field BloodColor               integer? Used in Bubbler
 ---@field Bodygroup                integer[]
 ---@field BotInkColor              integer
 ---@field Buttons                  integer
