@@ -5,7 +5,7 @@ local ss = SplatoonSWEPs
 if not ss then return end
 ---@type ISpecialWeaponDef
 ss.killerwail = {
-    PointsNeeded = 1,
+    PointsNeeded = 160,
     Merge = {
         SuppressPrimaryAttackSpecial   = false,
         SuppressSecondaryAttackSpecial = true,
