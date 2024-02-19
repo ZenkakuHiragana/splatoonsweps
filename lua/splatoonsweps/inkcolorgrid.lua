@@ -184,7 +184,7 @@ function ss.Paint(pos, normal, radius, color, angle, inktype, ratio, ply, classn
         net_Send(ss.PlayersReady)
     end
 
-    if progress < 1 and w and not w:GetNWBool "IsUsingSpecial"
+    if progress < 1 and w and not w:GetSpecialActivated()
     and w:GetSpecialPointProgress() >= 1 then
         local e = EffectData()
         e:SetEntity(w)

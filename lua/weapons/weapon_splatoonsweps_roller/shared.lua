@@ -124,7 +124,7 @@ local function DoRunover(self, t)
         local effectpos = center + dir * dir:Dot(v:GetPos() - center)
         if self:IsMine() and (ss.sp or IsFirstTimePredicted()) then
             ss.SuppressHostEventsMP(self:GetOwner())
-            ss.CreateHitEffect(color, 0, effectpos, -forward, self:GetOwner())
+            ss.CreateHitEffect(color, 0, effectpos, -forward, self)
             ss.EndSuppressHostEventsMP()
         end
 

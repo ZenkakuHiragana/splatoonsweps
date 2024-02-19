@@ -39,9 +39,14 @@ if not ss then return end
 ---@field DrawOnSubTriggerDown      fun(self)?
 
 ---@class ISpecialWeapon
----@field GetSpecialDuration fun(self): number
----@field OnSpecialStart     fun(self)
----@field OnSpecialEnd       fun(self)
+---@field SuppressPrimaryAttackSpecial   boolean?
+---@field SuppressSecondaryAttackSpecial boolean?
+---@field SuppressSquidSpecial           boolean?
+---@field SwitchWeaponOnSpecial          boolean?
+---@field SwitchSpecialWeaponTo          string?
+---@field GetSpecialDuration             fun(self): number
+---@field OnSpecialStart                 fun(self)
+---@field OnSpecialEnd                   fun(self, switchTo: Entity?)
 
 ---Overridable functions implemented in inherited classes
 ---@class IMainWeapon
@@ -70,7 +75,7 @@ if not ss then return end
 ---@field ServerSecondaryAttack fun(self, able: boolean?)
 ---@field ServerThink           fun(self)
 ---@field SharedDeploy          fun(self)
----@field SharedHolster         fun(self)
+---@field SharedHolster         fun(self): boolean?
 ---@field SharedInit            fun(self)
 ---@field SharedOnRemove        fun(self)
 ---@field SharedPrimaryAttack   fun(self, able: boolean?, auto: boolean?)
@@ -103,6 +108,7 @@ local SWEP = SWEP
 ---@field IsOctoShot               boolean?
 ---@field IsRoller                 boolean?
 ---@field IsShooter                boolean?
+---@field IsSpecial                boolean?
 ---@field IsSlosher                boolean?
 ---@field IsSloshingMachine        boolean?
 ---@field IsSplatling              boolean?
@@ -161,7 +167,7 @@ local SWEP = SWEP
 ---@field SetReloadDelay           fun(self, delay: number)
 ---@field SetWeaponAnim            fun(self, act: number, index: number?)
 ---@field SharedDeployBase         fun(self): boolean
----@field SharedHolsterBase        fun(self): boolean
+---@field SharedHolsterBase        fun(self, switchTo: Entity): boolean
 ---@field SharedInitBase           fun(self)
 ---@field SharedThinkBase          fun(self)
 ---@field StartRecording           fun(self)
@@ -316,7 +322,7 @@ function SWEP:ResetSpecialState()
     if not record then return end
     local raw = record.Inked[self.ClassName]
     self:SetNWInt("SpecialBasePoints", raw)
-    self:SetNWBool("IsUsingSpecial", false)
+    self:SetSpecialActivated(false)
 end
 
 ---Get actual color of current ink
@@ -439,6 +445,7 @@ local InkTraceDepth = 20
 ---Set if player is in ink
 function SWEP:UpdateInkState()
     local Owner = self:GetOwner()
+    if not IsValid(Owner) then return end
     local ang = Angle(0, Owner:GetAngles().yaw)
     local c = self:GetNWInt "inkcolor"
     local org = Owner:GetPos()
@@ -548,7 +555,7 @@ end
 function SWEP:SharedInitBase()
     self:SetCooldown(CurTime())
     self:ApplySkinAndBodygroups()
-    self:SetNWBool("IsUsingSpecial", false)
+    self:SetSpecialActivated(false)
     self:SetNWInt("TurfInkedAtStart", 0)
     self:SetNWInt("SpecialBasePoints", 0)
     self.KeyPressedOrder = {} -- Pressed keys are added here, most recent key will go last
@@ -557,6 +564,7 @@ function SWEP:SharedInitBase()
     for _, t in ipairs {
         "ar2",
         "crossbow",
+        "duel",
         "grenade",
         "melee",
         "melee2",
@@ -602,7 +610,6 @@ function SWEP:SharedDeployBase()
     self:PlayLoopSound()
     self:SetHolstering(false)
     self:SetThrowing(false)
-    self:SetCooldown(CurTime())
     self:StartRecording()
     self:SetKey(0)
     self:SetSuperJumpState(-1)
@@ -631,12 +638,13 @@ function SWEP:SharedDeployBase()
 end
 
 ---Base function of Holster hook for both realms
+---@param switchTo Entity
 ---@return boolean allowHolster True to allow weapon to holster
-function SWEP:SharedHolsterBase()
+function SWEP:SharedHolsterBase(switchTo)
+    if ss.ProtectedCall(self.SharedHolster, self, switchTo) == false then return false end
     self:SetHolstering(true)
-    ss.ProtectedCall(self.SharedHolster, self)
     ss.SetPlayerFilter(self:GetOwner(), self:GetNWInt("inkcolor", -1), false)
-    if self:GetNWBool "IsUsingSpecial" then self:OnSpecialEnd() end
+    if self:GetSpecialActivated() then self:OnSpecialEnd(switchTo) end
     self:StopLoopSound()
     self:EndRecording()
     return true
@@ -655,15 +663,16 @@ function SWEP:SharedThinkBase()
     end
 
     local Owner = self:GetOwner()
-    if IsValid(Owner) and Owner:IsPlayer() then
-        ---@cast Owner Player
-        self:SetClip1(math.Round(self:GetInk()))
-        Owner:SetAmmo(self:GetTurfInkedThisTime(), self:GetPrimaryAmmoType())
+    local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
+    if not self.IsSpecial and IsValid(Owner) then
+        Owner:DrawShadow(not ShouldNoDraw)
+        if Owner:IsPlayer() then ---@cast Owner Player
+            self:SetClip1(math.Round(self:GetInk()))
+            Owner:SetAmmo(self:GetTurfInkedThisTime(), self:GetPrimaryAmmoType())
+        end
     end
 
-    local ShouldNoDraw = Either(self:GetNWBool "becomesquid", self:Crouching(), self:GetInInk())
-    Owner:DrawShadow(not ShouldNoDraw)
-    self:DrawShadow(not ShouldNoDraw)
+    self:DrawShadow(not (ShouldNoDraw or CLIENT and ss.ProtectedCall(self.PreDrawWorldModel, self)))
     self:ApplySkinAndBodygroups()
     ss.ProtectedCall(self.SharedThink, self)
 end
@@ -673,14 +682,14 @@ function SWEP:Reload()
     if self:GetHolstering() then return end
     if not ss[self.Special] then return end -- Remove after all specials are implemented
     if self:GetSpecialPointProgress() < 1 then return end
-    if self:GetNWBool "IsUsingSpecial" then return end
+    if self:GetSpecialActivated() then return end
     local voice = ss.GetVoiceName("SpecialStart", self)
     if voice and self:IsFirstTimePredicted() then
         ss.EmitSoundPredicted(self:GetOwner(), self, voice)
     end
     self:SetInk(ss.GetMaxInkAmount())
     self:SetSpecialStartTime(CurTime())
-    self:SetNWBool("IsUsingSpecial", true)
+    self:SetSpecialActivated(true)
     ss.ProtectedCall(self.OnSpecialStart, self)
 end
 
@@ -717,8 +726,10 @@ end
 ---The Primary Attack hook for both realms
 ---@param auto boolean? True if this is called from a timer instead of predicted hook
 function SWEP:PrimaryAttackEntryPoint(auto)
-    local Owner = self:GetOwner()
     if self:GetHolstering() then return end
+    if self:GetSpecialActivated() and self.SuppressPrimaryAttackSpecial then return end
+
+    local Owner = self:GetOwner()
     if self:GetThrowing() then return end
     if CurTime() < self:GetNextPrimaryFire() then return end
     if not self:CheckCanStandup() then return end
@@ -737,7 +748,9 @@ function SWEP:PrimaryAttack()
 end
 
 function SWEP:SecondaryAttack()
+    if not (self.Sub and ss[self.Sub]) then return end
     if self:GetHolstering() then return end
+    if self:GetSpecialActivated() and self.SuppressSecondaryAttackSpecial then return end
     if self:GetKey() ~= IN_ATTACK2 then self:SetThrowing(false) return end
     if self:GetThrowing() then return end
     if self:GetSuperJumpState() >= 0 then return end
@@ -815,6 +828,7 @@ function SWEP:SetupDataTables()
     ---@field GetOldCrouching       fun(self): boolean
     ---@field GetOnEnemyInk         fun(self): boolean
     ---@field GetHolstering         fun(self): boolean
+    ---@field GetSpecialActivated   fun(self): boolean
     ---@field GetThrowing           fun(self): boolean
     ---@field GetNPCTarget          fun(self): Entity
     ---@field GetSuperJumpEntity    fun(self): Entity
@@ -841,6 +855,7 @@ function SWEP:SetupDataTables()
     ---@field SetOldCrouching       fun(self, value: boolean)
     ---@field SetOnEnemyInk         fun(self, value: boolean)
     ---@field SetHolstering         fun(self, value: boolean)
+    ---@field SetSpecialActivated   fun(self, value: boolean)
     ---@field SetThrowing           fun(self, value: boolean)
     ---@field SetNPCTarget          fun(self, value: Entity)
     ---@field SetSuperJumpEntity    fun(self, value: Entity)
@@ -870,6 +885,7 @@ function SWEP:SetupDataTables()
     self:AddNetworkVar("Bool",   "OldCrouching")      -- If owner was crouching a tick ago.
     self:AddNetworkVar("Bool",   "OnEnemyInk")        -- If owner is on enemy ink.
     self:AddNetworkVar("Bool",   "Holstering")        -- The weapon is being holstered.
+    self:AddNetworkVar("Bool",   "SpecialActivated")  -- The weapon is using its special weapon.
     self:AddNetworkVar("Bool",   "Throwing")          -- Is about to use sub weapon.
     self:AddNetworkVar("Entity", "NPCTarget")         -- Target entity for NPC.
     self:AddNetworkVar("Entity", "SuperJumpEntity")   -- Target entity to perform super jump onto.

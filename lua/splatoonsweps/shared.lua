@@ -93,6 +93,7 @@ function ss.PredictedThinkMoveHook(w, ply, mv)
     -- Check if it should forcibly stand up
     local crouching = ply:Crouching()
     if w:CheckCanStandup() and w:GetKey() ~= 0 and w:GetKey() ~= IN_DUCK
+    or w:GetSpecialActivated() and w.SuppressSquidSpecial
     or CurTime() > w:GetEnemyInkTouchTime() + ss.EnemyInkCrouchEndurance and ply:KeyDown(IN_DUCK)
     or CurTime() < w:GetCooldown() then
         mv:SetButtons(bit.band(mv:GetButtons(), CrouchMask))
@@ -598,6 +599,40 @@ end
 
 ---@param self SplatoonWeaponBase
 ---@param ply Player
+---@param ucmd CUserCmd
+function ss.StartCommand(self, ply, ucmd)
+    if self.IsSpecial then -- If player is holding a special weapon
+        local activator = self:GetNWEntity "Activator" ---@cast activator SplatoonWeaponBase
+        if not IsValid(activator) then return end
+        local elapsed = CurTime() - activator:GetSpecialStartTime()
+        if activator:GetSpecialActivated() and elapsed < activator:GetSpecialDuration() then return end
+        if elapsed >= activator:GetSpecialDuration() then self:SharedPrimaryAttack() end
+        if SERVER and self:Ammo1() <= 0 then SafeRemoveEntity(self) end
+        self:SetNWEntity("Activator", NULL)
+        ucmd:SelectWeapon(activator)
+    else
+        if not self.SwitchWeaponOnSpecial then return end
+        if not self:GetSpecialActivated() then return end
+        local elapsed = CurTime() - self:GetSpecialStartTime()
+        if elapsed > self:GetSpecialDuration() then return end
+        local special = ply:GetWeapon(self.SwitchSpecialWeaponTo) ---@cast special SWEP.Special
+        if SERVER and not IsValid(special) then
+            special = ply:Give(self.SwitchSpecialWeaponTo, true)
+        end
+
+        if not IsValid(special) then return end
+        special:SetClip1(special.Primary.ClipSize)
+        special:SetNWEntity("Activator", self)
+        ucmd:SelectWeapon(special)
+
+        local p = ss.killerwail.Parameters
+        special:SetCooldown(math.max(special:GetCooldown(), CurTime() + p.CooldownBeforeFire))
+        special:SetNextPrimaryFire(CurTime() + p.CooldownBeforeFire)
+    end
+end
+
+---@param self SplatoonWeaponBase
+---@param ply Player
 ---@param key integer
 function ss.KeyPress(self, ply, key)
     if ss.KeyMaskFind[key] then
@@ -938,6 +973,7 @@ end
 
 hook.Add("PlayerFootstep", "SplatoonSWEPs: Ink footstep", ss.hook "PlayerFootstep")
 hook.Add("UpdateAnimation", "SplatoonSWEPs: Adjust TPS animation speed", ss.hook "UpdateAnimation")
+hook.Add("StartCommand", "SplatoonSWEPs: Switch weapon on special", ss.hook "StartCommand")
 hook.Add("KeyPress", "SplatoonSWEPs: Check a valid key", ss.hook "KeyPress")
 hook.Add("KeyRelease", "SplatoonSWEPs: Throw sub weapon", ss.hook "KeyRelease")
 hook.Add("OnPlayerHitGround", "SplatoonSWEPs: Play diving sound", ss.hook "OnPlayerHitGround")

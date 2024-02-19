@@ -91,4 +91,8 @@ return {PrintNames = {
     weapon_splatoonsweps_sloshingmachine_neo = "スクリュースロッシャーネオ",
     weapon_splatoonsweps_rapidblaster_deco = "ラピッドブラスターデコ",
     weapon_splatoonsweps_inkbrush_permanent = "パーマネント・パブロ",
+
+    weapon_splatoonsweps_killerwail = "メガホンレーザー",
+    weapon_splatoonsweps_inkzooka = "スーパーショット",
+    weapon_splatoonsweps_inkstrike = "トルネード",
 }}

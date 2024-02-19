@@ -63,6 +63,7 @@ local NPCHoldType = {
     weapon_splatoonsweps_slosher_base = "smg",
     weapon_splatoonsweps_splatling    = "smg",
     weapon_splatoonsweps_roller       = "melee",
+    weapon_splatoonsweps_special      = "smg",
 }
 ---Translates generic ACT to specific one for NPCs
 ---@param act integer ACT enum
@@ -98,8 +99,11 @@ end
 ---Creates squid entity
 function SWEP:MakeSquidModel()
     if CLIENT then return end
+    local Owner = self:GetOwner()
     local squid = self:GetNWEntity "Squid"
     if IsValid(squid) then squid:Remove() end
+    if not IsValid(Owner) then return end
+    if not Owner:IsPlayer() then return end
     self:SetNWEntity("Squid", ents.Create "ent_splatoonsweps_squid")
     if not IsValid(self:GetNWEntity "Squid") then return end
     squid = self:GetNWEntity "Squid"

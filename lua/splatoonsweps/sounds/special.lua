@@ -53,3 +53,21 @@ sound.Add {
     volume = 1,
     pitch = 100,
 }
+
+sound.Add {
+    channel = CHAN_AUTO,
+    name = "SplatoonSWEPs.KillerWail",
+    level = 100,
+    sound = "splatoonsweps/weapons/special/killerwail.wav",
+    volume = 1,
+    pitch = 100,
+}
+
+sound.Add {
+    channel = CHAN_AUTO,
+    name = "SplatoonSWEPs.KillerWailPrefire",
+    level = 100,
+    sound = "splatoonsweps/weapons/special/killerwailprefire.wav",
+    volume = 1,
+    pitch = 100,
+}

@@ -27,7 +27,7 @@ local module = ss.bubbler.Merge
 local p = ss.bubbler.Parameters
 function module:GetSpecialDuration() return p.Duration end
 function module:OnSpecialEnd()
-    self:SetNWBool("IsUsingSpecial", false)
+    self:SetSpecialActivated(false)
     local Owner = self:GetOwner()
     if SERVER and IsValid(Owner) then
         ss.SetInvincibleDuration(Owner, -1)
@@ -45,13 +45,13 @@ function module:OnSpecialStart()
     end
 
     self:AddSchedule(0, function()
-        if not self:GetNWBool "IsUsingSpecial" then return true end
+        if not self:GetSpecialActivated() then return true end
         local frac = (CurTime() - self:GetSpecialStartTime()) / self:GetSpecialDuration()
         self:SetNWInt("SpecialBasePoints", start + pointsneeded * frac) -- Decreasing special gauge
     end)
 
     self:AddSchedule(self:GetSpecialDuration(), 1, function()
-        if not self:GetNWBool "IsUsingSpecial" then return end
+        if not self:GetSpecialActivated() then return end
         self:ResetSpecialState()
         self:OnSpecialEnd()
     end)

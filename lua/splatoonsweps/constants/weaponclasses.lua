@@ -91,4 +91,8 @@ return {
     "weapon_splatoonsweps_squiffer_new",
     "weapon_splatoonsweps_trislosher",
     "weapon_splatoonsweps_trislosher_nouveau",
+
+    "weapon_splatoonsweps_killerwail",
+    "weapon_splatoonsweps_inkzooka",
+    "weapon_splatoonsweps_inkstrike",
 }

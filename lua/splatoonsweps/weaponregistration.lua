@@ -19,6 +19,7 @@ local weaponslot = {
     weapon_splatoonsweps_splatling = 3,
     weapon_splatoonsweps_charger = 4,
     weapon_splatoonsweps_slosher_base = 5,
+    weapon_splatoonsweps_special = 5,
 }
 ---@param SWEP SWEP
 local function SetupIcons(SWEP)
@@ -64,7 +65,12 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
 
             include(LuaFilePath)
             local modelpath = "models/splatoonsweps/%s/"
-            SWEP.ModelPath = SWEP.ModelPath or modelpath:format(SWEP.ClassName)
+            local isspecial = base == "weapon_splatoonsweps_special"
+            if isspecial then modelpath = "models/splatoonsweps/specials/%s/" end
+            if not SWEP.ModelPath then
+                local find = isspecial and "weapon_splatoonsweps_" or ""
+                SWEP.ModelPath = modelpath:format(SWEP.ClassName:Replace(find, ""))
+            end
             SWEP.ViewModel = SWEP.ModelPath .. "c_viewmodel.mdl"
             SWEP.ViewModel0 = SWEP.ModelPath .. "c_viewmodel.mdl"
             SWEP.ViewModel1 = SWEP.ModelPath .. "c_viewmodel2.mdl"
@@ -72,7 +78,7 @@ hook.Add("PreGamemodeLoaded", "SplatoonSWEPs: Register weapon classes", function
             SWEP.WorldModel = SWEP.ModelPath .. "w_right.mdl"
             SWEP.Category = ss.Text.Category
             SWEP.PrintName = ss.Text.PrintNames[SWEP.ClassName]
-            SWEP.Slot = weaponslot[SWEP.Base]
+            SWEP.Slot = SWEP.Slot or weaponslot[SWEP.Base]
             SWEP.SlotPos = i
             SetupIcons(SWEP)
             PrecacheModels {SWEP.ViewModel0, SWEP.ViewModel1, SWEP.ViewModel2, SWEP.WorldModel, SWEP.ModelPath .. "w_left.mdl"}

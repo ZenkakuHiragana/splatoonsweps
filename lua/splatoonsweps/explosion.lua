@@ -179,7 +179,9 @@ function ss.MakeExplosion(data)
             }
             if not t.Hit or t.Entity == e then
                 if ShouldPerformEffect then
-                    ss.CreateHitEffect(inkcolor, damagedealt and 6 or 2, origin + dist, -dist, owner)
+                    if weapon then
+                        ss.CreateHitEffect(inkcolor, damagedealt and 6 or 2, origin + dist, -dist, weapon)
+                    end
                     if CLIENT and e ~= owner then
                         damagedealt = true
                         break

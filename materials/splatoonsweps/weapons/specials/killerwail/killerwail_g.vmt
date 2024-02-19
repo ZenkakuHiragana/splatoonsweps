@@ -1,0 +1,17 @@
+"VertexLitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/specials/killerwail/killerwail_envmap"
+    "$bumpmap" "splatoonsweps/weapons/specials/killerwail/killerwail_envmap_normal"
+    "$lightwarptexture" "splatoonsweps/weapons/primaries/inkling_lightwarp7"
+
+    "$phong" "1"
+    "$phongalbedotint" "0"
+    "$phongboost" "0"
+    "$phongfresnelranges" "[.3 1 2]"
+
+    "$additive" "1"
+    "$color2" "[0 0 0]"
+
+    "$envmap" "env_cubemap"
+    "$envmaptint" "{ 0 255 0 }"
+}

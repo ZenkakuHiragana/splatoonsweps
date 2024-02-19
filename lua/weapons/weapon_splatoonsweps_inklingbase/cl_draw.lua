@@ -225,7 +225,7 @@ function SWEP:DrawWorldModelTranslucent()
     if IsValid(self:GetOwner()) and self:GetHolstering() then return end
     if ss.ProtectedCall(self.PreDrawWorldModelTranslucent, self) then return end
 
-    local usingbombrush = self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush"
+    local usingbombrush = self:GetSpecialActivated() and self.Special == "bombrush"
     local refsize = usingbombrush and 80 or self.EnoughSubWeapon and 32 or 0
     local diff = refsize - self.SpriteCurrentSize
     self.SpriteSizeChangeSpeed = self.SpriteSizeChangeSpeed * 0.92 + diff * 2 * FrameTime()
@@ -287,7 +287,7 @@ end
 -- Show remaining amount of ink tank
 function SWEP:CustomAmmoDisplay()
     local specialProgress = math.Clamp(math.Round(self:GetSpecialPointProgress() * 100), 0, 100)
-    if self:GetNWBool "IsUsingSpecial" then
+    if self:GetSpecialActivated() then
         local dt = CurTime() - self:GetSpecialStartTime()
         local duration = self:GetSpecialDuration()
         specialProgress = math.Clamp(100 - math.Round(dt / duration * 100), 0, 100)

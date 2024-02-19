@@ -75,6 +75,8 @@ end
 ---@return boolean
 function SWEP:Holster(switchTo)
     if self:GetInFence() then return false end
+    if ss.ProtectedCall(self.ClientHolster, self, switchTo) == false then return false end
+    if self:SharedHolsterBase(switchTo) == false then return false end
 
     local Owner = self:GetOwner()
     if not IsValid(Owner) then return true end
@@ -88,8 +90,7 @@ function SWEP:Holster(switchTo)
     end
 
     Owner:SetHealth(Owner:Health() * self:GetNWInt "BackupHumanMaxHealth" / self:GetNWInt "BackupInklingMaxHealth")
-    ss.ProtectedCall(self.ClientHolster, self)
-    return self:SharedHolsterBase()
+    return true
 end
 
 -- It's important to remove CSEnt with CSEnt:Remove() when it's no longer needed.

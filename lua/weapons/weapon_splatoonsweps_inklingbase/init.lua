@@ -386,7 +386,7 @@ function SWEP:OnDrop()
     ss.SetPlayerFilter(Owner, self:GetNWInt("inkcolor", -1), false)
     self:SetOwner(NULL)
     ss.ProtectedCall(self.ServerHolster, self)
-    self:SharedHolsterBase()
+    self:SharedHolsterBase(NULL)
     self:CreateRagdoll()
     self:SetNWInt("TurfInkedAtStart", 0)
 end
@@ -411,10 +411,11 @@ function SWEP:Holster(switchTo)
     if self:GetSuperJumpState() >= 0  then return false end
     if not IsValid(self:GetOwner())   then return true end
     if InvalidPlayer(self:GetOwner()) then return true end
+    if ss.ProtectedCall(self.ServerHolster, self, switchTo) == false then return false end
+    if self:SharedHolsterBase(switchTo) == false then return false end
     self.PMTable = nil
     self:RestoreInfo()
-    ss.ProtectedCall(self.ServerHolster, self)
-    return self:SharedHolsterBase()
+    return true
 end
 
 ---@diagnostic disable-next-line: duplicate-set-field

@@ -43,6 +43,6 @@ SWEP.m_WeaponDeploySpeed = 2
 
 SWEP.Secondary = SWEP.Secondary or {}
 SWEP.Secondary.Automatic = true
-SWEP.Secondary.ClipSize = 0
+SWEP.Secondary.ClipSize = -1
 SWEP.Secondary.DefaultClip = 0
 SWEP.Secondary.Ammo = "Ink"

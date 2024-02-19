@@ -91,4 +91,8 @@ return {PrintNames = {
     weapon_splatoonsweps_sloshingmachine_neo = "Secchiostro centrifuga Neo",
     weapon_splatoonsweps_rapidblaster_deco = "Blaster rapido DX",
     weapon_splatoonsweps_inkbrush_permanent = "Calamaravaggio indelebile",
+
+    weapon_splatoonsweps_killerwail = "Tintofono",
+    weapon_splatoonsweps_inkzooka = "Turbinator",
+    weapon_splatoonsweps_inkstrike = "Tornado",
 }}

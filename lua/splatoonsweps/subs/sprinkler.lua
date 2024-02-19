@@ -182,7 +182,7 @@ function module:CanSecondaryAttack()
 end
 
 function module:GetSubWeaponInkConsume()
-    if self:GetNWBool "IsUsingSpecial" and self.Special == "bombrush" then return 0 end
+    if self:GetSpecialActivated() and self.Special == "bombrush" then return 0 end
     return p.InkConsume
 end
 

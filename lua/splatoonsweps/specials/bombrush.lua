@@ -25,7 +25,7 @@ function module:GetSpecialDuration() return p.Duration end
 function module:OnSpecialEnd() self:ResetSpecialState() end
 function module:OnSpecialStart()
     self:AddSchedule(self:GetSpecialDuration(), 1, function()
-        if not self:GetNWBool "IsUsingSpecial" then return end
+        if not self:GetSpecialActivated() then return end
         self:OnSpecialEnd()
     end)
 end
