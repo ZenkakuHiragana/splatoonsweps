@@ -24,6 +24,31 @@ function SWEP:SharedInitSpecial()
             self:SetWeaponAnim(ss.ViewModel.Squid)
         end
     end)
+
+    if CLIENT then return end
+    local lastknownpos ---@type Vector
+    self:AddSchedule(2, function()
+        local Owner = self:GetOwner()
+        if not (IsValid(Owner) and Owner:IsNPC()) then return end ---@cast Owner NPC
+        local Enemy = Owner:GetEnemy()
+        if not IsValid(Enemy) then return end
+        if Enemy:GetClass() == "npc_bullseye" then return end
+        if CurTime() - Owner:GetEnemyLastTimeSeen() > 16 and lastknownpos
+        and lastknownpos:DistToSqr(Owner:GetEnemyLastKnownPos(Enemy)) < 100 then return end
+        lastknownpos = Owner:GetEnemyLastKnownPos(Enemy)
+        local tr = util.QuickTrace(Owner:WorldSpaceCenter(), lastknownpos - Owner:WorldSpaceCenter(), Owner)
+        Owner:IgnoreEnemyUntil(Enemy, CurTime() + 2)
+        local bullseye = ents.Create "npc_bullseye"
+        bullseye:SetPos(LerpVector(0.5, tr.StartPos, tr.HitPos))
+        bullseye:Spawn()
+        bullseye:SetHealth(0)
+        bullseye:SetMaxHealth(0)
+        bullseye:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
+        SafeRemoveEntityDelayed(bullseye, 4)
+        Owner:AddEntityRelationship(bullseye, D_HT, 1)
+        Owner:SetEnemy(bullseye, true)
+        Owner:UpdateEnemyMemory(bullseye, bullseye:GetPos())
+    end)
 end
 
 function SWEP:SharedPrimaryAttack()
