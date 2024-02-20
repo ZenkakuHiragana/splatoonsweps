@@ -358,6 +358,7 @@ end
 ---@param color integer?
 ---@param state boolean
 function ss.SetEntityFilter(ent, color, state)
+    if not IsValid(ent) then return end
     color = color or ent:GetNWInt("inkcolor", -1)
     if color < 0 then return end
     if state and not ss.EntityFilters[color] then
@@ -381,6 +382,7 @@ end
 ---@param color integer?
 ---@param state boolean
 function ss.SetPlayerFilter(ent, color, state)
+    if not IsValid(ent) then return end
     color = color or ent:GetNWInt("inkcolor", -1)
     if color < 0 then return end
     if state and not ss.PlayerFilters[color] then
