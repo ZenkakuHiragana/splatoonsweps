@@ -71,7 +71,7 @@ function ENT:SetControlPoints(p)
     if not IsValid(p) then return end
     local Owner = self:GetOwner()
     local dz = Owner:EyePos().z - Owner:GetPos().z
-    p:SetControlPoint(1, LerpVector(1 / 3, self:GetInkColorProxy(), ss.vector_one))
+    p:SetControlPoint(1, self:GetInkColorProxy())
     p:SetControlPoint(2, ss.vector_one * dz)
 end
 
@@ -89,7 +89,7 @@ function ENT:AdjustModel()
         org = LerpVector(frac, pos, org)
     end
     self:SetPos(org)
-    self:SetAngles(SERVER and Angle() or EyeAngles())
+    self:SetAngles(SERVER and Angle() or (org - EyePos()):Angle())
     self:SetModelScale(scale * 1.75)
     self:SetControlPoints(self.Particle)
     self:SetControlPoints(self.ParticleLeak)
@@ -174,6 +174,11 @@ else
             if ply:GetPos():DistToSqr(Owner:GetPos()) > p.SpreadRadius * p.SpreadRadius then continue end
             local name = "SplatoonSWEPs: Bubbler Spread " .. ply:EntIndex()
             if timer.Exists(name) then continue end
+            local e = EffectData()
+            e:SetEntity(self)
+            e:SetMaterialIndex(ply:EntIndex())
+            e:SetOrigin(ply:WorldSpaceCenter())
+            util.Effect("SplatoonSWEPsBubblerSpread", e, nil, true)
             self:EmitSound "SplatoonSWEPs.BubblerSpread"
             timer.Create(name, delay, 1, function()
                 timer.Remove(name)

@@ -146,6 +146,7 @@ ss.Particles = {
     BubblerEnd           = "splatoonsweps_bubbler_burst",
     BubblerLeak          = "splatoonsweps_bubbler_ending",
     BubblerFlicker       = "splatoonsweps_bubbler_ring",
+    BubblerSpread        = "splatoonsweps_bubbler_spread",
     BrushRunning         = "splatoonsweps_roller_rolling_brush",
     BrushSplash          = "splatoonsweps_roller_splash_brush",
     ChargerFlash         = "splatoonsweps_charger_flash",
