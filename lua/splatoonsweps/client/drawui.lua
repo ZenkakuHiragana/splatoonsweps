@@ -59,6 +59,16 @@ end
 ---@param roughness number?
 function ss.DrawArc(cx, cy, radius, thickness, startang, endang, roughness)
     for _, v in ipairs(PrecacheArc(cx, cy, radius, thickness, startang, endang, roughness)) do
+        -- Resetting stencil masks significantly reduces garrysmod-issues #2731 with multicore rendering enabled
+        -- https://github.com/Facepunch/garrysmod-issues/issues/2731#issuecomment-1160688282
+        render.SetStencilWriteMask(0xFF)
+        render.SetStencilTestMask(0xFF)
+        render.SetStencilReferenceValue(0)
+        render.SetStencilCompareFunction(STENCIL_ALWAYS)
+        render.SetStencilPassOperation(STENCIL_KEEP)
+        render.SetStencilFailOperation(STENCIL_KEEP)
+        render.SetStencilZFailOperation(STENCIL_KEEP)
+        render.ClearStencil()
         surface.DrawPoly(v)
     end
 end
