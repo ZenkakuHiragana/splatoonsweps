@@ -579,6 +579,7 @@ function SWEP:SharedInitBase()
     end
 
     self:SetNWVarProxy("inkcolor", function(ent, name, old, new)
+        if not IsValid(ent) then return end
         if old == new then return end
         local Owner = ent:GetOwner()
         if not IsValid(Owner) then return end

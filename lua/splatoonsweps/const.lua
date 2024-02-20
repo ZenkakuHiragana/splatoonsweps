@@ -274,6 +274,7 @@ end
 
 game.AddParticles "particles/splatoonsweps.pcf"
 timer.Simple(0.25, function() -- Trying to avoid "Attempt to precache unknown particle system" errors
+    if not (ss and ss.Particles) then return end
     for _, p in pairs(ss.Particles) do PrecacheParticleSystem(p) end
 end)
 

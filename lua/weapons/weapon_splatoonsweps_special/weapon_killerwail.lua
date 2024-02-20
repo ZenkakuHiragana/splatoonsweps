@@ -58,7 +58,7 @@ if SERVER then
         if self:Clip1() > 0 then
             self:PrimaryAttackEntryPoint()
         elseif IsValid(Owner) and Owner:IsNPC() then ---@cast Owner NPC
-            Owner:SetCondition(COND.NO_PRIMARY_AMMO)
+            Owner:SetCondition(4) -- COND.NO_PRIMARY_AMMO
         end
     end
 else

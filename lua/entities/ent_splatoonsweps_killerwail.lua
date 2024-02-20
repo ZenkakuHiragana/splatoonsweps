@@ -93,10 +93,13 @@ function ENT:Think()
             local size = ss.vector_one * param.Radius
             for _, victim in ipairs(ents.FindAlongRay(
                 muzzle + dir * 50, muzzle + dir * 65536, -size, size)) do
+                if not IsValid(victim) then continue end
+                if victim:Health() <= 0 then continue end
+                if victim:GetMaxHealth() <= 0 then continue end
                 local w = ss.IsValidInkling(victim)
                 if w and ss.IsAlly(weapon, w) then continue end
                 dmg:SetDamagePosition(victim:WorldSpaceCenter())
-                dmg:SetReportedPosition(victim:WorldSpaceCenter())
+                dmg:SetReportedPosition(muzzle)
                 victim:TakeDamageInfo(dmg)
             end
         end
@@ -106,7 +109,7 @@ function ENT:Think()
             self.NextEmitEffect = CurTime() + (elapsed < 1 and 3 or 1) * ss.FrameToSec
             local color = elapsed < 1 and 0.6 or 0
             local frac = math.random()
-            for i = 1, 256 do
+            for i = 1, 128 do
                 local p = CreateParticleSystemNoEntity(ss.Particles.BlasterTrail,
                     muzzle + dir * (i + frac) * param.Radius / 2, self:GetAngles())
                 p:SetControlPoint(1, LerpVector(color, self:GetInkColorProxy(), vector_origin))
