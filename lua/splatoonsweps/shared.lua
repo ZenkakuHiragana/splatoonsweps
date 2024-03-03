@@ -621,7 +621,7 @@ function ss.StartCommand(self, ply, ucmd)
         end
 
         if not IsValid(special) then return end
-        special:SetClip1(special.Primary.ClipSize)
+        special:SetClip1(special.Primary and special.Primary.ClipSize or 0)
         special:SetNWEntity("Activator", self)
         ucmd:SelectWeapon(special)
 

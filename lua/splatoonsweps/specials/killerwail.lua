@@ -36,6 +36,12 @@ ss.ConvertUnits(ss.killerwail.Parameters, ss.killerwail.Units)
 local module = ss.killerwail.Merge
 local p = ss.killerwail.Parameters
 function module:GetSpecialDuration() return p.Duration end
+function module:CanSpecialAttack()
+    if self:GetInFence() then return false end
+    local Owner = self:GetOwner()
+    if not (IsValid(Owner) and Owner:IsPlayer()) then return end ---@cast Owner Player
+    return ss.CanUnduck(Owner)
+end
 function module:OnSpecialEnd(switchTo) ---@cast switchTo SplatoonWeaponBase
     if IsValid(switchTo) and switchTo.IsSplatoonWeapon and switchTo.IsSpecial then return end
     self:SetCooldown(math.max(self:GetCooldown(), CurTime() + p.CooldownAfterFire))
@@ -49,4 +55,3 @@ function module:OnSpecialStart()
         self:OnSpecialEnd()
     end)
 end
-

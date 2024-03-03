@@ -45,6 +45,7 @@ if not ss then return end
 ---@field SwitchWeaponOnSpecial          boolean?
 ---@field SwitchSpecialWeaponTo          string?
 ---@field GetSpecialDuration             fun(self): number
+---@field CanSpecialAttack               fun(self): boolean? Return true if it is suitable to start special at the moment
 ---@field OnSpecialStart                 fun(self)
 ---@field OnSpecialEnd                   fun(self, switchTo: Entity?)
 
@@ -684,6 +685,7 @@ function SWEP:Reload()
     if not ss[self.Special] then return end -- Remove after all specials are implemented
     if self:GetSpecialPointProgress() < 1 then return end
     if self:GetSpecialActivated() then return end
+    if ss.ProtectedCall(self.CanSpecialAttack, self) == false then return end
     local voice = ss.GetVoiceName("SpecialStart", self)
     if voice and self:IsFirstTimePredicted() then
         ss.EmitSoundPredicted(self:GetOwner(), self, voice)
@@ -698,21 +700,14 @@ end
 ---@return boolean result True if the owner can stand up
 function SWEP:CheckCanStandup()
     local Owner = self:GetOwner()
+    if self:GetInFence() then return false end
     if not IsValid(Owner) then return true end
-    if not Owner:IsPlayer() then return true end
+    if not Owner:IsPlayer() then return true end ---@cast Owner Player
+    if Owner:Crouching() then return ss.CanUnduck(Owner) end
     if self:GetSuperJumpState() == 0 then return false end
     if self:GetSuperJumpState() == 1 then return false end
     if self:GetSuperJumpState() == 2 then return false end
-    ---@cast Owner Player
-    local plmins, plmaxs = Owner:GetHull()
-    return not (self:Crouching() and util.TraceHull {
-        start  = Owner:GetPos(),
-        endpos = Owner:GetPos(),
-        mins   = plmins, maxs = plmaxs,
-        filter = { self, Owner },
-        mask   = MASK_PLAYERSOLID,
-        collisiongroup = COLLISION_GROUP_PLAYER_MOVEMENT,
-    } .Hit)
+    return true
 end
 
 ---Sets cooldown time of reloading ink

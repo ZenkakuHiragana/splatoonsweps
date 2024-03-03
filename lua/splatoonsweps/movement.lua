@@ -112,7 +112,7 @@ local function GetCurrentGravity() return GetConVar "sv_gravity":GetFloat() end
 ---@param ducked boolean?
 ---@return Vector
 local function GetPlayerMins(ducked)
-    if ducked or ply:Crouching() then
+    if Either(ducked == nil, ply:Crouching(), ducked) then
         local mins, _ = ply:GetHullDuck()
         return mins
     else
@@ -123,7 +123,7 @@ end
 ---@param ducked boolean?
 ---@return Vector
 local function GetPlayerMaxs(ducked)
-    if ducked or ply:Crouching() then
+    if Either(ducked == nil, ply:Crouching(), ducked) then
         local _, maxs = ply:GetHullDuck()
         return maxs
     else
@@ -160,6 +160,8 @@ local function PlaySwimSound()
     me.m_nEmitSound[ply] = "Player.Swim"
 end
 
+---@param brushOnly boolean?
+---@return integer
 local function PlayerSolidMask(brushOnly)
     -- return brushOnly and MASK_PLAYERSOLID_BRUSHONLY or MASK_PLAYERSOLID
     return brushOnly and ss.SquidSolidMaskBrushOnly or ss.SquidSolidMask
@@ -211,6 +213,7 @@ local function CalcRoll(angles, velocity, rollangle, rollspeed)
     return side * sign
 end
 
+---@return number
 local function ComputeConstraintSpeedFactor()
     -- If we have a constraint, slow down because of that too.
     if me.m_flConstraintRadius[ply] == 0 then return 1 end
@@ -238,15 +241,30 @@ local function ComputeConstraintSpeedFactor()
     return Lerp(flFrac, 1, me.m_flConstraintSpeedFactor[ply]) -- flSpeedFactor
 end
 
-local function TracePlayerBBox(start, endpos, fMask, collisionGroup)
+---Traces player movement + position
+---@param start Vector
+---@param endpos Vector
+---@param fMask integer
+---@param collisionGroup integer
+---@param ducked boolean?
+---@return TraceResult
+local function TracePlayerBBox(start, endpos, fMask, collisionGroup, ducked)
     return util.TraceHull {
         start = start, endpos = endpos,
-        mins = GetPlayerMins(), maxs = GetPlayerMaxs(),
+        mins = GetPlayerMins(ducked), maxs = GetPlayerMaxs(ducked),
         mask = fMask, collisiongroup = collisionGroup,
         filter = ply,
     }
 end
 
+---overridded by game classes to limit results (to standable objects for example)
+---@param start Vector
+---@param endpos Vector
+---@param mins Vector
+---@param maxs Vector
+---@param fMask integer
+---@param collisionGroup integer
+---@return TraceResult
 local function TryTouchGround(start, endpos, mins, maxs, fMask, collisionGroup)
     return util.TraceHull {
         start = start, endpos = endpos,
@@ -256,13 +274,17 @@ local function TryTouchGround(start, endpos, mins, maxs, fMask, collisionGroup)
     }
 end
 
--------------------------------------------------------------------------------
--- Traces the player's collision bounds in quadrants, looking for a plane that
--- can be stood upon (normal's z >= 0.7f).  Regardless of success or failure,
--- replace the fraction and endpos with the original ones, so we don't try to
--- move the player down to the new floor and get stuck on a leaning wall that
--- the original trace hit first.
--------------------------------------------------------------------------------
+---Traces the player's collision bounds in quadrants, looking for a plane that
+---can be stood upon (normal's z >= 0.7f).  Regardless of success or failure,
+---replace the fraction and endpos with the original ones, so we don't try to
+---move the player down to the new floor and get stuck on a leaning wall that
+---the original trace hit first.
+---@param start Vector
+---@param endpos Vector
+---@param fMask integer
+---@param collisionGroup integer
+---@param pm TraceResult
+---@return TraceResult
 local function TryTouchGroundInQuadrants(start, endpos, fMask, collisionGroup, pm)
     local minsSrc, maxsSrc = GetPlayerMins(), GetPlayerMaxs()
     local fraction, hitpos = pm.Fraction, pm.HitPos
@@ -288,6 +310,7 @@ local function TryTouchGroundInQuadrants(start, endpos, fMask, collisionGroup, p
     return pm
 end
 
+---@param pm TraceResult
 local function CategorizeGroundSurface(pm)
     -- local physprops = MoveHelper():GetSurfaceProps() -- IPhysicsSurfaceProps
     me.m_surfaceProps[ply] = pm.SurfaceProps
@@ -302,6 +325,7 @@ local function CategorizeGroundSurface(pm)
     -- me.m_chTextureType[ply] = me.m_pSurfaceData[ply].game.material
 end
 
+---@param pm TraceResult?
 local function SetGroundEntity(pm)
     local newGround = pm and pm.Entity or NULL  ---@type Entity?
     local oldGround = me.m_entGroundEntity[ply] ---@type Entity?
@@ -322,7 +346,7 @@ local function SetGroundEntity(pm)
     me.m_entGroundEntity[ply] = newGround or NULL
 
     -- If we are on something...
-    if not newGround then return end
+    if not newGround then return end ---@cast pm -?
     CategorizeGroundSurface(pm)
 
     -- Then we are not in water jump sequence
@@ -330,6 +354,7 @@ local function SetGroundEntity(pm)
     me.m_vecVelocity[ply].z = 0.0
 end
 
+---@return boolean
 local function CanAccelerate()
     -- Dead players don't accelerate.
     if IsDead() then return false end
@@ -468,7 +493,6 @@ local function ClipVelocity(vin, normal, out, overbounce)
     return blocked -- Return blocking flags.
 end
 
-
 local function StartGravity()
     local ent_gravity = 1.0
     if ply:GetGravity() > 0 then
@@ -500,6 +524,7 @@ local function FinishGravity()
     CheckVelocity()
 end
 
+---@param fvol number
 local function PlayerRoughLandingEffects(fvol)
     if fvol <= 0.0 then return end
     me.m_flStepSoundTime[ply] = 400 -- Play landing sound right away.
@@ -516,6 +541,9 @@ local function PlayerRoughLandingEffects(fvol)
     me.m_vecPunchAngleVel[ply] = Vector(a.p - me.m_angViewPunchAngles[ply].p, 0, a.r - me.m_angViewPunchAngles[ply].r)
 end
 
+---@param point Vector
+---@param slot integer
+---@return number
 local function GetPointContentsCached(point, slot)
     return util.PointContents(point)
 end
@@ -1596,6 +1624,33 @@ local function GetInFence(w, oldpos, newpos)
     return tr.Entity ~= NULL and util.TraceHull(t).Entity == NULL
 end
 
+---@param p Player
+---@return boolean
+function ss.CanUnduck(p)
+    ply = p
+    local newOrigin = ply:GetPos()
+    local minstand, maxstand = ply:GetHull()
+    local minducked, maxducked = ply:GetHullDuck()
+    local modelscale = ply:GetModelScale()
+    if ply:GetGroundEntity() ~= NULL then
+        local ducked = minducked * modelscale
+        local stand = minstand * modelscale
+        for i = 1, 3 do
+            newOrigin[i] = newOrigin[i] + (ducked[i] - stand[i])
+        end
+    else -- If in air an letting go of crouch, make sure we can offset origin to make up for uncrouching
+        local hullSizeNormal = maxstand * modelscale - minstand * modelscale
+        local hullSizeCrouch = maxducked * modelscale - minducked * modelscale
+        local viewDelta = hullSizeNormal - hullSizeCrouch
+        viewDelta:Negate()
+        newOrigin:Add(viewDelta)
+    end
+
+    local trace = TracePlayerBBox(ply:GetPos(), newOrigin, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, false)
+    if trace.StartSolid or trace.Fraction ~= 1 then return false end
+    return true
+end
+
 ---@param w SplatoonWeaponBase
 ---@param p Player
 ---@param m CMoveData
@@ -1641,7 +1696,7 @@ end
 ---@param m CMoveData
 function ss.FinishMove(w, p, m)
     ply, mv = p, m
-    if not (w:GetInFence() or mv:KeyDown(IN_DUCK)) then return end
+    if not (w:GetInFence() or mv:KeyDown(IN_DUCK) or not ss.CanUnduck(p)) then return end
     if not ply:Crouching() then
         if SERVER then
             w:SetInFence(false)
