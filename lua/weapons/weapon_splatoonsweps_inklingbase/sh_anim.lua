@@ -77,7 +77,7 @@ function SWEP:TranslateActivity(act)
     end
 
     local holdtype = ss.ProtectedCall(self.CustomActivity, self) or "passive"
-    if self:Crouching() then holdtype = "melee2" end
+    if CurTime() > self:GetCooldown() and self:Crouching() then holdtype = "melee2" end
     if self:GetThrowing() then holdtype = "grenade" end
     self.HoldType = holdtype
     self:SetHoldType(holdtype)

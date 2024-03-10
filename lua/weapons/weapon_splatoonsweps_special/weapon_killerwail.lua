@@ -18,6 +18,7 @@ function SWEP:SharedInitSpecial()
     self:AddSchedule(0, function()
         local loaded = self:Clip1() > 0
         self:SetSpecialActivated(loaded)
+        if CLIENT and self:IsTPS() then return end
         if loaded then
             self:SetWeaponAnim(ss.ViewModel.Standing)
         else
