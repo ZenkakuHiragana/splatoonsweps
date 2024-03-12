@@ -1629,21 +1629,17 @@ end
 function ss.CanUnduck(p)
     ply = p
     local newOrigin = ply:GetPos()
-    local minstand, maxstand = ply:GetHull()
-    local minducked, maxducked = ply:GetHullDuck()
-    local modelscale = ply:GetModelScale()
     if ply:GetGroundEntity() ~= NULL then
+        local minstand, _ = ply:GetHull()
+        local minducked, _ = ply:GetHullDuck()
+        local modelscale = ply:GetModelScale()
         local ducked = minducked * modelscale
         local stand = minstand * modelscale
         for i = 1, 3 do
             newOrigin[i] = newOrigin[i] + (ducked[i] - stand[i])
         end
     else -- If in air an letting go of crouch, make sure we can offset origin to make up for uncrouching
-        local hullSizeNormal = maxstand * modelscale - minstand * modelscale
-        local hullSizeCrouch = maxducked * modelscale - minducked * modelscale
-        local viewDelta = hullSizeNormal - hullSizeCrouch
-        viewDelta:Negate()
-        newOrigin:Add(viewDelta)
+        newOrigin:Sub(vector_up) -- Fixes unable to fire right after jumping in squid form
     end
 
     local trace = TracePlayerBBox(ply:GetPos(), newOrigin, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, false)
