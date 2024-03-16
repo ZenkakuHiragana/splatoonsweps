@@ -1,0 +1,30 @@
+"UnlitGeneric"
+{
+    "$basetexture" "splatoonsweps/weapons/specials/killerwail/killerwail_transition"
+    "$model"       "1"
+    "$translucent" "1"
+    "$scale"       "[1 0.75]"
+    "$translate"   "0"
+    "Proxies"
+    {
+        "LinearRamp"
+        {
+            "rate"         "2.4"
+            "initialValue" "0.3"
+            "resultVar"    "$translate"
+        }
+        "WrapMinMax"
+        {
+            "min"       "0"
+            "max"       "1"
+            "srcVar1"   "$translate"
+            "resultVar" "$translate"
+        }
+        "TextureTransform"
+        {
+            "scaleVar"     "$scale"
+            "translateVar" "$translate"
+            "resultVar"    "$basetexturetransform"
+        }
+    }
+}

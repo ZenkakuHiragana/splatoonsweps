@@ -1,0 +1,49 @@
+"Refract"
+{
+    "$normalmap"     "splatoonsweps/weapons/specials/killerwail/killerwail_overlay"
+    "$bumptransform" "center .5 .5 scale 1 1 rotate 0 translate 0 0"
+    "$refractamount" "0.5"
+    "$bluramount"    "2"
+    "$refracttint"   "[1 1 1]"
+    "$model"         "1"
+    "$scale"         "[1 0.375]"
+    "$nocull"        "1"
+    "$nowritez"      "1"
+    "$translate"     "0"
+    "$tintadd"       "[4 4 4]"
+    "$tintdiv"       "[2.5 2.5 2.5]"
+    "Proxies"
+    {
+        "Add"
+        {
+            "srcVar1"   "$color"
+            "srcVar2"   "$tintadd"
+            "resultVar" "$refracttint"
+        }
+        "Divide"
+        {
+            "srcVar1"   "$refracttint"
+            "srcVar2"   "$tintdiv"
+            "resultVar" "$refracttint"
+        }
+        "LinearRamp"
+        {
+            "rate"         "1.2"
+            "initialValue" "0"
+            "resultVar"    "$translate"
+        }
+        "WrapMinMax"
+        {
+            "min"       "0"
+            "max"       "1"
+            "srcVar1"   "$translate"
+            "resultVar" "$translate"
+        }
+        "TextureTransform"
+        {
+            "scaleVar"     "$scale"
+            "translateVar" "$translate"
+            "resultVar"    "$bumptransform"
+        }
+    }
+}

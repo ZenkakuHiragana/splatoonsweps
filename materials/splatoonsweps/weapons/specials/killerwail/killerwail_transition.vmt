@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+    "$basetexture"          "splatoonsweps/weapons/specials/killerwail/killerwail_transition"
+    "$basetexturetransform" "center .5 .5 scale 1 1.5 rotate 0 translate 0 0.5"
+    "$translucent"          "1"
+    "$model"                "1"
+}
