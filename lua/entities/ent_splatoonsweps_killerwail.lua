@@ -43,6 +43,7 @@ function ENT:Initialize()
     end
 
     self:SetModel(mdl)
+    self:AddEFlags(EFL_FORCE_CHECK_TRANSMIT)
     self:PhysicsInit(SOLID_VPHYSICS)
     self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
     self:EmitSound "SplatoonSWEPs.KillerWailPrefire"
@@ -52,11 +53,16 @@ function ENT:Initialize()
     self.NextEmitSplash = CurTime()
 
     if CLIENT then
-        local att = self:LookupAttachment "muzzle"
-        local p = CreateParticleSystem(self, ss.Particles.BubblerEnd, PATTACH_POINT_FOLLOW, att)
-        p:SetControlPoint(1, LerpVector(0.5, self:GetInkColorProxy(), ss.vector_one))
-        p:SetControlPoint(2, ss.vector_one * 10)
+        local e = EffectData()
+        e:SetEntity(self)
+        e:SetFlags(0)
+        e:SetOrigin(self:GetPos())
+        util.Effect("SplatoonSWEPsKillerWail", e)
     end
+end
+
+function ENT:UpdateTransmitState()
+    return TRANSMIT_ALWAYS
 end
 
 function ENT:OnRemove()
@@ -76,8 +82,9 @@ function ENT:Think()
     local dir = self:GetForward()
     local param = ss.killerwail.Parameters
     if SERVER then
-        if elapsed > 4 then SafeRemoveEntity(self) end
-        if elapsed > 1 then
+        if elapsed > param.AttackDuration + param.NotificationDuration then SafeRemoveEntity(self) end
+        if elapsed > param.NotificationDuration then
+            elapsed = elapsed - param.NotificationDuration
             if not self.SoundPlayed then
                 self.SoundPlayed = true
                 self:EmitSound "SplatoonSWEPs.KillerWail"
@@ -90,9 +97,11 @@ function ENT:Think()
             dmg:SetDamageForce(dir)
             dmg:SetDamageType(bit.bor(DMG_AIRBOAT, DMG_REMOVENORAGDOLL))
             dmg:ScaleDamage(ss.ToHammerHealth)
-            local size = ss.vector_one * param.Radius
+            local size = Lerp(elapsed / param.AttackGrowthTime, 1, param.Radius)
+            local sizev = ss.vector_one * size
+            local offset = size * 2 / math.sqrt(math.pi)
             for _, victim in ipairs(ents.FindAlongRay(
-                muzzle + dir * 50, muzzle + dir * 65536, -size, size)) do
+                muzzle + dir * offset, muzzle + dir * 65536, -sizev, sizev)) do
                 if not IsValid(victim) then continue end
                 if victim:Health() <= 0 then continue end
                 if victim:GetMaxHealth() <= 0 then continue end
@@ -105,31 +114,6 @@ function ENT:Think()
         end
     else
         self:SetNextClientThink(CurTime())
-        if CurTime() > self.NextEmitEffect then
-            self.NextEmitEffect = CurTime() + (elapsed < 1 and 3 or 1) * ss.FrameToSec
-            local color = elapsed < 1 and 0.6 or 0
-            local frac = math.random()
-            for i = 1, 128 do
-                local p = CreateParticleSystemNoEntity(ss.Particles.BlasterTrail,
-                    muzzle + dir * (i + frac) * param.Radius / 2, self:GetAngles())
-                p:SetControlPoint(1, LerpVector(color, self:GetInkColorProxy(), vector_origin))
-                p:SetControlPoint(2, vector_up * param.Radius * Lerp(i / 3, 0.25, 1))
-            end
-        end
-
-        if CurTime() > self.NextEmitMuzzle then
-            self.NextEmitMuzzle = CurTime() + 0.2
-            local e = EffectData()
-            e:SetEntity(self)
-            e:SetOrigin(muzzle)
-            e:SetNormal(self:GetForward())
-            e:SetRadius(40)
-            e:SetFlags(5)
-            util.Effect("AR2Explosion", e)
-            e:SetNormal(-self:GetForward())
-            util.Effect("AR2Explosion", e)
-        end
-
         if CurTime() > self.NextEmitSplash then
             self.NextEmitSplash = CurTime() + 4 * ss.FrameToSec
             for i = 1, 4 do

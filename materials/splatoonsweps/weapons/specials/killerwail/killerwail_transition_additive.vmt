@@ -1,0 +1,25 @@
+"UnlitGeneric"
+{
+    "$basetexture"          "splatoonsweps/weapons/specials/killerwail/killerwail_transition"
+    "$basetexturetransform" "center .5 .5 scale 1 1.5 rotate 0 translate 0 0.5"
+    "$translucent"          "1"
+    "$model"                "1"
+    "$additive"             "1"
+    "$tintadd"              "[1 1 1]"
+    "$tintdiv"              "[2 2 2]"
+    "Proxies"
+    {
+        "Add"
+        {
+            "srcVar1"   "$color"
+            "srcVar2"   "$tintadd"
+            "resultVar" "$color"
+        }
+        "Divide"
+        {
+            "srcVar1"   "$color"
+            "srcVar2"   "$tintdiv"
+            "resultVar" "$color"
+        }
+    }
+}

@@ -3,18 +3,13 @@
     "$basetexture" "splatoonsweps/weapons/specials/killerwail/killerwail_notification"
     "$basetexturetransform" "center .5 .5 scale 1 1 rotate 0 translate 0 0"
     "$model"        "1"
-    "$ftranslucent" "2099200"
-    "$falphatest"   "2304"
+    "$ftranslucent" "2099200" // $model + $translucent
+    "$falphatest"   "2304"    // $model + $alphatest
     "$alphatest"    "1"
     "$translucent"  "1"
     "$alphatestreference" "0.015625"
-
-    "$zero" "0"
-    "$254"  "254.5"
-    "$255"  "255"
-    "$comp" "0"
-
-    "$frame2"    "0"
+    
+    "$254"       "254.5"
     "$scale"     "[1 2.546]"
     "$translate" "0"
     "Proxies"
@@ -38,43 +33,16 @@
             "translateVar" "$translate"
             "resultVar"    "$basetexturetransform"
         }
-        "AnimatedOffsetTexture"
-        {
-            "animatedtexturevar"         "$basetexture"
-            "animatedtextureframenumvar" "$frame"
-            "animatedtextureframerate"   "15"
-        }
-        "LessOrEqual"
-        {
-            "lessEqualVar" "$frame"
-            "greaterVar"   "$frame2"
-            "srcVar1"      "$frame2"
-            "srcVar2"      "$frame"
-            "resultVar"    "$frame"
-        }
         "Alpha"
         {
         }
-        "LessOrEqual"
-        {
-            "lessEqualVar" "$frame2"
-            "greaterVar"   "$frame"
-            "srcVar1"      "$alpha"
-            "srcVar2"      "$254"
-            "resultVar"    "$frame"
-        }
-        "LessOrEqual"
+        "LessOrEqual" // switching $translucent and $alphatest depending on $alpha
         {
             "lessEqualVar" "$ftranslucent"
             "greaterVar"   "$falphatest"
             "srcVar1"      "$alpha"
             "srcVar2"      "$254"
             "resultVar"    "$flags"
-        }
-        "Equals"
-        {
-            "srcVar1"   "$frame"
-            "resultVar" "$frame2"
         }
     }
 }

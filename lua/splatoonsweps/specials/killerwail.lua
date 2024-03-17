@@ -15,17 +15,23 @@ ss.killerwail = {
     },
     ---@class SpecialParameters.KillerWail
     Parameters = {
-        DamagePerFrame = 0.1,
-        Duration = 360,
-        CooldownAfterFire = 60,
-        CooldownBeforeFire = 60,
-        Radius = 40,
+        DamagePerFrame       = 0.1,
+        Duration             = 360, -- Duration of holding it
+        CooldownAfterFire    = 60,  -- Duration between deployment and letting us move again
+        CooldownBeforeFire   = 60,  -- Duration between activation and letting us fire it
+        NotificationDuration = 60,  -- Duration between deployment and causing damage
+        AttackDuration       = 180, -- Duration of firing main shockwaves
+        AttackGrowthTime     = 20,  -- Time to grow radius of the shockwaves
+        Radius               = 40,  -- min/max components of TraceHull, apparent radius is 2 * Radius / sqrt(pi)
     },
     Units = {
         DamagePerFrame = "hp",
         Duration = "f",
         CooldownAfterFire = "f",
         CooldownBeforeFire = "f",
+        NotificationDuration = "f",
+        AttackDuration = "f",
+        AttackGrowthTime = "f",
         Radius = "du",
     },
 }
