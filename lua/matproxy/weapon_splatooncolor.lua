@@ -1,6 +1,4 @@
 
--- Team Fortress 2 is required.
-if not IsMounted "tf" then return end
 local OldItemTintBind ---@type function
 
 ---@param self table

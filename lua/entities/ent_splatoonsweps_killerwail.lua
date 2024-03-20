@@ -67,22 +67,22 @@ end
 
 function ENT:OnRemove()
     if SERVER then return end
-    local att = self:LookupAttachment "muzzle"
-    local muzzle = self:GetAttachment(att).Pos
-    local p = CreateParticleSystemNoEntity(ss.Particles.BubblerEnd, muzzle, self:GetAngles())
+    local p = CreateParticleSystemNoEntity(ss.Particles.KillerWailEnd, self:WorldSpaceCenter(), self:GetAngles())
     p:SetControlPoint(1, LerpVector(0.5, self:GetInkColorProxy(), ss.vector_one))
     p:SetControlPoint(2, ss.vector_one * 20)
 end
 
-function ENT:Think()
-    local weapon = self:GetOwner() ---@cast weapon SplatoonWeaponBase
-    local elapsed = CurTime() - self.InitTime
-    local att = self:LookupAttachment "muzzle"
-    local muzzle = self:GetAttachment(att).Pos
-    local dir = self:GetForward()
-    local param = ss.killerwail.Parameters
-    if SERVER then
-        if elapsed > param.AttackDuration + param.NotificationDuration then SafeRemoveEntity(self) end
+if SERVER then
+    function ENT:Think()
+        local weapon = self:GetOwner() ---@cast weapon SplatoonWeaponBase
+        local elapsed = CurTime() - self.InitTime
+        local att = self:LookupAttachment "muzzle"
+        local muzzle = self:GetAttachment(att).Pos
+        local dir = self:GetForward()
+        local param = ss.killerwail.Parameters
+        if elapsed > param.AttackDuration + param.NotificationDuration then
+            SafeRemoveEntity(self)
+        end
         if elapsed > param.NotificationDuration then
             elapsed = elapsed - param.NotificationDuration
             if not self.SoundPlayed then
@@ -112,8 +112,16 @@ function ENT:Think()
                 victim:TakeDamageInfo(dmg)
             end
         end
-    else
-        self:SetNextClientThink(CurTime())
+        self:NextThink(CurTime() + ss.FrameToSec)
+        return true
+    end
+else
+    function ENT:Draw()
+        local pos = self:GetPos()
+        local offset = self:GetRight() * math.sin(2 * math.pi * ss.SecToFrame / 6 * CurTime()) * 2
+        self:SetPos(pos + offset)
+        self:SetupBones()
+
         if CurTime() > self.NextEmitSplash then
             self.NextEmitSplash = CurTime() + 4 * ss.FrameToSec
             for i = 1, 4 do
@@ -130,7 +138,9 @@ function ENT:Think()
                 util.Effect("SplatoonSWEPsMuzzleSplash", e)
             end
         end
+
+        self:DrawModel()
+        self:SetPos(pos)
+        self:SetupBones()
     end
-    self:NextThink(CurTime() + ss.FrameToSec)
-    return true
 end

@@ -5,12 +5,14 @@ local mdl = Model "models/splatoonsweps/effects/killerwail_effect.mdl"
 local EFFECT = EFFECT
 ---@cast EFFECT EFFECT.KillerWail
 ---@class EFFECT.KillerWail : EFFECT
----@field AnimFrame integer
----@field DesiredRadius number
----@field Entity ENT.KillerWail
+---@field AnimFrame        integer
+---@field DesiredRadius    number
+---@field Entity           ENT.KillerWail
 ---@field HasSpawnedEffect boolean
----@field InitTime number
----@field Scale number
+---@field InitTime         number
+---@field NextEmitTime     number
+---@field Scale            number
+---@field Pos              Vector
 
 local mat = Material "splatoonsweps/weapons/specials/killerwail/killerwail_notification.vmt"
 local mat2 = Material "splatoonsweps/weapons/specials/killerwail/killerwail_transition_additive.vmt"
@@ -27,6 +29,7 @@ function EFFECT:Init(e)
     self.AnimFrame = 0
     self.HasSpawnedEffect = false
     self.InitTime = CurTime()
+    self.NextEmitTime = CurTime()
     self.DesiredRadius = ss.killerwail.Parameters.Radius * 2 / math.sqrt(math.pi)
     self:SetRenderMode(RENDERMODE_TRANSCOLOR)
     self:SetModel(mdl)
@@ -77,6 +80,20 @@ function EFFECT:Think()
             self:SetSkin(0)
             self:SetBodygroup(1, 1)
             self.Scale = scale
+            if CurTime() > self.NextEmitTime then
+                self.NextEmitTime = CurTime() + 8 * ss.FrameToSec
+                local ang = self:GetAngles()
+                local colorvec = self:GetColor():ToVector()
+                local radiusvec = ss.vector_one * radius
+                for i = 0, 512 do
+                    local amount = 128 * (i + 0.5 + CurTime() % 1)
+                    local org = self.Pos + self:GetForward() * amount
+                    if not ss.IsInWorld(org) then break end
+                    local p = CreateParticleSystemNoEntity(ss.Particles.KillerWail, org, ang)
+                    p:SetControlPoint(1, colorvec)
+                    p:SetControlPoint(2, radiusvec)
+                end
+            end
         else
             t = t - param.AttackDuration
             if t > ShrinkDuration then return false end
@@ -86,8 +103,17 @@ function EFFECT:Think()
     end
 
     local color = self:GetColor()
-    if IsValid(ent) then color = ent:GetInkColorProxy():ToColor() end
+    if IsValid(ent) then
+        local att = ent:GetAttachment(ent:LookupAttachment "muzzle")
+        self.Pos = att.Pos
+        self:SetRenderOrigin(LocalPlayer():EyePos() + LocalPlayer():EyeAngles():Forward() * 10)
+        self:SetPos(att.Pos)
+        self:SetAngles(att.Ang)
+        color = ent:GetInkColorProxy():ToColor()
+    end
     self:SetColor(ColorAlpha(color, alpha))
+
+
     return true
 end
 
@@ -98,14 +124,13 @@ function EFFECT:Render()
         local frac = self.Scale / self.DesiredRadius
         mat2:SetVector("$color", LerpVector(frac, ss.vector_one, self:GetColor():ToVector()))
     end
-    if IsValid(self.Entity) then
-        local att = self.Entity:GetAttachment(self.Entity:LookupAttachment "muzzle")
-        self:SetPos(att.Pos)
-        self:SetAngles(att.Ang)
-    end
 
     local m = Matrix()
+    local org = self:GetRenderOrigin()
     m:Scale(Vector(self.DesiredRadius, self.Scale, self.Scale))
     self:EnableMatrix("RenderMultiply", m)
+    self:SetRenderOrigin(self.Pos)
+    self:SetupBones()
     self:DrawModel()
+    self:SetRenderOrigin(org)
 end
