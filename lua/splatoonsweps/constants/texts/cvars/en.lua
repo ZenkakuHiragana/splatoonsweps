@@ -68,6 +68,7 @@ Make sure your graphics card has enough space of video memory.
     },
     weapon_splatoonsweps_shooter = {
         NZAP_PistolStyle = "Hold N-ZAP series like a pistol. (1: enabled, 0: disabled)",
+        AutomaticNozzlenose = "Automatically fire burst-fire weapons such as L-3 Nozzlenose and H-3 Nozzlenose. (1: enabled, 0: disabled)",
         weapon_splatoonsweps_heroshot = {
             Level = "The level of Hero Shot Replica. (0, 1, 2, 3 -> Level 1, 2, 3, 4)",
         },

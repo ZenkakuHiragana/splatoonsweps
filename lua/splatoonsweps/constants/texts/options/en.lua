@@ -69,6 +69,8 @@ Otherwise, all victims splatted by the SWEPs will.]],
     weapon_splatoonsweps_shooter = {
         NZAP_PistolStyle = "N-ZAP: Pistol-like",
         NZAP_PistolStyle_help = "For N-ZAP '83, N-ZAP '85, and N-ZAP '89, you can hold them like HL2 revolver.",
+        AutomaticNozzlenose = "Nozzlenoses: Fully-automatic",
+        AutomaticNozzlenose_help = "If checked, you will automatically fire your burst-fire weapons such as L-3 Nozzlenose and H-3 Nozzlenose.",
         weapon_splatoonsweps_heroshot = {
             Level = "Hero Shot Level",
         },

@@ -337,6 +337,10 @@ function SWEP:CustomMoveSpeed()
 end
 
 function SWEP:Move(ply)
+    if self.Parameters.mTripleShotSpan > 0 then
+        self.Primary.Automatic = self:GetNWBool "automaticnozzlenose"
+    end
+
     if ply:IsPlayer() then ---@cast ply Player
         if self:GetNWBool "toggleads" then
             if ply:KeyPressed(IN_USE) then

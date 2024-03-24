@@ -68,6 +68,7 @@ return {CVars = {
     },
     weapon_splatoonsweps_shooter = {
         NZAP_PistolStyle = "N-ZAP系統をピストルのように構える。 (1: 有効, 0: 無効)",
+        AutomaticNozzlenose = "自動的にリールガン系統のブキを連打する。 (1: 有効, 0: 無効)",
         weapon_splatoonsweps_heroshot = {
             Level = "ヒーローシューターレプリカのレベル。 (0, 1, 2, 3 → レベル 1, 2, 3, 4)",
         },
