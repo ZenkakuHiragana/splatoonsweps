@@ -730,7 +730,6 @@ function SWEP:PrimaryAttackEntryPoint(auto)
     if CurTime() < self:GetNextPrimaryFire() then return end
     if not self:CheckCanStandup() then return end
     if auto and ss.sp and CLIENT then return end
-    if not auto and CurTime() < self:GetCooldown() then return end
     if not auto and Owner:IsPlayer() and self:GetKey() ~= IN_ATTACK then return end
     local able = self:GetInk() > 0 and self:CheckCanStandup()
     ss.SuppressHostEventsMP(Owner)

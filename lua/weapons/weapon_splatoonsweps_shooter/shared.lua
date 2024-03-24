@@ -249,11 +249,10 @@ function SWEP:SharedPrimaryAttack(able, auto)
     if not IsValid(self:GetOwner()) then return end
     local p = self.Parameters
     local ts = ss.GetTimeScale(self:GetOwner())
-    self:SetNextPrimaryFire(CurTime() + p.mRepeatFrame / ts)
     self:ConsumeInk(p.mInkConsume)
     self:SetReloadDelay(p.mInkRecoverStop)
-    self:SetCooldown(math.max(self:GetCooldown(),
-    CurTime() + math.min(p.mRepeatFrame, ss.CrouchDelay) / ts))
+    self:SetNextPrimaryFire(CurTime() + p.mRepeatFrame / ts)
+    self:SetCooldown(math.max(self:GetCooldown(), CurTime() + ss.CrouchDelay / ts))
 
     if not able then
         if p.mTripleShotSpan > 0 then self:SetCooldown(CurTime()) end
@@ -266,11 +265,7 @@ function SWEP:SharedPrimaryAttack(able, auto)
     self:SetPreviousHasInk(true)
     self:SetAimTimer(CurTime() + ss.AimDuration)
     if self:IsFirstTimePredicted() then self.ModifyWeaponSize = SysTime() end
-    if p.mTripleShotSpan > 0 then
-        local d = self.TripleSchedule:GetDone()
-        if d == 1 or d == 2 then return end
-        self:SetCooldown(CurTime() + (p.mRepeatFrame * 2 + p.mTripleShotSpan) / ts)
-        self:SetAimTimer(self:GetCooldown())
+    if p.mTripleShotSpan > 0 and self.TripleSchedule:GetDone() == 0 then
         self.TripleSchedule:SetDone(1)
     end
 end
@@ -301,19 +296,22 @@ function SWEP:CustomDataTables()
 
     if self.Parameters.mTripleShotSpan > 0 then
         self.TripleSchedule = self:AddNetworkSchedule(0, function(_, schedule)
-            if schedule:GetDone() == 1 or schedule:GetDone() == 2 then
-                if self:GetNextPrimaryFire() > CurTime() then
-                    schedule:SetDone(schedule:GetDone() - 1)
-                else
-                    self:PrimaryAttackEntryPoint(true)
-                end
-
-                return
+            local d = schedule:GetDone()
+            if d == 0 or self:GetNextPrimaryFire() > CurTime() then
+                -- do not increase shot count unless it's good time for next fire
+                schedule:SetDone(d - 1)
+            else
+                self:PrimaryAttackEntryPoint(true)
+                if d < 2 then return end -- the final shot makes longer cooldown time
+                local p = self.Parameters
+                local ts = ss.GetTimeScale(self:GetOwner())
+                local t = CurTime() + p.mTripleShotSpan / ts
+                self:SetNextPrimaryFire(math.max(self:GetNextPrimaryFire(), t))
+                self:SetCooldown(math.max(self:GetCooldown(), t))
+                self:SetAimTimer(self:GetCooldown())
+                schedule:SetDone(-1)
             end
-
-            schedule:SetDone(3)
         end)
-        self.TripleSchedule:SetDone(3)
     end
 end
 
