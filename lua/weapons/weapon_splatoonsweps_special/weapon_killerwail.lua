@@ -1,6 +1,10 @@
 
 AddCSLuaFile()
-local SWEP = SWEP ---@cast SWEP SWEP.Special
+
+---@class SWEP.KillerWail : SWEP.Special
+---@field Crosshair CSEnt
+local SWEP = SWEP
+
 local ss = SplatoonSWEPs
 if not (ss and SWEP) then return end
 
@@ -88,7 +92,54 @@ if SERVER then
         end
     end
 else
+    ---@param self SWEP.KillerWail
+    ---@param att AngPos
+    local function Draw(self, att)
+        local ent = self.Crosshair
+        if not IsValid(ent) then return end
+        local m = Matrix()
+        m:Scale(ss.vector_one * ss.killerwail.Parameters.Radius * 2 / math.sqrt(math.pi))
+        ent:SetNoDraw(true)
+        ent:SetRenderMode(RENDERMODE_TRANSCOLOR)
+        ent:SetBodygroup(1, 0)
+        ent:EnableMatrix("RenderMultiply", m)
+        ent:SetSkin(3)
+        ent:SetPos(att.Pos)
+        ent:SetAngles(LocalPlayer():GetAimVector():Angle())
+        ent:SetupBones()
+        local c = ss.GetColor(ss.CrosshairColors[self:GetNWInt "inkcolor"]):ToVector()
+        render.SetColorModulation(c:Unpack())
+        ent:DrawModel()
+        render.SetColorModulation(1, 1, 1)
+    end
+
+    local drawhud = GetConVar "cl_drawhud"
     function SWEP:PreDrawWorldModel()
-        return self:Clip1() <= 0
+        if self:Clip1() <= 0 then return true end
+        if self:GetOwner() ~= LocalPlayer() then return end
+        if not ss.GetOption "drawcrosshair" then return end
+        if not drawhud:GetBool() then return end
+        Draw(self, self:GetAttachment(self:LookupAttachment "muzzle"))
+    end
+
+    function SWEP:PreViewModelDrawn(vm)
+        ---@cast vm Entity.Colorable
+        function vm.GetInkColorProxy()
+            return ss.ProtectedCall(self.GetInkColorProxy, self) or ss.vector_one
+        end
+        if self:Clip1() <= 0 then return end
+        if self:GetOwner() ~= LocalPlayer() then return end
+        if not ss.GetOption "drawcrosshair" then return end
+        if not drawhud:GetBool() then return end
+        Draw(self, vm:GetAttachment(vm:LookupAttachment "muzzle"))
+    end
+
+    local mdl = Model "models/splatoonsweps/effects/killerwail_effect.mdl"
+    function SWEP:ClientInit()
+        self.Crosshair = ClientsideModel(mdl, RENDERGROUP_TRANSLUCENT)
+    end
+
+    function SWEP:ClientOnRemove()
+        if IsValid(self.Crosshair) then self.Crosshair:Remove() end
     end
 end

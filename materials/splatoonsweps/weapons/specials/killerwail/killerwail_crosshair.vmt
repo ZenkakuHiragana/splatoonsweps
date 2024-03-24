@@ -1,0 +1,38 @@
+"UnlitGeneric"
+{
+    "$basetexture"            "splatoonsweps/weapons/specials/killerwail/killerwail_crosshair"
+    "$basetexturetransform"   "center .5 .5 scale 1 1 rotate 0 translate 0 0"
+    "$detail"                 "splatoonsweps/weapons/specials/killerwail/killerwail_crosshair_mask"
+    "$detailtexturetransform" "center .5 .5 scale 1 0.05 rotate 0 translate 0 0.48"
+    "$detailblendmode"        "9"
+    "$detailblendfactor"      "1"
+    "$detailscale"            "1"
+    "$frame"                  "7"
+    "$model"                  "1"
+    "$alphatest"              "1"
+    "$alphatestreference"     "0.0625"
+    "$scale"                  "[1 0.6365]"
+    "$translate"              "0"
+    "Proxies"
+    {
+        "LinearRamp"
+        {
+            "rate"         "6"
+            "initialValue" "0"
+            "resultVar"    "$translate"
+        }
+        "WrapMinMax"
+        {
+            "min"       "0"
+            "max"       "1"
+            "srcVar1"   "$translate"
+            "resultVar" "$translate"
+        }
+        "TextureTransform"
+        {
+            "scaleVar"     "$scale"
+            "translateVar" "$translate"
+            "resultVar"    "$basetexturetransform"
+        }
+    }
+}
