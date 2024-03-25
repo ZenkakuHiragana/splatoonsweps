@@ -576,11 +576,13 @@ function SWEP:Move(ply, mv)
             self.NotEnoughInk = false
             self.Primary.Automatic = self:GetNWBool "automaticbrush"
             self:SetMode(self.MODE.ATTACK2)
+            self:SetNextPrimaryFire(CurTime() + p.mPaintBrushSwingRepeatFrame)
             self:SetCooldown(CurTime() + p.mPaintBrushSwingRepeatFrame)
             self:SetSwingEndTime(CurTime() + self.SwingBackWait)
             self:SetIsSecondSwing(not self:GetIsSecondSwing())
         else
             self:SetMode(self.MODE.PAINT)
+            self:SetNextPrimaryFire(CurTime() + self.SwingBackWait)
             self:SetCooldown(CurTime() + self.SwingBackWait)
             self:SetWeaponAnim(ACT_VM_SECONDARYATTACK)
             self:ResetSequence "fire2" -- This is needed in multiplayer to predict muzzle effects.
